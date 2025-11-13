@@ -2,11 +2,13 @@ import type GameObject from "./game-object.js";
 import { type IRenderer } from "../shared/irenderer.js";
 import { type Canvas } from "./system.js";
 import { type ILayer } from "../shared/ilayer.js";
+import { SystemEventEmitter, SystemEvent } from "./system-event.js";
 
 export default class Layer implements ILayer {
     public canvas!: Canvas;
     public renderer!: IRenderer;
     protected objects: GameObject[] = [];
+    public readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(true, true);
 
     public onAttach(): void { }
 
@@ -54,5 +56,9 @@ export default class Layer implements ILayer {
 
     getObjects(): readonly GameObject[] {
         return this.objects;
+    }
+
+    onEvent(event: SystemEvent): void {
+        this.eventEmitter.dispatchEvent(event.type);
     }
 }

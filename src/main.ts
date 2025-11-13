@@ -3,6 +3,7 @@ import { System } from "./flint/runtime/system.js";
 import Input from "./flint/shared/input.js";
 import InputAxis from "./flint/shared/input-axis.js";
 import Editor from "./flint/editor/editor.js";
+import Layer from "./flint/runtime/layer.js";
 
 System.init(new Renderer2D());
 
@@ -27,12 +28,11 @@ Input.inputAxes = [
     ])
 ];
 
-// const layer = new Layer();
+//const layer = new Layer();
 // layer.addObject(new GameObject([
 //     new Shape(),
 // ], new Transform(Input.mousePosition)));
 Editor.init();
-
 
 System.pushLayer(Editor.instance);
 System.run();

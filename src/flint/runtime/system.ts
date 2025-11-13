@@ -1,6 +1,7 @@
 import type { ILayer } from "../shared/ilayer.js";
 import Input from "../shared/input.js";
 import type { IRenderer } from "../shared/irenderer.js";
+import { SystemEventEmitter } from "./system-event.js";
 
 
 export type Canvas = {
@@ -8,12 +9,14 @@ export type Canvas = {
     ctx: RenderingContext
 }
 
+
+
 export class System {
     public static layers: ILayer[] = [];
 
 
     public static showColliders: boolean = false;
-
+    public static readonly dpi = window.devicePixelRatio;
 
     private static lastFrame: number;
     private static _deltaTime: number;
@@ -22,6 +25,7 @@ export class System {
 
     private static readonly renderingContext = CanvasRenderingContext2D; //TODO: move this to a config file
     private static _renderer: IRenderer;
+    private static readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(false, true);
 
     public static get deltaTime(): number {
         return this._deltaTime;
@@ -41,13 +45,17 @@ export class System {
     public static init(renderer: IRenderer): void {
         this.initRootDiv();
         this._renderer = renderer;
-
         Input.init();
+
+        for (const event of ["mousedown", "mouseup", "mousemove", "touchstart", "touchmove", "touchend"]) {
+            document.addEventListener(event, this.sendEventToLayers.bind(this));
+        }
     }
 
     public static pushLayer(layer: ILayer): void {
         layer.canvas = this.createCanvas();
         layer.renderer = this._renderer;
+        this.eventEmitter.addEventListener(layer.onEvent.bind(layer));
 
         this.layers.push(layer);
         layer.onAttach();
@@ -119,5 +127,9 @@ export class System {
         }
 
         this.rootDiv = div;
+    }
+
+    private static sendEventToLayers(event: Event): void {
+        this.eventEmitter.dispatchEvent(event.type);
     }
 }

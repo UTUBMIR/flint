@@ -34,37 +34,38 @@ export default class Input {
 
 
     public static init() {
-        document.addEventListener("keydown", this.keyDown.bind(this));
-        document.addEventListener("keyup", this.keyUp.bind(this));
+        document.addEventListener("keydown", this.onKeyDown.bind(this));
+        document.addEventListener("keyup", this.onKeyUp.bind(this));
 
-        document.addEventListener("mousedown", this.mouseDown.bind(this));
-        document.addEventListener("mouseup", this.mouseUp.bind(this));
+        document.addEventListener("mousedown", this.onMouseDown.bind(this));
+        document.addEventListener("mouseup", this.onMouseUp.bind(this));
 
-        document.addEventListener("mousemove", this.mouseMove.bind(this));
-        document.addEventListener("touchmove", this.mouseMove.bind(this));
+        document.addEventListener("touchstart", this.onMouseMove.bind(this));
+        document.addEventListener("mousemove", this.onMouseMove.bind(this));
+        document.addEventListener("touchmove", this.onMouseMove.bind(this));
     }
 
-    private static keyDown(event: KeyboardEvent) {
+    private static onKeyDown(event: KeyboardEvent) {
         this.pressedKeys.add(event.code);
         this.updateInputAxes();
     }
 
-    private static keyUp(event: KeyboardEvent) {
+    private static onKeyUp(event: KeyboardEvent) {
         this.pressedKeys.delete(event.code);
         this.updateInputAxes();
     }
 
-    private static mouseDown(event: MouseEvent) {
+    private static onMouseDown(event: MouseEvent) {
         this.pressedMouseButtons.delete(event.button);
         this.updateInputAxes();
     }
 
-    private static mouseUp(event: MouseEvent) {
+    private static onMouseUp(event: MouseEvent) {
         this.pressedMouseButtons.delete(event.button);
         this.updateInputAxes();
     }
 
-    private static mouseMove(event: MouseEvent | TouchEvent) {
+    private static onMouseMove(event: MouseEvent | TouchEvent) {
         if (event instanceof MouseEvent) {
             this.mousePosition.set(event.pageX, event.pageY);
         }
