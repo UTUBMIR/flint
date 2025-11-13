@@ -1,14 +1,14 @@
 import type GameObject from "./game-object.js";
-import type { IRenderer } from "../shared/irenderer.js";
+import { type IRenderer } from "../shared/irenderer.js";
 import { type Canvas } from "./system.js";
+import { type ILayer } from "../shared/ilayer.js";
 
-export default class Layer {
+export default class Layer implements ILayer {
     public canvas!: Canvas;
     public renderer!: IRenderer;
     protected objects: GameObject[] = [];
 
-    public onAttach(): void {
-    }
+    public onAttach(): void { }
 
     /** Called every frame */
     onUpdate(): void {

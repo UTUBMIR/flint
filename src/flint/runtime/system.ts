@@ -1,5 +1,6 @@
+import type { ILayer } from "../shared/ilayer.js";
+import Input from "../shared/input.js";
 import type { IRenderer } from "../shared/irenderer.js";
-import Layer from "./layer.js";
 
 
 export type Canvas = {
@@ -8,10 +9,19 @@ export type Canvas = {
 }
 
 export class System {
-    public static layers: Layer[] = [];
+    public static layers: ILayer[] = [];
 
 
     public static showColliders: boolean = false;
+
+
+    private static lastFrame: number;
+    private static _deltaTime: number;
+
+    private static rootDiv: HTMLDivElement;
+
+    private static readonly renderingContext = CanvasRenderingContext2D; //TODO: move this to a config file
+    private static _renderer: IRenderer;
 
     public static get deltaTime(): number {
         return this._deltaTime;
@@ -21,26 +31,23 @@ export class System {
         return 1 / this._deltaTime;
     }
 
-
-    private static lastFrame: number;
-    private static _deltaTime: number;
-
-    private static rootDiv: HTMLDivElement;
-
-    private static readonly renderingContext = CanvasRenderingContext2D; //TODO: move this to a config file
-    private static renderer: IRenderer;
+    public static get renderer(): IRenderer {
+        return this._renderer;
+    }
 
 
     private constructor() { }
 
     public static init(renderer: IRenderer): void {
         this.initRootDiv();
-        this.renderer = renderer;
+        this._renderer = renderer;
+
+        Input.init();
     }
 
-    public static pushLayer(layer: Layer): void {
+    public static pushLayer(layer: ILayer): void {
         layer.canvas = this.createCanvas();
-        layer.renderer = this.renderer;
+        layer.renderer = this._renderer;
 
         this.layers.push(layer);
         layer.onAttach();

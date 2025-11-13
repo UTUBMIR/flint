@@ -1,5 +1,6 @@
-export default interface IVector {
+export interface IVector {
     set(x: number, y: number): IVector;
+    copy(): IVector;
 
     add(other: IVector): IVector;
 
@@ -12,5 +13,4 @@ export default interface IVector {
     magnitude(): number;
 
     normalize(length: number): IVector
-// eslint-disable-next-line semi
 };
