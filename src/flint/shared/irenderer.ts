@@ -9,8 +9,16 @@ export interface IRenderer {
 
     set fillColor(color: Color);
 
+    set lineColor(color: Color);
+    set lineWidth(width: number);
+    set lineJoin(lineJoin: "bevel" | "miter" | "round");
+
+    set shadowColor(color: Color);
+    set shadowBlur(blur: number);
+
     clearCanvas(): void;
     fillCanvas(): void;
 
     rect(position: Vector2D, size: Vector2D): void;
+    strokeRect(position: Vector2D, size: Vector2D): void;
 }

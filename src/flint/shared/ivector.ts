@@ -12,4 +12,5 @@ export default interface IVector {
     magnitude(): number;
 
     normalize(length: number): IVector
+// eslint-disable-next-line semi
 };

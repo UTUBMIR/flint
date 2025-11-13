@@ -1,4 +1,4 @@
-import type { IRenderer } from "./irenderer.js";
+import type { IRenderer } from "../shared/irenderer.js";
 import Layer from "./layer.js";
 
 

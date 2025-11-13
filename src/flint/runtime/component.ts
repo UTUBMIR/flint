@@ -1,5 +1,5 @@
-import GameObject from "./game-object.js";
-import type { IRenderer } from "./irenderer.js";
+import type GameObject from "./game-object.js";
+import type { IRenderer } from "../shared/irenderer.js";
 
 export default abstract class UGLComponent {
     parent!: GameObject;

@@ -1,5 +1,5 @@
 import type GameObject from "./game-object.js";
-import type { IRenderer } from "./irenderer.js";
+import type { IRenderer } from "../shared/irenderer.js";
 import { type Canvas } from "./system.js";
 
 export default class Layer {

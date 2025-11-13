@@ -15,6 +15,27 @@ export class Renderer2D implements IRenderer {
         this.ctx.fillStyle = color;
     }
 
+
+    set lineColor(color: Color) {
+        this.ctx.strokeStyle = color;
+    }
+
+    set lineWidth(width: number) {
+        this.ctx.lineWidth = width;
+    }
+
+    set lineJoin(lineJoin: "bevel" | "miter" | "round") {
+        this.ctx.lineJoin = lineJoin;
+    }
+
+
+    set shadowColor(color: Color) {
+        this.ctx.shadowColor = color;
+    }
+    set shadowBlur(blur: number) {
+        this.ctx.shadowBlur = blur;
+    }
+
     public clearCanvas(): void {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
@@ -25,5 +46,9 @@ export class Renderer2D implements IRenderer {
 
     public rect(position: Vector2D, size: Vector2D): void {
         this.ctx.fillRect(position.x, position.y, size.x, size.y);
+    }
+
+    public strokeRect(position: Vector2D, size: Vector2D): void {
+        this.ctx.strokeRect(position.x - this.ctx.lineWidth / 2, position.y - this.ctx.lineWidth / 2, size.x + this.ctx.lineWidth, size.y + this.ctx.lineWidth);
     }
 }

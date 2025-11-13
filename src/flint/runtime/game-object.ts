@@ -1,12 +1,16 @@
-import Component from "./component.js";
-import type { IRenderer } from "./irenderer.js";
+import type Component from "./component.js";
+import Transform from "./transform.js";
+import type { IRenderer } from "../shared/irenderer.js";
 import Layer from "./layer.js";
 
 export default class GameObject {
     public layer!: Layer;
     private components: Component[] = [];
+    public readonly transform;
 
-    public constructor(components?: Component[]) {
+    public constructor(components?: Component[], transform?: Transform) {
+        this.transform = transform ?? new Transform();
+
         if (components) {
             this.addComponents(components);
         }
