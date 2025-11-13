@@ -1,0 +1,6 @@
+node_modules/
+dist/
+eslint.config.js
+*.js
+*.js.map
+*.log
