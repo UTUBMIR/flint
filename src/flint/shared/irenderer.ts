@@ -1,4 +1,4 @@
-import { type Color, type TextBaseLine } from "./graphics.js";
+import { type Color, type TextAlign, type TextBaseLine } from "./graphics.js";
 import Vector2D from "./vector2d.js";
 
 export interface IRenderer {
@@ -17,6 +17,7 @@ export interface IRenderer {
     set shadowBlur(blur: number);
 
     set textBaseLine(baseline: TextBaseLine);
+    set textAlign(textAlign: TextAlign);
 
     set fontSize(size: number);
 

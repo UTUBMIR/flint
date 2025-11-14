@@ -5,18 +5,17 @@ import Vector2D from "../shared/vector2d.js";
 import Editor from "./editor.js";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };;
 import type { Color } from "../shared/graphics.js";
-import type { IWindowObject } from "./iwindow-object.js";
 
-export default class Window {
+
+export default abstract class Window {
     public position: Vector2D;
     public size: Vector2D;
     public dragOffset: Vector2D = new Vector2D();
     public static readonly borderWidth = 5;
-    private static readonly minSize = new Vector2D(100, 100);
+    protected minSize = new Vector2D(100, 100);
+    public static readonly titleBarHeight = 20;
     private resize = 0;
     private resizeSide = 0;
-
-    private windowObjects: IWindowObject[] = [];
 
     public readonly title: string;
 
@@ -28,17 +27,9 @@ export default class Window {
         this.constrainPosition();
     }
 
-    public onAttach() {
-        for (const object of this.windowObjects) {
-            object.onAttach();
-        }
-    }
+    public abstract onAttach():void;
 
-    public onUpdate() {
-        for (const object of this.windowObjects) {
-            object.onUpdate();
-        }
-    }
+    public abstract onUpdate(): void;
 
     public onRender(r: IRenderer) {
         r.fillColor = visualsConfig.colors.windowColor as Color;
@@ -53,17 +44,17 @@ export default class Window {
         r.fillRect(this.position, this.size);
 
         r.fillColor = visualsConfig.colors.titleColor as Color;
-        r.fillRect(this.position, new Vector2D(this.size.x, 20));
+        r.fillRect(this.position, new Vector2D(this.size.x, Window.titleBarHeight));
 
         r.fillColor = "#a8baffff";
         r.textBaseLine = "middle";
+        r.textAlign = "left";
         r.fontSize = 16;
-        r.fillText(this.position.add(new Vector2D(5, 10)), this.title);
-
-        for (const object of this.windowObjects) {
-            object.onRender(r);
-        }
+        r.fillText(this.position.add(new Vector2D(5, Window.titleBarHeight / 2)), this.title);
+        this.onContentRender(r);
     }
+
+    public abstract onContentRender(r: IRenderer): void;
 
     public onEvent(event: SystemEvent): void {
         event.stopImmediate = true;
@@ -213,10 +204,10 @@ export default class Window {
 
                     // FIX: width change only to the right
                     const newWidth = mx - x;
-                    if (newWidth >= Window.minSize.x) {
+                    if (newWidth >= this.minSize.x) {
                         this.size.x = newWidth;
                     } else {
-                        this.size.x = Window.minSize.x;
+                        this.size.x = this.minSize.x;
                     }
                 } else { // BOTTOM-LEFT
                     this.position.x = mx;
@@ -226,17 +217,17 @@ export default class Window {
                 break;
 
         }
-        if (this.size.x < Window.minSize.x) {
+        if (this.size.x < this.minSize.x) {
             if (topOrLeft || this.resize === 4) {
-                this.position.x = mx - (Window.minSize.x - this.size.x);
+                this.position.x = mx - (this.minSize.x - this.size.x);
             }
-            this.size.x = Window.minSize.x;
+            this.size.x = this.minSize.x;
         }
-        if (this.size.y < Window.minSize.y) {
+        if (this.size.y < this.minSize.y) {
             if (topOrLeft) {
-                this.position.y = my - (Window.minSize.y - this.size.y);
+                this.position.y = my - (this.minSize.y - this.size.y);
             }
-            this.size.y = Window.minSize.y;
+            this.size.y = this.minSize.y;
         }
     }
 

@@ -1,5 +1,5 @@
 import { type IRenderer } from "./irenderer.js";
-import { type Color, type TextBaseLine } from "./graphics.js";
+import { type Color, type TextAlign, type TextBaseLine } from "./graphics.js";
 import Vector2D from "./vector2d.js";
 
 export class Renderer2D implements IRenderer {
@@ -44,6 +44,10 @@ export class Renderer2D implements IRenderer {
 
     set textBaseLine(baseline: TextBaseLine) {
         this.ctx.textBaseline = baseline;
+    }
+
+    set textAlign(textAlign: TextAlign) {
+        this.ctx.textAlign = textAlign;
     }
 
     set fontSize(size: number) {

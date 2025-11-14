@@ -4,6 +4,7 @@ import type { ILayer } from "../shared/ilayer.js";
 import type { IRenderer } from "../shared/irenderer.js";
 import Vector2D from "../shared/vector2d.js";
 import Window from "./window.js";
+import Viewport from "./windows/viewport.js";
 
 export default class Editor implements ILayer {
     private static windows: Window[] = [];
@@ -14,11 +15,14 @@ export default class Editor implements ILayer {
     public static resizedWindow: Window | undefined;
     public readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(true, true);
 
+    public static viewportWindow: Viewport;
+
     private constructor() { }
 
+
     public static init(): void {
-        this.pushWindow(new Window(new Vector2D(200, 200), new Vector2D(300, 200), "Inspector"));
-        this.pushWindow(new Window(new Vector2D(250, 250), new Vector2D(300, 200)));
+        this.viewportWindow = new Viewport(new Vector2D(200, 200), new Vector2D(300, 200));
+        this.pushWindow(this.viewportWindow);
     }
 
     public onAttach(): void { }
@@ -38,7 +42,6 @@ export default class Editor implements ILayer {
         this.instance.eventEmitter.addEventListener(window.onEvent.bind(window));
 
         window.onAttach();
-
     }
 
     public onEvent(event: SystemEvent): void {

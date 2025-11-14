@@ -5,3 +5,4 @@ export type HEX = `#${string}`;
 export type Color = RGB | RGBA | HEX;
 
 export type TextBaseLine = "top" | "hanging" | "alphabetic" | "ideographic" | "bottom" | "middle";
+export type TextAlign = "left" | "right" | "center" | "start" | "end";
