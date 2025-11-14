@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.vs/
 eslint.config.js
 *.js
 *.js.map

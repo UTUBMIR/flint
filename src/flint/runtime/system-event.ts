@@ -41,23 +41,25 @@ export class SystemEventEmitter {
         }
     }
 
-    public dispatchEvent(event: string): void {
+    public dispatchEvent(event: string): boolean {
         const systemEvent = new SystemEvent(event);
         for (let i = 0; i < this.listeners.length; ++i) {
             const listener = this.listeners[i];
-            if (!listener) return;
+            if (!listener) return true;
 
             listener(systemEvent);
             if (this.stopImmediate) {
                 if (systemEvent.stopImmediate) {
                     systemEvent.stopPropagationToNextLayer();
-                    break;
+                    return false;
                 }
                 else if (systemEvent.stopNextLayer) {
-                    break;
+                    return false;
+
                 }
             }
         }
+        return true;
     }
 
     public removeEventListener(listener: SystemEventListener): void {

@@ -3,7 +3,6 @@ import { System } from "./flint/runtime/system.js";
 import Input from "./flint/shared/input.js";
 import InputAxis from "./flint/shared/input-axis.js";
 import Editor from "./flint/editor/editor.js";
-import Layer from "./flint/runtime/layer.js";
 
 System.init(new Renderer2D());
 

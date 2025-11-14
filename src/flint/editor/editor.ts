@@ -11,6 +11,7 @@ export default class Editor implements ILayer {
     public renderer!: IRenderer;
     public static readonly instance: Editor = new Editor();
     public static draggedWindow: Window | undefined;
+    public static resizedWindow: Window | undefined;
     public readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(true, true);
 
     private constructor() { }
@@ -41,7 +42,9 @@ export default class Editor implements ILayer {
     }
 
     public onEvent(event: SystemEvent): void {
-        this.eventEmitter.dispatchEvent(event.type);
+        if (this.eventEmitter.dispatchEvent(event.type)) {
+            document.body.style.cursor = "initial";
+        }
     }
 
     public static moveWindowUp(window: Window): void {
