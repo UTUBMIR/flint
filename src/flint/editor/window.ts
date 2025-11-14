@@ -13,6 +13,7 @@ export default class Window {
     public size: Vector2D;
     public dragOffset: Vector2D = new Vector2D();
     public static readonly borderWidth = 5;
+    private static readonly minSize = new Vector2D(100, 100);
     private resize = 0;
     private resizeSide = 0;
 
@@ -198,6 +199,12 @@ export default class Window {
                     this.size.y = my - y;
                 }
                 break;
+        }
+        if (this.size.x < Window.minSize.x) {
+            this.size.x = Window.minSize.x;
+        }
+        if (this.size.y < Window.minSize.y) {
+            this.size.y = Window.minSize.y;
         }
     }
 
