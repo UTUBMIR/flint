@@ -17,7 +17,7 @@ export default class Editor implements ILayer {
     private constructor() { }
 
     public static init(): void {
-        this.pushWindow(new Window(new Vector2D(200, 200), new Vector2D(300, 200)));
+        this.pushWindow(new Window(new Vector2D(200, 200), new Vector2D(300, 200), "Inspector"));
         this.pushWindow(new Window(new Vector2D(250, 250), new Vector2D(300, 200)));
     }
 

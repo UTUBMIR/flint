@@ -1,4 +1,4 @@
-import { type Color } from "./graphics.js";
+import { type Color, type TextBaseLine } from "./graphics.js";
 import Vector2D from "./vector2d.js";
 
 export interface IRenderer {
@@ -16,9 +16,18 @@ export interface IRenderer {
     set shadowColor(color: Color);
     set shadowBlur(blur: number);
 
+    set textBaseLine(baseline: TextBaseLine);
+
+    set fontSize(size: number);
+
+    set fontStyle(style: string);
+
     clearCanvas(): void;
     fillCanvas(): void;
 
-    rect(position: Vector2D, size: Vector2D): void;
+    fillRect(position: Vector2D, size: Vector2D): void;
     strokeRect(position: Vector2D, size: Vector2D): void;
+
+    fillText(position: Vector2D, text: string): void;
+    strokeText(position: Vector2D, text: string): void;
 }

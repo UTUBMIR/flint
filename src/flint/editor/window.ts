@@ -3,10 +3,9 @@ import Input from "../shared/input.js";
 import type { IRenderer } from "../shared/irenderer.js";
 import Vector2D from "../shared/vector2d.js";
 import Editor from "./editor.js";
-
-const windowColor = "#292e4a";
-const windowEdgeColor = "#5d68a8";
-const windowShadowColor = "#3446a8";
+import visualsConfig from "./config/visuals.json" with { type: 'json' };;
+import type { Color } from "../shared/graphics.js";
+import type { IWindowObject } from "./iwindow-object.js";
 
 export default class Window {
     public position: Vector2D;
@@ -17,31 +16,53 @@ export default class Window {
     private resize = 0;
     private resizeSide = 0;
 
-    public constructor(position?: Vector2D, size?: Vector2D) {
+    private windowObjects: IWindowObject[] = [];
+
+    public readonly title: string;
+
+    public constructor(position?: Vector2D, size?: Vector2D, title: string = "new window") {
         this.position = position ?? new Vector2D();
         this.size = size ?? new Vector2D(100, 100);
+        this.title = title;
+
         this.constrainPosition();
     }
 
     public onAttach() {
-
+        for (const object of this.windowObjects) {
+            object.onAttach();
+        }
     }
 
     public onUpdate() {
-
+        for (const object of this.windowObjects) {
+            object.onUpdate();
+        }
     }
 
-    public onRender(renderer: IRenderer) {
-        renderer.fillColor = windowColor;
-        renderer.lineColor = windowEdgeColor;
-        renderer.lineWidth = Window.borderWidth;
-        renderer.lineJoin = "bevel";
+    public onRender(r: IRenderer) {
+        r.fillColor = visualsConfig.colors.windowColor as Color;
+        r.lineColor = visualsConfig.colors.windowEdgeColor as Color;
+        r.lineWidth = Window.borderWidth;
+        r.lineJoin = "bevel";
 
-        renderer.shadowColor = windowShadowColor;
-        renderer.shadowBlur = 20;
+        r.shadowColor = visualsConfig.colors.windowShadowColor as Color;
+        r.shadowBlur = 20;
 
-        renderer.strokeRect(this.position, this.size);
-        renderer.rect(this.position, this.size);
+        r.strokeRect(this.position, this.size);
+        r.fillRect(this.position, this.size);
+
+        r.fillColor = visualsConfig.colors.titleColor as Color;
+        r.fillRect(this.position, new Vector2D(this.size.x, 20));
+
+        r.fillColor = "#a8baffff";
+        r.textBaseLine = "middle";
+        r.fontSize = 16;
+        r.fillText(this.position.add(new Vector2D(5, 10)), this.title);
+
+        for (const object of this.windowObjects) {
+            object.onRender(r);
+        }
     }
 
     public onEvent(event: SystemEvent): void {
@@ -139,7 +160,6 @@ export default class Window {
     }
 
 
-
     private applyResize(): void {
         const mx = Input.mousePosition.x;
         const my = Input.mousePosition.y;
@@ -149,14 +169,12 @@ export default class Window {
         const right = x + this.size.x;
         const bottom = y + this.size.y;
 
-        const leftSide = this.resizeSide === 0;
-        const topSide = this.resizeSide === 0;
+        const topOrLeft = this.resizeSide === 0;
 
         switch (this.resize) {
-
             // LEFT / RIGHT
             case 1:
-                if (leftSide) {
+                if (topOrLeft) {
                     this.position.x = mx;
                     this.size.x = right - mx;
                 } else {
@@ -166,7 +184,7 @@ export default class Window {
 
             // TOP / BOTTOM
             case 2:
-                if (topSide) {
+                if (topOrLeft) {
                     this.position.y = my;
                     this.size.y = bottom - my;
                 } else {
@@ -176,7 +194,7 @@ export default class Window {
 
             // TOP-LEFT / BOTTOM-RIGHT
             case 3:
-                if (leftSide) {
+                if (topOrLeft) {
                     this.position.x = mx;
                     this.size.x = right - mx;
                     this.position.y = my;
@@ -189,21 +207,35 @@ export default class Window {
 
             // TOP-RIGHT / BOTTOM-LEFT
             case 4:
-                if (leftSide) {
+                if (topOrLeft) { // TOP-RIGHT
                     this.position.y = my;
                     this.size.y = bottom - my;
-                    this.size.x = mx - x;
-                } else {
+
+                    // FIX: width change only to the right
+                    const newWidth = mx - x;
+                    if (newWidth >= Window.minSize.x) {
+                        this.size.x = newWidth;
+                    } else {
+                        this.size.x = Window.minSize.x;
+                    }
+                } else { // BOTTOM-LEFT
                     this.position.x = mx;
                     this.size.x = right - mx;
                     this.size.y = my - y;
                 }
                 break;
+
         }
         if (this.size.x < Window.minSize.x) {
+            if (topOrLeft || this.resize === 4) {
+                this.position.x = mx - (Window.minSize.x - this.size.x);
+            }
             this.size.x = Window.minSize.x;
         }
         if (this.size.y < Window.minSize.y) {
+            if (topOrLeft) {
+                this.position.y = my - (Window.minSize.y - this.size.y);
+            }
             this.size.y = Window.minSize.y;
         }
     }

@@ -14,7 +14,7 @@ export default class Shape extends Component {
         renderer.shadowBlur = 20;
 
         this.parent.transform.position.x += Input.getAxis("horizontal");
-        renderer.rect(this.parent.transform.position, new Vector2D(100, 100));
+        renderer.fillRect(this.parent.transform.position, new Vector2D(100, 100));
         renderer.strokeRect(this.parent.transform.position, new Vector2D(100, 100));
     }
 }
