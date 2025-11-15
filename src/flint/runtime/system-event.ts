@@ -1,5 +1,10 @@
+export type SystemEventData = {
+    mouseButton: number;
+}
+
 export class SystemEvent {
     private _type: string;
+    public data: SystemEventData | undefined;
     public stopNextLayer: boolean = false;
     public stopImmediate: boolean = false;
 
@@ -7,8 +12,9 @@ export class SystemEvent {
         return this._type;
     }
 
-    public constructor(type: string) {
+    public constructor(type: string, data?: SystemEventData) {
         this._type = type;
+        this.data = data;
     }
 
     stopPropagationToNextLayer() {
@@ -41,19 +47,18 @@ export class SystemEventEmitter {
         }
     }
 
-    public dispatchEvent(event: string): boolean {
-        const systemEvent = new SystemEvent(event);
+    public dispatchEvent(event: SystemEvent): boolean {
         for (let i = 0; i < this.listeners.length; ++i) {
             const listener = this.listeners[i];
             if (!listener) return true;
 
-            listener(systemEvent);
+            listener(event);
             if (this.stopImmediate) {
-                if (systemEvent.stopImmediate) {
-                    systemEvent.stopPropagationToNextLayer();
+                if (event.stopImmediate) {
+                    event.stopPropagationToNextLayer();
                     return false;
                 }
-                else if (systemEvent.stopNextLayer) {
+                else if (event.stopNextLayer) {
                     return false;
 
                 }

@@ -71,6 +71,6 @@ export default class Layer implements ILayer {
     }
 
     onEvent(event: SystemEvent): void {
-        this.eventEmitter.dispatchEvent(event.type);
+        this.eventEmitter.dispatchEvent(new SystemEvent(event.type, event.data));
     }
 }

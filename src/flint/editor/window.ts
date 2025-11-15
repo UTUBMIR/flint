@@ -18,6 +18,9 @@ export default abstract class Window {
     private resize = 0;
     private resizeSide = 0;
 
+
+    private outOfDock: boolean = false;
+
     public dockContainer: DockContainer | undefined;
     public titlePosition: Vector2D = new Vector2D();
 
@@ -65,13 +68,17 @@ export default abstract class Window {
             r.fillColor = visualsConfig.colors.titleBarItemColor as Color;
         }
 
-        r.fillRect(this.position.add(this.titlePosition), new Vector2D(120, Window.titleBarHeight));
+        const p = this.outOfDock ? Input.mousePosition.add(this.dragOffset) : this.position;
+
+        r.fillRect(p.add(this.titlePosition), new Vector2D(120, Window.titleBarHeight));
 
         r.fillColor = visualsConfig.colors.textColor as Color;
         r.textBaseLine = "middle";
         r.textAlign = "left";
         r.fontSize = 16;
-        r.fillText(this.position.add(new Vector2D(this.titlePosition.x + 5, Window.titleBarHeight / 2)), this.title);
+
+
+        r.fillText(p.add(new Vector2D(this.titlePosition.x + 5, Window.titleBarHeight / 2)), this.title);
     }
 
     public onTitleBar(): boolean {
@@ -83,6 +90,7 @@ export default abstract class Window {
     public onContentRender(r: IRenderer): void { };
 
     public onEvent(event: SystemEvent): void {
+        if (!event.data) return;
         event.stopImmediate = true;
 
         const isDown = event.type === "mousedown" || event.type === "touchstart";
@@ -93,14 +101,21 @@ export default abstract class Window {
             this.resize = this.hoveredToResize();
         }
 
-        if (isDown && this.isInside() && this.resize === 0) {
+        if (isDown && event.data.mouseButton === 0 && this.isInside() && this.resize === 0) {
             this.dragOffset = this.position.subtract(Input.mousePosition);
-            Editor.draggedWindow = this;
-            Editor.moveWindowUp(this);
+
+            if (this.onTitleBar() && this.dockContainer) {
+                this.outOfDock = true;
+                return;
+            }
+            else {
+                Editor.draggedWindow = this;
+                Editor.moveWindowUp(this);
+            }
             return;
         }
 
-        if (isDown && this.resize !== 0) {
+        if (isDown && event.data.mouseButton === 0 && this.resize !== 0) {
             this.dragOffset = this.position.add(this.size);
             Editor.resizedWindow = this;
             Editor.moveWindowUp(this);
@@ -124,10 +139,20 @@ export default abstract class Window {
         }
 
         if (isUp) {
-            if (this.dockContainer && this.onTitleBar()) {
+            if (this.dockContainer) {
                 Editor.resizedWindow = undefined;
                 Editor.draggedWindow = undefined;
-                this.dockContainer.setActiveWindow(this);
+                if (this.onTitleBar()) {
+                    this.dockContainer.setActiveWindow(this);
+                }
+                else if (this.outOfDock) {
+                    if (this.dockContainer.windows[0] != this) {
+                        this.dragOffset.x += 120;
+                    }
+                    this.dockContainer.removeWindow(this);
+                    this.position = Input.mousePosition.add(this.dragOffset);
+                }
+                this.outOfDock = false;
                 return;
             }
         }

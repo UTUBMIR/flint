@@ -1,5 +1,6 @@
 import type { SystemEvent } from "../runtime/system-event.js";
 import type { IRenderer } from "../shared/irenderer.js";
+import Editor from "./editor.js";
 import Window from "./window.js";
 
 export default class DockContainer extends Window {
@@ -29,6 +30,23 @@ export default class DockContainer extends Window {
 
         this.windows.splice(this.windows.indexOf(window), 1);
         if (this.activeWindow === this.windows.length) --this.activeWindow;
+        Editor.addWindow(window);
+
+        if (this.windows.length === 1) {
+            const w = this.windows[0];
+            if (w) {
+                w.titlePosition.set(0, 0);
+                w.dockContainer = undefined;
+                Editor.addWindow(w);
+                Editor.removeWindow(this);
+            }
+        }
+
+        let i = 0;
+        for (const w of this.windows) {
+            w.titlePosition.set(i * 120, 0);
+            ++i;
+        }
     }
 
     public onRender(r: IRenderer): void {

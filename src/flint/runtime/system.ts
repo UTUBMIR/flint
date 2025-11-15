@@ -1,7 +1,7 @@
 import type { ILayer } from "../shared/ilayer.js";
 import Input from "../shared/input.js";
 import type { IRenderer } from "../shared/irenderer.js";
-import { SystemEventEmitter } from "./system-event.js";
+import { SystemEvent, SystemEventEmitter } from "./system-event.js";
 import playConfig from "./config/play-config.json" with { type: 'json' };
 import type { AxisBinding } from "../shared/input-axis.js";
 import InputAxis from "../shared/input-axis.js";
@@ -138,7 +138,9 @@ export class System {
     }
 
     private static sendEventToLayers(event: Event): void {
-        this.eventEmitter.dispatchEvent(event.type);
+        if (event instanceof MouseEvent) {
+            this.eventEmitter.dispatchEvent(new SystemEvent(event.type, {mouseButton: (event as MouseEvent).button}));
+        }
     }
 
     private static loadPlayConfig(config: PlayConfig) {

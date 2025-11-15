@@ -59,7 +59,7 @@ export default class Editor implements ILayer {
     }
 
     public onEvent(event: SystemEvent): void {
-        if (this.eventEmitter.dispatchEvent(event.type)) {
+        if (this.eventEmitter.dispatchEvent(new SystemEvent(event.type, event.data))) {
             document.body.style.cursor = "initial";
         }
     }
