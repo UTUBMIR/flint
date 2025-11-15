@@ -14,8 +14,12 @@ export default class Shape extends Component {
         renderer.shadowColor = "#3446a8";
         renderer.shadowBlur = 20;
 
-        this.parent.transform.position.x += Input.getAxis("horizontal") * System.deltaTime * 800;
-        this.parent.transform.position.y += Input.getAxis("vertical") * System.deltaTime * 800;
+        const speed = new Vector2D(Input.getAxis("horizontal"), Input.getAxis("vertical"))
+            .multiply(System.deltaTime * 80)
+            .normalize(System.deltaTime * 800);
+
+        this.parent.transform.position = this.parent.transform.position.add(speed);
+
         renderer.strokeRect(this.parent.transform.position, new Vector2D(100, 100));
         renderer.fillRect(this.parent.transform.position, new Vector2D(100, 100));
     }

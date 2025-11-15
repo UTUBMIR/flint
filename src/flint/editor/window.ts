@@ -3,8 +3,9 @@ import Input from "../shared/input.js";
 import type { IRenderer } from "../shared/irenderer.js";
 import Vector2D from "../shared/vector2d.js";
 import Editor from "./editor.js";
-import visualsConfig from "./config/visuals.json" with { type: 'json' };;
+import visualsConfig from "./config/visuals.json" with { type: 'json' };
 import type { Color } from "../shared/graphics.js";
+import type DockContainer from "./dock-container.js";
 
 
 export default abstract class Window {
@@ -17,6 +18,9 @@ export default abstract class Window {
     private resize = 0;
     private resizeSide = 0;
 
+    public dockContainer: DockContainer | undefined;
+    public titlePosition: Vector2D = new Vector2D();
+
     public readonly title: string;
 
     public constructor(position?: Vector2D, size?: Vector2D, title: string = "new window") {
@@ -27,34 +31,56 @@ export default abstract class Window {
         this.constrainPosition();
     }
 
-    public abstract onAttach():void;
+    public onAttach(): void { };
 
-    public abstract onUpdate(): void;
+    public onUpdate(): void { };
 
     public onRender(r: IRenderer) {
-        r.fillColor = visualsConfig.colors.windowColor as Color;
-        r.lineColor = visualsConfig.colors.windowEdgeColor as Color;
-        r.lineWidth = Window.borderWidth;
-        r.lineJoin = "bevel";
+        if (!this.dockContainer || this.dockContainer.getActiveWindow() === this) {
+            r.fillColor = visualsConfig.colors.windowColor as Color;
+            r.lineColor = visualsConfig.colors.windowEdgeColor as Color;
+            r.lineWidth = Window.borderWidth;
+            r.lineJoin = "bevel";
 
-        r.shadowColor = visualsConfig.colors.windowShadowColor as Color;
-        r.shadowBlur = 20;
+            r.shadowColor = visualsConfig.colors.windowShadowColor as Color;
+            r.shadowBlur = 20;
 
-        r.strokeRect(this.position, this.size);
-        r.fillRect(this.position, this.size);
+            r.strokeRect(this.position, this.size);
+            r.fillRect(this.position, this.size);
 
-        r.fillColor = visualsConfig.colors.titleColor as Color;
-        r.fillRect(this.position, new Vector2D(this.size.x, Window.titleBarHeight));
+            r.fillColor = visualsConfig.colors.titleColor as Color;
+            r.fillRect(this.position, new Vector2D(this.size.x, Window.titleBarHeight));
 
-        r.fillColor = "#a8baffff";
+
+            this.onContentRender(r);
+        }
+
+        if (this.onTitleBar()) {
+            r.fillColor = visualsConfig.colors.titleBarActiveItemColor as Color;
+        }
+        else if (this.dockContainer && this.dockContainer.getActiveWindow() === this) {
+            r.fillColor = visualsConfig.colors.titleBarSelectedItemColor as Color;
+        }
+        else {
+            r.fillColor = visualsConfig.colors.titleBarItemColor as Color;
+        }
+
+        r.fillRect(this.position.add(this.titlePosition), new Vector2D(120, Window.titleBarHeight));
+
+        r.fillColor = visualsConfig.colors.textColor as Color;
         r.textBaseLine = "middle";
         r.textAlign = "left";
         r.fontSize = 16;
-        r.fillText(this.position.add(new Vector2D(5, Window.titleBarHeight / 2)), this.title);
-        this.onContentRender(r);
+        r.fillText(this.position.add(new Vector2D(this.titlePosition.x + 5, Window.titleBarHeight / 2)), this.title);
     }
 
-    public abstract onContentRender(r: IRenderer): void;
+    public onTitleBar(): boolean {
+        return Input.mousePosition.x >= this.position.x + this.titlePosition.x && Input.mousePosition.y >= this.position.y + this.titlePosition.y &&
+            Input.mousePosition.x <= this.position.x + this.titlePosition.x + 120 && Input.mousePosition.y <= this.position.y + this.titlePosition.y + Window.titleBarHeight;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    public onContentRender(r: IRenderer): void { };
 
     public onEvent(event: SystemEvent): void {
         event.stopImmediate = true;
@@ -97,11 +123,27 @@ export default abstract class Window {
             return;
         }
 
+        if (isUp) {
+            if (this.dockContainer && this.onTitleBar()) {
+                Editor.resizedWindow = undefined;
+                Editor.draggedWindow = undefined;
+                this.dockContainer.setActiveWindow(this);
+                return;
+            }
+        }
+
         if (isUp && (Editor.draggedWindow === this || Editor.resizedWindow === this)) {
-            Editor.draggedWindow = undefined;
             Editor.resizedWindow = undefined;
+            Editor.draggedWindow = undefined;
+
+            const target = Editor.tryDock(this);
+            if (target) {
+                Editor.createDockContainer(target, this);
+                return;
+            }
             return;
         }
+
 
         event.stopImmediate = false;
     }

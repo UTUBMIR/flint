@@ -3,12 +3,15 @@ import { type IRenderer } from "../shared/irenderer.js";
 import { type Canvas } from "./system.js";
 import { type ILayer } from "../shared/ilayer.js";
 import { SystemEventEmitter, SystemEvent } from "./system-event.js";
+import Camera from "./components/camera.js";
+import Vector2D from "../shared/vector2d.js";
 
 export default class Layer implements ILayer {
     public canvas!: Canvas;
     public renderer!: IRenderer;
     protected objects: GameObject[] = [];
     public readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(true, true);
+    public readonly cameras: Camera[] = [];
 
     public onAttach(): void { }
 
@@ -28,9 +31,18 @@ export default class Layer implements ILayer {
     }
 
     protected renderObjects(): void {
-        this.renderer.setCanvas(this.canvas.element, this.canvas.ctx);
+        if (this.cameras.length === 0) {
+            return;
+        }
+
+        this.renderer.setCanvas(this.canvas.element, this.canvas.ctx); //FIXME: make it work with more than one camera
         this.renderer.clearCanvas();
-        for (const obj of this.objects) obj.onRender(this.renderer);
+        for (const camera of this.cameras) {
+            if (camera.enabled) {
+                this.renderer.translate(new Vector2D().subtract(camera.position));
+                for (const obj of this.objects) obj.onRender(this.renderer);
+            }
+        }
     }
 
     addObject<T extends GameObject>(object: T): T {

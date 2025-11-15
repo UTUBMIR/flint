@@ -1,8 +1,10 @@
 import { SystemEventEmitter, SystemEvent } from "../runtime/system-event.js";
 import type { Canvas } from "../runtime/system.js";
 import type { ILayer } from "../shared/ilayer.js";
+import Input from "../shared/input.js";
 import type { IRenderer } from "../shared/irenderer.js";
 import Vector2D from "../shared/vector2d.js";
+import DockContainer from "./dock-container.js";
 import Window from "./window.js";
 import Viewport from "./windows/viewport.js";
 
@@ -22,7 +24,9 @@ export default class Editor implements ILayer {
 
     public static init(): void {
         this.viewportWindow = new Viewport(new Vector2D(200, 200), new Vector2D(300, 200));
-        this.pushWindow(this.viewportWindow);
+        this.addWindow(this.viewportWindow);
+        this.addWindow(new Viewport(new Vector2D(600, 200), new Vector2D(300, 200)));
+
     }
 
     public onAttach(): void { }
@@ -37,11 +41,21 @@ export default class Editor implements ILayer {
         for (const window of Editor.windows) window.onRender(Editor.instance.renderer);
     }
 
-    public static pushWindow(window: Window): void {
+    public static addWindow(window: Window): void {
         Editor.windows.push(window);
         this.instance.eventEmitter.addEventListener(window.onEvent.bind(window));
 
         window.onAttach();
+    }
+
+    public static removeWindow(window: Window): boolean {
+        const index = this.windows.indexOf(window);
+        if (index !== -1) {
+            this.windows.splice(index, 1);
+            this.instance.eventEmitter.removeEventListener(window.onEvent);
+            return true;
+        }
+        return false;
     }
 
     public onEvent(event: SystemEvent): void {
@@ -51,13 +65,42 @@ export default class Editor implements ILayer {
     }
 
     public static moveWindowUp(window: Window): void {
-        const index = this.windows.indexOf(window);
+        if (this.removeWindow(window)) {
 
-        if (index != -1) {
-            this.windows.splice(index, 1);
             this.windows.push(window);
-            this.instance.eventEmitter.removeEventListener(window.onEvent);
             this.instance.eventEmitter.addEventListener(window.onEvent.bind(window));
         }
     }
+
+    public static tryDock(dragged: Window) {
+        for (const other of Editor.windows) {
+
+            if (other === dragged) continue;
+
+            const mx = Input.mousePosition.x;
+            const my = Input.mousePosition.y;
+
+            const insideX = mx >= other.position.x && mx <= other.position.x + other.size.x;
+            const insideTitleBar = my >= other.position.y && my <= other.position.y + Window.titleBarHeight;
+
+            if (insideX && insideTitleBar) {
+                return other;
+            }
+        }
+
+        return undefined;
+    }
+
+
+    public static createDockContainer(a: Window, b: Window) {
+        const dock = new DockContainer(a.position.copy(), a.size.copy());
+
+        dock.addWindow(b);
+        dock.addWindow(a);
+
+        this.removeWindow(b);
+        this.removeWindow(a);
+        this.addWindow(dock);
+    }
+
 }

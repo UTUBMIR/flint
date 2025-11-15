@@ -60,6 +60,10 @@ export class Renderer2D implements IRenderer {
         this.updateFont();
     }
 
+    translate(position: Vector2D): void {
+        this.ctx.translate(position.x, position.y);
+    }
+
     private updateFont() {
         this.ctx.font = this._fontSize.toString() + "px"  + " " + this._fontStyle;
     }

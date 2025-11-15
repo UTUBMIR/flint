@@ -6,7 +6,6 @@ export interface ILayer {
     canvas: Canvas;
     renderer: IRenderer;
     eventEmitter: SystemEventEmitter;
-
     onAttach(): void
 
     onUpdate(): void;

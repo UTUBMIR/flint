@@ -16,7 +16,11 @@ export default class GameObject {
         }
     }
 
-    onAttach(): void { }
+    onAttach(): void {
+        for (const component of this.components) {
+            component.onAttach();
+        }
+    }
 
     onUpdate(): void {
         this.updateComponents();
@@ -36,7 +40,6 @@ export default class GameObject {
     public addComponent<T extends Component>(component: T): T {
         component.parent = this;
         this.components.push(component);
-        component.onAttach();
         return component;
     }
 
@@ -46,8 +49,10 @@ export default class GameObject {
             component.parent = this;
         }
         //NOTE: adding and attaching separatly to prevent order errors
-        for (const component of components) {
-            component.onAttach();
+        if (this.layer) { // if alread attached to layer, init manually
+            for (const component of components) {
+                component.onAttach();
+            }
         }
         return components;
     }

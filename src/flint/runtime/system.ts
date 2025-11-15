@@ -2,14 +2,18 @@ import type { ILayer } from "../shared/ilayer.js";
 import Input from "../shared/input.js";
 import type { IRenderer } from "../shared/irenderer.js";
 import { SystemEventEmitter } from "./system-event.js";
-
+import playConfig from "./config/play-config.json" with { type: 'json' };
+import type { AxisBinding } from "../shared/input-axis.js";
+import InputAxis from "../shared/input-axis.js";
 
 export type Canvas = {
     element: HTMLCanvasElement,
     ctx: RenderingContext
 }
 
-
+type PlayConfig = {
+    input: { name: string, bindings: { value: number, keys: { type: string, code: string[] }[] }[] }[]
+}
 
 export class System {
     public static layers: ILayer[] = [];
@@ -46,6 +50,10 @@ export class System {
         this.initRootDiv();
         this._renderer = renderer;
         Input.init();
+        this.loadPlayConfig(playConfig);
+
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
 
         for (const event of ["mousedown", "mouseup", "mousemove", "touchstart", "touchmove", "touchend"]) {
             document.addEventListener(event, this.sendEventToLayers.bind(this));
@@ -131,5 +139,9 @@ export class System {
 
     private static sendEventToLayers(event: Event): void {
         this.eventEmitter.dispatchEvent(event.type);
+    }
+
+    private static loadPlayConfig(config: PlayConfig) {
+        Input.inputAxes = config.input.map(axis => new InputAxis(axis.name, axis.bindings as AxisBinding[]));
     }
 }

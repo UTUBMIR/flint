@@ -2,6 +2,10 @@
     "colors": {
         "windowColor": "#292e4a",
         "titleColor": "#24273f",
+        "titleBarItemColor": "#202030",
+        "titleBarActiveItemColor": "#4f4f6f",
+        "titleBarSelectedItemColor": "#404060",
+        "textColor": "#a8baff",
         "windowEdgeColor": "#5d68a8",
         "windowShadowColor": "#3446a8"
     }
