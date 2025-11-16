@@ -24,6 +24,9 @@ export default abstract class Window {
     public dockContainer: DockContainer | undefined;
     public titlePosition: Vector2D = new Vector2D();
 
+    public sizeBeforeDockingToSide: Vector2D = this.minSize.copy();
+    public dockedToSide: boolean = false;
+
     public readonly title: string;
 
     public constructor(position?: Vector2D, size?: Vector2D, title: string = "new window") {
@@ -89,6 +92,42 @@ export default abstract class Window {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public onContentRender(r: IRenderer): void { };
 
+    private dockToSide() {
+        if (this.dockedToSide) {
+            this.unDockFromSide();
+        }
+        if (Input.mousePosition.x <= 0) {
+            this.position.set(0, 0);
+            this.sizeBeforeDockingToSide = this.size.copy();
+            this.size.y = window.innerHeight;
+            this.dockedToSide = true;
+        }
+        else if (Input.mousePosition.x >= window.innerWidth - 1) {
+            this.position.set(window.innerWidth - this.size.x, 0);
+            this.sizeBeforeDockingToSide = this.size.copy();
+            this.size.y = window.innerHeight;
+            this.dockedToSide = true;
+        }
+        else if (Input.mousePosition.y <= 0) {
+            this.position.set(0, 0);
+            this.sizeBeforeDockingToSide = this.size.copy();
+            this.size.x = window.innerWidth;
+            this.dockedToSide = true;
+        }
+        else if (Input.mousePosition.y >= window.innerHeight) {
+            this.position.set(0, window.innerHeight - this.size.y);
+            this.sizeBeforeDockingToSide = this.size.copy();
+            this.size.x = window.innerWidth;
+            this.dockedToSide = true;
+        }
+    }
+
+    private unDockFromSide() {
+        this.dockedToSide = false;
+        this.dragOffset.set(0, 0);
+        this.size = this.sizeBeforeDockingToSide.copy();
+    }
+
     public onEvent(event: SystemEvent): void {
         if (!event.data) return;
         event.stopImmediate = true;
@@ -151,6 +190,7 @@ export default abstract class Window {
                     }
                     this.dockContainer.removeWindow(this);
                     this.position = Input.mousePosition.add(this.dragOffset);
+                    this.dock();
                 }
                 this.outOfDock = false;
                 return;
@@ -160,17 +200,24 @@ export default abstract class Window {
         if (isUp && (Editor.draggedWindow === this || Editor.resizedWindow === this)) {
             Editor.resizedWindow = undefined;
             Editor.draggedWindow = undefined;
-
-            const target = Editor.tryDock(this);
-            if (target) {
-                Editor.createDockContainer(target, this);
-                return;
+            if (!this.dock()) {
+                this.dockToSide();
             }
+
             return;
         }
 
 
         event.stopImmediate = false;
+    }
+
+    private dock(): boolean {
+        const target = Editor.tryDock(this);
+        if (target) {
+            Editor.createDockContainer(target, this);
+            return true;
+        }
+        return false;
     }
 
     private isInside(): boolean {

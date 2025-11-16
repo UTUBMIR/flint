@@ -25,7 +25,6 @@ export default class Editor implements ILayer {
     public static init(): void {
         this.viewportWindow = new Viewport(new Vector2D(200, 200), new Vector2D(300, 200));
         this.addWindow(this.viewportWindow);
-        this.addWindow(new Viewport(new Vector2D(600, 200), new Vector2D(300, 200)));
 
     }
 
@@ -93,6 +92,20 @@ export default class Editor implements ILayer {
 
 
     public static createDockContainer(a: Window, b: Window) {
+        if (a instanceof DockContainer) {
+            const w = a.getActiveWindow();
+            if (!w) {
+                throw new Error("Unexpected empty docking window");
+            }
+            
+            b.position = w.position.copy();
+            b.size = w.size.copy();
+            a.addWindow(b);
+            this.removeWindow(b);
+            Editor.moveWindowUp(a);
+            return;
+        }
+
         const dock = new DockContainer(a.position.copy(), a.size.copy());
 
         dock.addWindow(b);

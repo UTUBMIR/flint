@@ -68,6 +68,9 @@ export default class DockContainer extends Window {
         // Вирівнювання позицій
         const last = this.windows[this.windows.length - 1];
         if (!last) return;
+        this.position = last.position.copy();
+        this.size = last.size.copy();
+
 
         for (const window of this.windows) {
             window.position = last.position.copy();
