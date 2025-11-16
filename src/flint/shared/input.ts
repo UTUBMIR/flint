@@ -2,8 +2,8 @@ import InputAxis from "./input-axis.js";
 import Vector2D from "./vector2d.js";
 
 export default class Input {
-    private static pressedKeys = new Set<string>();
-    private static pressedMouseButtons = new Set<number>();
+    public static pressedKeys = new Set<string>();
+    public static pressedMouseButtons = new Set<number>();
 
     public static inputAxes: InputAxis[] = []; //TODO: make private
     public static mousePosition: Vector2D = new Vector2D(window.innerWidth / 2, window.innerHeight / 2);
@@ -45,27 +45,27 @@ export default class Input {
         document.addEventListener("touchmove", this.onMouseMove.bind(this));
     }
 
-    private static onKeyDown(event: KeyboardEvent) {
+    public static onKeyDown(event: KeyboardEvent) {
         this.pressedKeys.add(event.code);
         this.updateInputAxes();
     }
 
-    private static onKeyUp(event: KeyboardEvent) {
+    public static onKeyUp(event: KeyboardEvent) {
         this.pressedKeys.delete(event.code);
         this.updateInputAxes();
     }
 
-    private static onMouseDown(event: MouseEvent) {
+    public static onMouseDown(event: MouseEvent) {
+        this.pressedMouseButtons.add(event.button);
+        this.updateInputAxes();
+    }
+
+    public static onMouseUp(event: MouseEvent) {
         this.pressedMouseButtons.delete(event.button);
         this.updateInputAxes();
     }
 
-    private static onMouseUp(event: MouseEvent) {
-        this.pressedMouseButtons.delete(event.button);
-        this.updateInputAxes();
-    }
-
-    private static onMouseMove(event: MouseEvent | TouchEvent) {
+    public static onMouseMove(event: MouseEvent | TouchEvent) {
         if (event instanceof MouseEvent) {
             this.mousePosition.set(event.pageX, event.pageY);
         }

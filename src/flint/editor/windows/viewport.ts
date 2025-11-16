@@ -36,9 +36,8 @@ export default class Viewport extends Window {
         }
 
         camera.position.set(this.size.x / -2, this.size.y / -2);//TODO: make support of many cameras
-
-        camera.enabled = !this.dockContainer || this.dockContainer.getActiveWindow() === this;
     }
+    
     public onContentRender(r: IRenderer): void {
         if (this.layer) {
             return;

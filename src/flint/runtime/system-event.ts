@@ -1,10 +1,5 @@
-export type SystemEventData = {
-    mouseButton: number;
-}
-
 export class SystemEvent {
     private _type: string;
-    public data: SystemEventData | undefined;
     public stopNextLayer: boolean = false;
     public stopImmediate: boolean = false;
 
@@ -12,9 +7,8 @@ export class SystemEvent {
         return this._type;
     }
 
-    public constructor(type: string, data?: SystemEventData) {
+    public constructor(type: string) {
         this._type = type;
-        this.data = data;
     }
 
     stopPropagationToNextLayer() {

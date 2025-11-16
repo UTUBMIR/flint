@@ -1,119 +1,76 @@
 import { SystemEventEmitter, SystemEvent } from "../runtime/system-event.js";
 import type { Canvas } from "../runtime/system.js";
 import type { ILayer } from "../shared/ilayer.js";
-import Input from "../shared/input.js";
 import type { IRenderer } from "../shared/irenderer.js";
+import { Rect } from "../shared/primitives.js";
 import Vector2D from "../shared/vector2d.js";
-import DockContainer from "./dock-container.js";
+import { DockSpace } from "./docking.js";
 import Window from "./window.js";
 import Viewport from "./windows/viewport.js";
 
 export default class Editor implements ILayer {
-    private static windows: Window[] = [];
+    private static dockSpace: DockSpace = new DockSpace(new Rect(0, 30, window.innerWidth, window.innerHeight));
     public canvas!: Canvas;
     public renderer!: IRenderer;
     public static readonly instance: Editor = new Editor();
-    public static draggedWindow: Window | undefined;
-    public static resizedWindow: Window | undefined;
+
+    public static draggedItem: unknown | undefined;
     public readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(true, true);
 
     public static viewportWindow: Viewport;
 
-    private constructor() { }
+    private constructor() {
+        this.eventEmitter.addEventListener(Editor.dockSpace.event.bind(Editor.dockSpace));
+    }
 
 
     public static init(): void {
         this.viewportWindow = new Viewport(new Vector2D(200, 200), new Vector2D(300, 200));
-        this.addWindow(this.viewportWindow);
 
+        this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "right", 0.8);
+        this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "bottom", 0.75);
+        this.dockSpace.dockWindow(this.viewportWindow, this.dockSpace.root, "left", 0.8);
+        this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "full", 0.7);
+
+        //this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "left");
+        //this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "bottom");
+        //this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "left");
     }
 
     public onAttach(): void { }
 
     public onUpdate(): void {
-        for (const window of Editor.windows) window.onUpdate();
+        Editor.dockSpace.root.rect.size.set(window.innerWidth, window.innerHeight);
+        Editor.dockSpace.root.updateLayout();
+        Editor.dockSpace.update();
     }
 
     public onRender(): void {
         this.renderer.setCanvas(Editor.instance.canvas.element, Editor.instance.canvas.ctx);
         this.renderer.clearCanvas();
-        for (const window of Editor.windows) window.onRender(Editor.instance.renderer);
+
+        Editor.dockSpace.render(this.renderer);
     }
 
     public static addWindow(window: Window): void {
-        Editor.windows.push(window);
-        this.instance.eventEmitter.addEventListener(window.onEvent.bind(window));
+        // Editor.dockSpace.dockWindow(window, Editor.dockSpace.root, "left");
+        // this.instance.eventEmitter.addEventListener(window.onEvent.bind(window));
 
-        window.onAttach();
+        // window.onAttach();
     }
 
     public static removeWindow(window: Window): boolean {
-        const index = this.windows.indexOf(window);
-        if (index !== -1) {
-            this.windows.splice(index, 1);
-            this.instance.eventEmitter.removeEventListener(window.onEvent);
-            return true;
-        }
+        // const index = this.windows.indexOf(window);
+        // if (index !== -1) {
+        //     this.windows.splice(index, 1);
+        //     this.instance.eventEmitter.removeEventListener(window.onEvent);
+        //     return true;
+        // }
         return false;
     }
 
     public onEvent(event: SystemEvent): void {
-        if (this.eventEmitter.dispatchEvent(new SystemEvent(event.type, event.data))) {
-            document.body.style.cursor = "initial";
-        }
+        document.body.style.cursor = "initial";
+        this.eventEmitter.dispatchEvent(new SystemEvent(event.type));
     }
-
-    public static moveWindowUp(window: Window): void {
-        if (this.removeWindow(window)) {
-
-            this.windows.push(window);
-            this.instance.eventEmitter.addEventListener(window.onEvent.bind(window));
-        }
-    }
-
-    public static tryDock(dragged: Window) {
-        for (const other of Editor.windows) {
-
-            if (other === dragged) continue;
-
-            const mx = Input.mousePosition.x;
-            const my = Input.mousePosition.y;
-
-            const insideX = mx >= other.position.x && mx <= other.position.x + other.size.x;
-            const insideTitleBar = my >= other.position.y && my <= other.position.y + Window.titleBarHeight;
-
-            if (insideX && insideTitleBar) {
-                return other;
-            }
-        }
-
-        return undefined;
-    }
-
-
-    public static createDockContainer(a: Window, b: Window) {
-        if (a instanceof DockContainer) {
-            const w = a.getActiveWindow();
-            if (!w) {
-                throw new Error("Unexpected empty docking window");
-            }
-            
-            b.position = w.position.copy();
-            b.size = w.size.copy();
-            a.addWindow(b);
-            this.removeWindow(b);
-            Editor.moveWindowUp(a);
-            return;
-        }
-
-        const dock = new DockContainer(a.position.copy(), a.size.copy());
-
-        dock.addWindow(b);
-        dock.addWindow(a);
-
-        this.removeWindow(b);
-        this.removeWindow(a);
-        this.addWindow(dock);
-    }
-
 }

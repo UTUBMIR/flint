@@ -57,4 +57,11 @@ export default class Vector2D implements IVector {
         }
         return new Vector2D((this.x / mag) * length, (this.y / mag) * length);
     }
+
+    public clamp(min: Vector2D, max: Vector2D): Vector2D {
+        return new Vector2D(
+            Math.max(min.x, Math.min(max.x, this.x)),
+            Math.max(min.y, Math.min(max.y, this.y))
+        );
+    }
 }

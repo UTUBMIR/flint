@@ -34,9 +34,11 @@ export default class Layer implements ILayer {
         if (this.cameras.length === 0) {
             return;
         }
-
         this.renderer.setCanvas(this.canvas.element, this.canvas.ctx); //FIXME: make it work with more than one camera
         this.renderer.clearCanvas();
+
+        this.renderer.fillColor = "#fff";
+        this.renderer.fillCanvas();
         for (const camera of this.cameras) {
             if (camera.enabled) {
                 this.renderer.translate(new Vector2D().subtract(camera.position));
@@ -71,6 +73,6 @@ export default class Layer implements ILayer {
     }
 
     onEvent(event: SystemEvent): void {
-        this.eventEmitter.dispatchEvent(new SystemEvent(event.type, event.data));
+        this.eventEmitter.dispatchEvent(new SystemEvent(event.type));
     }
 }

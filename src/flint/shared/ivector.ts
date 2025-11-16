@@ -13,4 +13,6 @@ export interface IVector {
     magnitude(): number;
 
     normalize(length: number): IVector
+
+    clamp(min: IVector, max: IVector): IVector;
 };

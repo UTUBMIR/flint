@@ -138,9 +138,7 @@ export class System {
     }
 
     private static sendEventToLayers(event: Event): void {
-        if (event instanceof MouseEvent) {
-            this.eventEmitter.dispatchEvent(new SystemEvent(event.type, {mouseButton: (event as MouseEvent).button}));
-        }
+        this.eventEmitter.dispatchEvent(new SystemEvent(event.type));
     }
 
     private static loadPlayConfig(config: PlayConfig) {
