@@ -5,6 +5,7 @@ import { SystemEvent, SystemEventEmitter } from "./system-event.js";
 import playConfig from "./config/play-config.json" with { type: 'json' };
 import type { AxisBinding } from "../shared/input-axis.js";
 import InputAxis from "../shared/input-axis.js";
+import Component from "./component.js";
 
 export type Canvas = {
     element: HTMLCanvasElement,
@@ -17,7 +18,7 @@ type PlayConfig = {
 
 export class System {
     public static layers: ILayer[] = [];
-
+    public static customComponents = new Map<string, typeof Component>();
 
     public static showColliders: boolean = false;
     public static readonly dpi = window.devicePixelRatio;

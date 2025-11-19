@@ -2,7 +2,7 @@ import type { SystemEvent } from "../runtime/system-event.js";
 import type { IRenderer } from "../shared/irenderer.js";
 import { Rect } from "../shared/primitives.js";
 import Vector2D from "../shared/vector2d.js";
-import { Drag } from "./drag.js";
+import { Drag } from "./interaction.js";
 import Window from "./window.js";
 
 export class DockSpace {
@@ -52,15 +52,15 @@ export class DockSpace {
 
 
 
-    public render(r: IRenderer) {
+    public onRender(r: IRenderer) {
         this.root.onRender(r);
     }
 
-    public update() {
+    public onUpdate() {
         this.root.onUpdate();
     }
 
-    public event(event: SystemEvent) {
+    public onEvent(event: SystemEvent) {
         this.root.onEvent(event);
     }
 }

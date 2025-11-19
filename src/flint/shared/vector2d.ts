@@ -1,6 +1,8 @@
 import type { IVector } from "./ivector.js";
 
 export default class Vector2D implements IVector {
+    public static readonly zero: Vector2D = new Vector2D();
+
     public x: number;
     public y: number;
 

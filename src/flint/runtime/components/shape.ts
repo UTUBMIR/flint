@@ -14,12 +14,12 @@ export default class Shape extends Component {
     }
 
     onRender(renderer: IRenderer): void {
-        renderer.fillColor = "#292e4a";
-        renderer.lineColor = "#5d68a8";
+        renderer.fillColor = "#294a31ff";
+        renderer.lineColor = "#a8a25dff";
         renderer.lineWidth = 5;
         renderer.lineJoin = "bevel";
 
-        renderer.shadowColor = "#3446a8";
+        renderer.shadowColor = "#34a838ff";
         renderer.shadowBlur = 20;
 
         renderer.strokeRect(this.parent.transform.position, new Vector2D(100, 100));

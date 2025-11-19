@@ -8,7 +8,9 @@
         // See also https://aka.ms/tsconfig/module
         "module": "nodenext",
         "target": "esnext",
-        "types": [],
+        "types": [
+            "@types/wicg-file-system-access"
+        ],
         // For nodejs:
         // "lib": ["esnext"],
         // "types": ["node"],
@@ -16,7 +18,10 @@
         // Other Outputs
         "sourceMap": false,
         "declaration": false,
+        //"declarationDir": "types",
         "declarationMap": false,
+        "emitDeclarationOnly": false,
+        //"outFile": "./types/index.d.ts",
         // Stricter Typechecking Options
         "noUncheckedIndexedAccess": true,
         "exactOptionalPropertyTypes": true,
@@ -35,5 +40,12 @@
         "noUncheckedSideEffectImports": true,
         "moduleDetection": "force",
         "skipLibCheck": true,
-    }
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true
+    },
+    "exclude": [
+        "./dist",
+        "./node_modules"
+    ]
 }

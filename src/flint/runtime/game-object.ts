@@ -57,23 +57,19 @@ export default class GameObject {
         return components;
     }
 
-    //eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public getComponent<T extends Component>(componentType: abstract new (...args: any[]) => T): T | undefined {
+    public getComponent<T extends Component>(componentType: abstract new (...args: unknown[]) => T): T | undefined {
         return this.components.find(c => c instanceof componentType) as T | undefined;
     }
 
-    //eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public getComponents<T extends Component>(componentType: abstract new (...args: any[]) => T): T[] | undefined {
+    public getComponents<T extends Component>(componentType: abstract new (...args: unknown[]) => T): T[] | undefined {
         return this.components.filter(c => c instanceof componentType) as T[] | undefined;
     }
 
-    //eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public hasComponent<T extends Component>(componentType: abstract new (...args: any[]) => T): boolean {
+    public hasComponent<T extends Component>(componentType: abstract new (...args: unknown[]) => T): boolean {
         return this.components.some(c => c instanceof componentType);
     }
 
-    //eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public requireComponent<T extends Component>(componentType: abstract new (...args: any[]) => T): T {
+    public requireComponent<T extends Component>(componentType: abstract new (...args: unknown[]) => T): T {
         const component = this.getComponent(componentType);
         if (!component) throw new Error(`Required component ${componentType.name ?? "Unknown"} was not found.`);
         return component;

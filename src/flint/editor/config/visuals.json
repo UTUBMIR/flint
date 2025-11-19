@@ -5,8 +5,12 @@
         "titleBarItemColor": "#202030",
         "titleBarActiveItemColor": "#4f4f6f",
         "titleBarSelectedItemColor": "#404060",
-        "textColor": "#a8baff",
+        "textColor": "#fafaff",
         "windowEdgeColor": "#5d68a8",
-        "windowShadowColor": "#3446a8"
+        "windowShadowColor": "#3446a8",
+        "toolbarColor": "#151530",
+        "toolbarTab": "#2b51a1",
+        "toolbarTabSelected": "#2f5faf",
+        "toolbarTabPressed": "#1b4191"
     }
 }
