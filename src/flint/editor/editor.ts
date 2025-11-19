@@ -5,6 +5,7 @@ import type { IRenderer } from "../shared/irenderer.js";
 import { Rect } from "../shared/primitives.js";
 import Vector2D from "../shared/vector2d.js";
 import { DockSpace } from "./docking.js";
+import Builder from "./project/builder.js";
 import { Project } from "./project/project.js";
 import { Toolbar, ToolbarTab } from "./toolbar.js";
 import Window from "./window.js";
@@ -47,6 +48,7 @@ export default class Editor implements ILayer {
 
 
     public static init(): void {
+        Builder.init();
         this.toolbar = new Toolbar();
 
         this.toolbar.addTab(new ToolbarTab("File", [new ToolbarTab("New project", ToolBarActions.newProject)]));

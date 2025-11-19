@@ -40,6 +40,11 @@ export default class GameObject {
     public addComponent<T extends Component>(component: T): T {
         component.parent = this;
         this.components.push(component);
+
+        // if already attached to layer, init manually
+        if (this.layer) {
+            component.onAttach();
+        }
         return component;
     }
 
@@ -49,7 +54,7 @@ export default class GameObject {
             component.parent = this;
         }
         //NOTE: adding and attaching separatly to prevent order errors
-        if (this.layer) { // if alread attached to layer, init manually
+        if (this.layer) { // if already attached to layer, init manually
             for (const component of components) {
                 component.onAttach();
             }
@@ -67,6 +72,16 @@ export default class GameObject {
 
     public hasComponent<T extends Component>(componentType: abstract new (...args: unknown[]) => T): boolean {
         return this.components.some(c => c instanceof componentType);
+    }
+
+    public removeComponent<T extends Component>(componentType: abstract new (...args: unknown[]) => T): boolean {
+        const index = this.components.findIndex(c => c instanceof componentType);
+        if (index === -1) {
+            return false;
+        }
+
+        this.components.splice(index, 1);
+        return true;
     }
 
     public requireComponent<T extends Component>(componentType: abstract new (...args: unknown[]) => T): T {
