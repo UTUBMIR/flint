@@ -21,7 +21,7 @@ export class System {
     public static customComponents = new Map<string, typeof Component>();
 
     public static showColliders: boolean = false;
-    public static readonly dpi = window.devicePixelRatio;
+    public static readonly dpr = window.devicePixelRatio || 1;
 
     private static lastFrame: number;
     private static _deltaTime: number;
@@ -42,6 +42,10 @@ export class System {
 
     public static get renderer(): IRenderer {
         return this._renderer;
+    }
+
+    public static setCursor(cursor: string) {
+        System.rootDiv.style.cursor = cursor;
     }
 
 
@@ -100,6 +104,10 @@ export class System {
         }
 
         this.addResizing(canvas);
+        
+        if (ctx instanceof CanvasRenderingContext2D) {
+            ctx.scale(System.dpr, System.dpr);
+        }
 
         this.rootDiv.appendChild(canvas);
 

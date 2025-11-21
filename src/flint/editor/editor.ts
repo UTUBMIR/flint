@@ -1,14 +1,15 @@
 import { SystemEventEmitter, SystemEvent } from "../runtime/system-event.js";
-import type { Canvas } from "../runtime/system.js";
+import { System, type Canvas } from "../runtime/system.js";
 import type { ILayer } from "../shared/ilayer.js";
 import type { IRenderer } from "../shared/irenderer.js";
 import { Rect } from "../shared/primitives.js";
 import Vector2D from "../shared/vector2d.js";
-import { DockSpace } from "./docking.js";
+import { DockNode, DockSpace } from "./docking.js";
 import Builder from "./project/builder.js";
 import { Project } from "./project/project.js";
 import { Toolbar, ToolbarTab } from "./toolbar.js";
 import Window from "./window.js";
+import Hierarchy from "./windows/hierarchy.js";
 import Viewport from "./windows/viewport.js";
 
 class ToolBarActions {
@@ -62,10 +63,10 @@ export default class Editor implements ILayer {
         this.viewportWindow = new Viewport(new Vector2D(200, 200), new Vector2D(300, 200));
 
 
-        this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "right", 0.8);
-        this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "bottom", 0.75);
-        this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "right", 0.8);
-        this.dockSpace.dockWindow(this.viewportWindow, this.dockSpace.root, "full");
+        this.dockWindow(new Viewport(), this.dockSpace.root, "right", 0.8);
+        this.dockWindow(new Viewport(), this.dockSpace.root, "bottom", 0.75);
+        this.dockWindow(new Hierarchy(), this.dockSpace.root, "right", 0.8);
+        this.dockWindow(this.viewportWindow, this.dockSpace.root, "full");
 
         //this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "left");
         //this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "bottom");
@@ -91,11 +92,9 @@ export default class Editor implements ILayer {
         Editor.toolbar.onRender(this.renderer);
     }
 
-    public static addWindow(window: Window): void {
-        // Editor.dockSpace.dockWindow(window, Editor.dockSpace.root, "left");
-        // this.instance.eventEmitter.addEventListener(window.onEvent.bind(window));
-
-        // window.onAttach();
+    public static dockWindow(window: Window, target: DockNode, side: "left" | "right" | "top" | "bottom" | "full", ratio: number = 0.5): void {
+        this.dockSpace.dockWindow(window, this.dockSpace.root, side, ratio);
+        window.onAttach();
     }
 
     public static removeWindow(window: Window): boolean {
@@ -109,7 +108,7 @@ export default class Editor implements ILayer {
     }
 
     public onEvent(event: SystemEvent): void {
-        document.body.style.cursor = "initial";
+        System.setCursor("initial");
         this.eventEmitter.dispatchEvent(new SystemEvent(event.type));
     }
 }

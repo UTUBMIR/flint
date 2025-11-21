@@ -15,8 +15,6 @@ export default class Viewport extends Window {
         this.layer = layer;
     }
 
-    public onAttach(): void {
-    }
     public onUpdate(): void {
         if (!this.layer) {
             return;
@@ -38,7 +36,7 @@ export default class Viewport extends Window {
         camera.position.set(this.size.x / -2, this.size.y / -2);//TODO: make support of many cameras
     }
     
-    public onContentRender(r: IRenderer): void {
+    public onRenderContent(r: IRenderer): void {
         if (this.layer) {
             return;
         }

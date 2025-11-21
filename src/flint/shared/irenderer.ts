@@ -33,4 +33,7 @@ export interface IRenderer {
 
     fillText(position: Vector2D, text: string): void;
     strokeText(position: Vector2D, text: string): void;
+
+    fillPolygon(vertices: {x: number, y: number}[]): void;
+    strokePolygon(vertices: {x: number, y: number}[]): void;
 }

@@ -65,7 +65,7 @@ export class Renderer2D implements IRenderer {
     }
 
     private updateFont() {
-        this.ctx.font = this._fontSize.toString() + "px"  + " " + this._fontStyle;
+        this.ctx.font = this._fontSize.toString() + "px" + " " + this._fontStyle;
     }
 
     public clearCanvas(): void {
@@ -90,5 +90,33 @@ export class Renderer2D implements IRenderer {
 
     public strokeText(position: Vector2D, text: string): void {
         this.ctx.strokeText(text, position.x, position.y);
+    }
+
+    private makePath(vertices: { x: number, y: number }[]): void {
+        this.ctx.beginPath();
+
+        const first = vertices[0];
+        if (first) {
+            this.ctx.moveTo(first.x, first.y);
+        }
+
+        for (let i = 1; i < vertices.length; ++i) {
+            const vertex = vertices[i];
+            if (vertex) {
+                this.ctx.lineTo(vertex.x, vertex.y);
+            }
+        }
+
+        this.ctx.closePath();
+    }
+
+    public fillPolygon(vertices: { x: number, y: number }[]): void {
+        this.makePath(vertices);
+        this.ctx.fill();
+    }
+
+    public strokePolygon(vertices: { x: number, y: number }[]): void {
+        this.makePath(vertices);
+        this.ctx.stroke();
     }
 }

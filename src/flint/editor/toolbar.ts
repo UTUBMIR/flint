@@ -90,9 +90,11 @@ export class ToolbarTab {
         if ((event.type === "mousedown" || event.type === "touchstart") && event.stopImmediate === false) {
             this.open = false;
         }
+        if (event.stopImmediate) return;
 
         for (const tab of this.menu) {
             tab.onEvent(event);
+            if (event.stopImmediate) return;
         }
     }
 

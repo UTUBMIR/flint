@@ -4,11 +4,19 @@ export default class Vector2D implements IVector {
     public static readonly zero: Vector2D = new Vector2D();
 
     public x: number;
-    public y: number;
+    public y: number = 0;
 
-    public constructor(x: number = 0, y: number = 0) {
+    public constructor();
+    public constructor(x: number);
+    public constructor(x: number, y: number);
+    public constructor(x: number = 0, y?: number) {
         this.x = x;
-        this.y = y;
+        if (y) {
+            this.y = y;
+        }
+        else {
+            this.y = x;
+        }
     }
 
     public set(x: number, y: number): Vector2D {

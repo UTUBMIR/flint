@@ -57,6 +57,8 @@ export class Project {
     }
 
     public static async run() {
+        if (!this.folderHandle) return;
+        
         if (await this.compile()) {
             const module = await ModuleLoader.load(this.compiled);
 

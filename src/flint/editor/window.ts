@@ -38,7 +38,7 @@ export default abstract class Window {
 
     public onUpdate(): void { };
 
-    public onRender(r: IRenderer) {
+    private onRenderInternal(r: IRenderer) {
         r.fillColor = visualsConfig.colors.windowColor as Color;
         r.lineColor = visualsConfig.colors.windowEdgeColor as Color;
         r.lineWidth = Window.borderWidth;
@@ -54,8 +54,6 @@ export default abstract class Window {
         r.fillRect(this.position, new Vector2D(this.rect.width, Window.titleBarHeight));
 
 
-        this.onContentRender(r);
-
 
         r.fillColor = visualsConfig.colors.titleBarItemColor as Color;
 
@@ -70,9 +68,16 @@ export default abstract class Window {
         r.fillText(this.position.add(new Vector2D(5, Window.titleBarHeight / 2)), this.title);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    public onContentRender(r: IRenderer): void { };
+    public onRender(r: IRenderer) {
+        this.onRenderInternal(r);
 
+        this.onRenderContent(r);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    public onRenderContent(r: IRenderer): void { };
+    
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public onEvent(event: SystemEvent) {
 
     }

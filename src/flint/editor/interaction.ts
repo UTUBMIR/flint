@@ -6,6 +6,7 @@ import Vector2D from "../shared/vector2d.js";
 import Editor from "./editor.js";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
 import type { Color } from "../shared/graphics.js";
+import { System } from "../runtime/system.js";
 
 
 export class Drag {
@@ -51,7 +52,7 @@ export class Drag {
             this.dragOffset = this.position.subtract(Input.mousePosition);
 
             Editor.draggedItem = this;
-            document.body.style.cursor = this.draggedCursor;
+            System.setCursor(this.draggedCursor);
             this.onGrab();
 
             event.stopImmediatePropagation();
@@ -59,7 +60,7 @@ export class Drag {
         }
 
         if (isMove && !this.isDragged() && this.rect.contains(Input.mousePosition)) {
-            document.body.style.cursor = this.hoveredCursor;
+            System.setCursor(this.hoveredCursor);
 
             event.stopImmediatePropagation();
             return;
@@ -74,7 +75,7 @@ export class Drag {
                     new Vector2D(window.innerWidth, window.innerHeight)
                 )
             );
-            document.body.style.cursor = this.draggedCursor;
+            System.setCursor(this.draggedCursor);
             this.onGrabbing();
 
             event.stopImmediatePropagation();
@@ -85,7 +86,7 @@ export class Drag {
         if (isUp && this.isDragged()) {
             Editor.draggedItem = undefined;
             this.onRelease();
-            document.body.style.cursor = this.hoveredCursor;
+            System.setCursor(this.hoveredCursor);
 
             event.stopImmediatePropagation();
             return;
@@ -138,7 +139,7 @@ export class Click {
         if (isDown && Input.isMouseButtonPressed(0) && this.rect.contains(Input.mousePosition)) {
             this.pressed = true;
 
-            document.body.style.cursor = this.holdCursor;
+            System.setCursor(this.holdCursor);
             this.onMouseDown();
             event.stopImmediatePropagation();
             return;
@@ -157,7 +158,7 @@ export class Click {
             this.hovered = mouseHovered;
 
             if (mouseHovered) {
-                document.body.style.cursor = this.hoveredCursor;
+                System.setCursor(this.hoveredCursor);
                 event.stopImmediatePropagation();
                 return;
             }
@@ -167,7 +168,7 @@ export class Click {
             this.pressed = false;
 
             this.onMouseUp();
-            document.body.style.cursor = this.hoveredCursor;
+            System.setCursor(this.hoveredCursor);
             event.stopImmediatePropagation();
             return;
         }
@@ -183,22 +184,22 @@ export class Button extends Click {
     public text: string;
     private color: Color = visualsConfig.colors.toolbarTab as Color;
 
-    public constructor(rect: Rect, text: string) {
+    public constructor(rect: Rect, text?: string) {
         super(rect);
-        this.text = text;
+        this.text = text ?? "";
     }
 
-    onHoverLeave() {
+    public onHoverLeave() {
         this.color = visualsConfig.colors.toolbarTab as Color;
     };
-    
-    onHover() {
+
+    public onHover() {
         this.color = visualsConfig.colors.toolbarTabSelected as Color;
     };
 
-    onMouseUp = this.onHover;
+    public onMouseUp = this.onHover;
 
-    onMouseDown() {
+    public onMouseDown() {
         this.color = visualsConfig.colors.toolbarTabPressed as Color;
         this.onClick();
     };
@@ -206,6 +207,8 @@ export class Button extends Click {
     public onRender(r: IRenderer) {
         r.fillColor = this.color;
         r.fillRect(this.position, this.size);
+
+        if (this.text === "") return;
 
         r.fillColor = visualsConfig.colors.textColor as Color;
         r.textBaseLine = "middle";
@@ -215,5 +218,86 @@ export class Button extends Click {
         r.fillText(this.position.add(this.size.divide(2)), this.text);
     }
 
-    public onClick() {}
+    public onClick() { }
+}
+
+export class Tree {
+    public readonly button: Button;
+    public items: (Click | Drag | Tree)[] = [];
+
+    private _contentHeight: number = 0;
+    public open: boolean = false;
+    public triangleRadius = 5;
+    public nestedSpacing = 5;
+
+    public get rect() {
+        return this.button.rect;
+    }
+
+    public set rect(rect: Rect) {
+        this.button.rect = rect;
+    }
+
+    public get contentHeight(): number {
+        return this._contentHeight;
+    }
+
+    public constructor(rect: Rect, name?: string) {
+        this.button = new Button(rect, name);
+        this.button.onClick = () => {
+            this.open = !this.open;
+        };
+    }
+
+    public onRender(r: IRenderer) {
+        this.onRenderInternal(r);
+        this.onRenderContent(r);
+    }
+
+    public onRenderInternal(r: IRenderer) {
+        this.button.onRender(r);
+
+        r.fillColor = "#fff";
+        const c = this.rect.position.add(new Vector2D(this.rect.size.y / 2));
+
+        if (this.open) {
+            r.fillPolygon([
+                { x: c.x - this.triangleRadius, y: c.y - this.triangleRadius },
+                { x: c.x, y: c.y + this.triangleRadius },
+                { x: c.x + this.triangleRadius, y: c.y - this.triangleRadius },
+
+            ]);
+        }
+        else {
+            r.fillPolygon([
+                { x: c.x - this.triangleRadius, y: c.y - this.triangleRadius },
+                { x: c.x - this.triangleRadius, y: c.y + this.triangleRadius },
+                { x: c.x + this.triangleRadius, y: c.y },
+            ]);
+        }
+    }
+
+    public onRenderContent(r: IRenderer) {
+        this._contentHeight = this.rect.height;
+        if (!this.open) return;
+
+        for (const item of this.items) {
+            item.rect.position.set(this.rect.x + this.nestedSpacing, this.rect.y + this._contentHeight);
+            item.rect.width = this.rect.width - this.nestedSpacing;
+            this._contentHeight += item.rect.height;
+
+            item.onRender(r);
+        }
+    }
+
+    public onEvent(event: SystemEvent) {
+        
+        this.button.onEvent(event);
+        if (event.stopImmediate || !this.open) return;
+        
+        for (const item of this.items) {
+            item.onEvent(event);
+            if (event.stopImmediate) return;
+        }
+    }
 }
