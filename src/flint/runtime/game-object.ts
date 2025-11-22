@@ -16,6 +16,10 @@ export default class GameObject {
         }
     }
 
+    public getAllComponents(): readonly Component[] {
+        return this.components;
+    }
+
     onAttach(): void {
         for (const component of this.components) {
             component.onAttach();

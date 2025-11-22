@@ -10,6 +10,7 @@ import { Project } from "./project/project.js";
 import { Toolbar, ToolbarTab } from "./toolbar.js";
 import Window from "./window.js";
 import Hierarchy from "./windows/hierarchy.js";
+import Inspector from "./windows/inspector.js";
 import Viewport from "./windows/viewport.js";
 
 class ToolBarActions {
@@ -42,6 +43,7 @@ export default class Editor implements ILayer {
     public static runButton: ToolbarTab;
 
     public static viewportWindow: Viewport;
+    public static hierarchyWindow: Hierarchy;
 
     private constructor() {
         this.eventEmitter.addEventListener(Editor.dockSpace.onEvent.bind(Editor.dockSpace));
@@ -60,12 +62,13 @@ export default class Editor implements ILayer {
 
         this.instance.eventEmitter.addEventListener(Editor.toolbar.onEvent.bind(Editor.toolbar));
 
-        this.viewportWindow = new Viewport(new Vector2D(200, 200), new Vector2D(300, 200));
+        this.viewportWindow = new Viewport();
+        this.hierarchyWindow = new Hierarchy();
 
 
-        this.dockWindow(new Viewport(), this.dockSpace.root, "right", 0.8);
+        this.dockWindow(new Inspector(), this.dockSpace.root, "right", 0.8);
         this.dockWindow(new Viewport(), this.dockSpace.root, "bottom", 0.75);
-        this.dockWindow(new Hierarchy(), this.dockSpace.root, "right", 0.8);
+        this.dockWindow(this.hierarchyWindow, this.dockSpace.root, "right", 0.8);
         this.dockWindow(this.viewportWindow, this.dockSpace.root, "full");
 
         //this.dockSpace.dockWindow(new Viewport(), this.dockSpace.root, "left");

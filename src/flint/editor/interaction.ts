@@ -182,7 +182,7 @@ export class Click {
 
 export class Button extends Click {
     public text: string;
-    private color: Color = visualsConfig.colors.toolbarTab as Color;
+    public color: Color = visualsConfig.colors.toolbarTab as Color;
 
     public constructor(rect: Rect, text?: string) {
         super(rect);
@@ -289,9 +289,11 @@ export class Tree {
         if (!this.open) return;
 
         for (const item of this.items) {
+            ++this._contentHeight;
+
             item.rect.position.set(this.rect.x + this.nestedSpacing, this.rect.y + this._contentHeight);
             item.rect.width = this.rect.width - this.nestedSpacing;
-            this._contentHeight += item.rect.height;
+            this._contentHeight += ((item as Tree).contentHeight || item.rect.height);
 
             item.onRender(r);
         }
@@ -300,12 +302,10 @@ export class Tree {
     public onEvent(event: SystemEvent) {
         if (!this.locked) {
             this.button.onEvent(event);
-            if (event.stopImmediate || !this.open) return;
         }
 
         for (const item of this.items) {
             item.onEvent(event);
-            if (event.stopImmediate) return;
         }
     }
 }

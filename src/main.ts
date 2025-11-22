@@ -21,5 +21,6 @@ Editor.init();
 
 System.pushLayer(Editor.instance);
 System.pushLayer(layer);
+System.pushLayer(new Layer());
 Editor.viewportWindow.layer = layer;
 System.run();

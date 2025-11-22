@@ -71,6 +71,8 @@ export default abstract class Window {
     public onRender(r: IRenderer) {
         this.onRenderInternal(r);
 
+        r.shadowBlur = 0;
+
         this.onRenderContent(r);
     }
 
