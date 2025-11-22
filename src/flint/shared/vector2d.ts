@@ -11,7 +11,7 @@ export default class Vector2D implements IVector {
     public constructor(x: number, y: number);
     public constructor(x: number = 0, y?: number) {
         this.x = x;
-        if (y) {
+        if (y !== undefined) {
             this.y = y;
         }
         else {
