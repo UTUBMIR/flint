@@ -15,7 +15,7 @@ export default class Hierarchy extends Window {
 
     constructor(position?: Vector2D, size?: Vector2D) {
         super(position, size, "Hierarchy");
-        this.tree.open = true;
+        this.tree.lockState(true);
         this.tree.nestedSpacing = 0;
 
         this.tree.onRender = this.tree.onRenderContent; // only render content, without internal stuff

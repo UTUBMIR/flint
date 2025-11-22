@@ -230,6 +230,8 @@ export class Tree {
     public triangleRadius = 5;
     public nestedSpacing = 5;
 
+    private locked = false;
+
     public get rect() {
         return this.button.rect;
     }
@@ -247,6 +249,11 @@ export class Tree {
         this.button.onClick = () => {
             this.open = !this.open;
         };
+    }
+
+    public lockState(open: boolean) {
+        this.open = open;
+        this.locked = true;
     }
 
     public onRender(r: IRenderer) {
@@ -291,10 +298,11 @@ export class Tree {
     }
 
     public onEvent(event: SystemEvent) {
-        
-        this.button.onEvent(event);
-        if (event.stopImmediate || !this.open) return;
-        
+        if (!this.locked) {
+            this.button.onEvent(event);
+            if (event.stopImmediate || !this.open) return;
+        }
+
         for (const item of this.items) {
             item.onEvent(event);
             if (event.stopImmediate) return;
