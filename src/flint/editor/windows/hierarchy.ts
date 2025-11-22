@@ -74,9 +74,9 @@ export default class Hierarchy extends Window {
     public onEvent(event: SystemEvent): void {
         this.tree.onEvent(event);
 
-        if (this.selectedObject && !event.stopImmediate && event.type === "mousedown" && this.rect.contains(Input.mousePosition)) {
-            this.selectedObject.button.color = visualsConfig.colors.toolbarTab as Color;
-            this.selectedObject = undefined;
-        }
+        // if (this.selectedObject && !event.stopImmediate && event.type === "mousedown" && this.rect.contains(Input.mousePosition)) {
+        //     this.selectedObject.button.color = visualsConfig.colors.toolbarTab as Color;
+        //     this.selectedObject = undefined;
+        // }
     }
 }

@@ -223,7 +223,7 @@ export class Button extends Click {
 
 export class Tree {
     public readonly button: Button;
-    public items: (Click | Drag | Tree)[] = [];
+    public items: (Click | Drag | Tree | {rect: Rect, onRender: (r: IRenderer) => void, onEvent: (e: SystemEvent) => void})[] = [];
 
     private _contentHeight: number = 0;
     public open: boolean = false;
@@ -303,6 +303,7 @@ export class Tree {
         if (!this.locked) {
             this.button.onEvent(event);
         }
+        if (!this.open) return;
 
         for (const item of this.items) {
             item.onEvent(event);

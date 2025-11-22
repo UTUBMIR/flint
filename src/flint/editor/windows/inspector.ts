@@ -12,12 +12,14 @@ import type GameObject from "../../runtime/game-object.js";
 import Input from "../../shared/input.js";
 import Component from "../../runtime/component.js";
 import Editor from "../editor.js";
+import { InspectorComponent, InspectorRenderer } from "../inspector-renderer.js";
 
 
 export default class Inspector extends Window {
     protected minSize: Vector2D = new Vector2D(250, 100);
     private tree: Tree = new Tree(this.rect);
     private currentObject: GameObject | undefined;
+    private ir: InspectorRenderer = new InspectorRenderer(System.renderer);
 
     constructor(position?: Vector2D, size?: Vector2D) {
         super(position, size, "Inspector");
@@ -28,8 +30,12 @@ export default class Inspector extends Window {
     }
 
     public addComponent(component: Component): void {
-        const tree = new Tree(new Rect(0, 0, 0, 20), "new " + component.constructor.name);
+        const tree = new Tree(new Rect(0, 0, 0, 20), component.constructor.name);
+        tree.open = true;
         this.tree.items.push(tree);
+
+        const ic = new InspectorComponent(component, this.ir);
+        tree.items.push(ic);
     }
 
     public onAttach(): void {
