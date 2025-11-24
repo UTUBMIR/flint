@@ -1,18 +1,8 @@
-import Component from "../component.js";
-import type { IRenderer } from "../../shared/irenderer.js";
-import Vector2D from "../../shared/vector2d.js";
-import Input from "../../shared/input.js";
-import { System } from "../system.js";
+import Component from "../component";
+import type { IRenderer } from "../../shared/irenderer";
+import Vector2D from "../../shared/vector2d";
 
 export default class Shape extends Component {
-    onUpdate(): void {
-        const speed = new Vector2D(Input.getAxis("horizontal"), Input.getAxis("vertical"))
-            .multiply(System.deltaTime * 80)
-            .normalize(System.deltaTime * 800);
-
-        this.parent.transform.position = this.parent.transform.position.add(speed);
-    }
-
     onRender(renderer: IRenderer): void {
         renderer.fillColor = "#294a31ff";
         renderer.lineColor = "#a8a25dff";

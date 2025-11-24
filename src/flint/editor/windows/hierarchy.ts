@@ -1,82 +1,38 @@
-import Layer from "../../runtime/layer.js";
-import type { IRenderer } from "../../shared/irenderer.js";
-import Vector2D from "../../shared/vector2d.js";
-import Window from "../window.js";
-import { Button, Tree } from "../interaction.js";
-import type { SystemEvent } from "../../runtime/system-event.js";
-import { Rect } from "../../shared/primitives.js";
-import { System } from "../../runtime/system.js";
-import visualsConfig from "../config/visuals.json" with { type: 'json' };
-import type { Color } from "../../shared/graphics.js";
-import type GameObject from "../../runtime/game-object.js";
-import Input from "../../shared/input.js";
+import type SlTree from "@shoelace-style/shoelace/dist/components/tree/tree.js";
+import type Layer from "../../runtime/layer";
+import { System } from "../../runtime/system";
+import type SlTreeItem from "@shoelace-style/shoelace/dist/components/tree-item/tree-item.component.js";
 
+export default class Hierarchy {
+    public element: SlTree;
+    public layers = new Map<number, Layer>();
 
-export default class Hierarchy extends Window {
-    protected minSize: Vector2D = new Vector2D(250, 100);
-    private tree: Tree = new Tree(this.rect);
-    private layers: Layer[] = [];//FIXME: Delete me
-
-    public selectedObject: { button: Button, gameObject: GameObject } | undefined;
-
-    constructor(position?: Vector2D, size?: Vector2D) {
-        super(position, size, "Hierarchy");
-        this.tree.lockState(true);
-        this.tree.nestedSpacing = 0;
-
-        this.tree.onRender = this.tree.onRenderContent; //NOTE: only render content, without internal stuff
+    public constructor(element: SlTree) {
+        this.element = element;
     }
 
-    public addLayer(layer: Layer): void {
-        const tree = new Tree(new Rect(0, 0, 0, 20), "new " + layer.constructor.name);
-        this.tree.items.unshift(tree);
+    public onUpdate() {
+        this.layers.clear();
+        for (const [layerIndex, layer] of System.layers.entries()) {
+            const name = `new Layer${layerIndex > 0 ? " " + layerIndex : ""}`;
 
-        for (const gameObject of layer.getObjects()) {
-            const button = new Button(new Rect(0, 0, 0, 20), "new " + gameObject.constructor.name);
+            const layerItem = this.addItem(name, layerIndex.toString(), this.element);
+            for (const [index] of layer.getObjects().entries()) {
+                const name = `new GameObject${index > 0 ? " " + index : ""}`;
 
-            button.onClick = () => {
-                if (this.selectedObject) {
-                    this.selectedObject.button.color = visualsConfig.colors.toolbarTab as Color;
-                }
-                this.selectedObject = { button, gameObject };
-            };
-
-            tree.items.unshift(button);
-        }
-
-        this.layers.unshift(layer);
-    }
-
-    public onAttach(): void {
-    }
-
-    public onUpdate(): void {
-        if (System.layers.length - 1 != this.layers.length) {
-            const layer = System.layers[this.layers.length + 1];
-            if (layer instanceof Layer) {
-                this.addLayer(layer); //FIXME: WTF
+                this.addItem(name, layerIndex.toString() + "-" + index.toString(), layerItem);
             }
+            this.layers.set(layerIndex, layer);
         }
     }
 
-    public onRenderContent(r: IRenderer): void {
-        this.tree.rect = this.rect.copy();
-        this.tree.rect.height = 0;
-        this.tree.rect.position.y += Window.titleBarHeight;
+    public addItem(text: string, id: string, parent: SlTree | SlTreeItem) {
+        const item = Object.assign(document.createElement("sl-tree-item"), {
+            textContent: text,
+            hierarchyId: id
+        });
 
-        if (this.selectedObject) {
-            this.selectedObject.button.color = visualsConfig.colors.toolbarTabPressed as Color;
-        }
-
-        this.tree.onRender(r);
-    }
-
-    public onEvent(event: SystemEvent): void {
-        this.tree.onEvent(event);
-
-        // if (this.selectedObject && !event.stopImmediate && event.type === "mousedown" && this.rect.contains(Input.mousePosition)) {
-        //     this.selectedObject.button.color = visualsConfig.colors.toolbarTab as Color;
-        //     this.selectedObject = undefined;
-        // }
+        parent.appendChild(item);
+        return item;
     }
 }

@@ -1,12 +1,13 @@
 {
     // Visit https://aka.ms/tsconfig to read more about this file
     "compilerOptions": {
+        
         // File Layout
         "rootDir": "./src",
         "outDir": "./dist",
         // Environment Settings
         // See also https://aka.ms/tsconfig/module
-        "module": "nodenext",
+        "module": "esnext",
         "target": "esnext",
         "types": [
             "@types/wicg-file-system-access"
@@ -18,6 +19,7 @@
         // Other Outputs
         "sourceMap": false,
         "declaration": false,
+        "moduleResolution": "bundler",
         //"declarationDir": "types",
         "declarationMap": false,
         "emitDeclarationOnly": false,

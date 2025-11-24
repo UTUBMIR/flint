@@ -1,5 +1,5 @@
-import { type Color, type TextAlign, type TextBaseLine } from "./graphics.js";
-import Vector2D from "./vector2d.js";
+import { type Color, type TextAlign, type TextBaseLine } from "./graphics";
+import Vector2D from "./vector2d";
 
 export interface IRenderer {
     canvas: HTMLCanvasElement;

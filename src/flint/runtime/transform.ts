@@ -1,5 +1,5 @@
-import Component from "./component.js";
-import Vector2D from "../shared/vector2d.js";
+import Component from "./component";
+import Vector2D from "../shared/vector2d";
 
 export default class Transform extends Component {
     public position: Vector2D;

@@ -1,11 +1,11 @@
-import type { ILayer } from "../shared/ilayer.js";
-import Input from "../shared/input.js";
-import type { IRenderer } from "../shared/irenderer.js";
-import { SystemEvent, SystemEventEmitter } from "./system-event.js";
+import Input from "../shared/input";
+import type { IRenderer } from "../shared/irenderer";
+import { SystemEvent, SystemEventEmitter } from "./system-event";
 import playConfig from "./config/play-config.json" with { type: 'json' };
-import type { AxisBinding } from "../shared/input-axis.js";
-import InputAxis from "../shared/input-axis.js";
-import Component from "./component.js";
+import type { AxisBinding } from "../shared/input-axis";
+import InputAxis from "../shared/input-axis";
+import Component from "./component";
+import type Layer from "./layer";
 
 export type Canvas = {
     element: HTMLCanvasElement,
@@ -17,7 +17,7 @@ type PlayConfig = {
 }
 
 export class System {
-    public static layers: ILayer[] = [];
+    public static layers: Layer[] = [];
     public static customComponents = new Map<string, typeof Component>();
 
     public static showColliders: boolean = false;
@@ -65,7 +65,7 @@ export class System {
         }
     }
 
-    public static pushLayer(layer: ILayer): void {
+    public static pushLayer(layer: Layer): void {
         layer.canvas = this.createCanvas();
         layer.renderer = this._renderer;
         this.eventEmitter.addEventListener(layer.onEvent.bind(layer));
@@ -104,7 +104,7 @@ export class System {
         }
 
         this.addResizing(canvas);
-        
+
         if (ctx instanceof CanvasRenderingContext2D) {
             ctx.scale(System.dpr, System.dpr);
         }
@@ -128,13 +128,14 @@ export class System {
     }
 
     private static addResizing(canvas: HTMLCanvasElement) {
-        const resize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        };
+        const ro = new ResizeObserver(() => {
+            setTimeout(() => {
+                canvas.width = +(this.rootDiv.clientWidth);
+                canvas.height = +(this.rootDiv.clientHeight);
+            }, 0);
+        });
 
-        resize();
-        window.addEventListener("resize", resize);
+        ro.observe(this.rootDiv);
     }
 
     private static initRootDiv(id: string = "root") {

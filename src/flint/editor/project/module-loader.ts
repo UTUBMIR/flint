@@ -1,3 +1,6 @@
+import { System } from "../../runtime/system";
+import Input from "../../shared/input";
+
 export default class ModuleLoader {
     private constructor() { }
 
@@ -12,9 +15,14 @@ export default class ModuleLoader {
 
     public static async load(module: string) {
         const url = ModuleLoader.createTempURL(module);
-        const result = await import(url);
+        const loadedModule = await import(url);
         ModuleLoader.deleteTempUrl(url);
 
-        return result;
+        if (loadedModule.shared) {
+            loadedModule.shared.System = System;
+            loadedModule.shared.Input = Input;
+        }
+
+        return loadedModule;
     }
 }

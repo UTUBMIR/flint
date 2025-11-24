@@ -1,12 +1,12 @@
-import type { SystemEvent } from "../runtime/system-event.js";
-import Input from "../shared/input.js";
-import type { IRenderer } from "../shared/irenderer.js";
-import { Rect } from "../shared/primitives.js";
-import Vector2D from "../shared/vector2d.js";
-import Editor from "./editor.js";
+import type { SystemEvent } from "../runtime/system-event";
+import Input from "../shared/input";
+import type { IRenderer } from "../shared/irenderer";
+import { Rect } from "../shared/primitives";
+import Vector2D from "../shared/vector2d";
+import Editor from "./editor";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
-import type { Color } from "../shared/graphics.js";
-import { System } from "../runtime/system.js";
+import type { Color } from "../shared/graphics";
+import { System } from "../runtime/system";
 
 
 export class Drag {

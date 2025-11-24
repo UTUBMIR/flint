@@ -17,9 +17,9 @@ layer.addObject(new GameObject([
     new Camera()
 ]));
 
-Editor.init();
 
-System.pushLayer(Editor.instance);
+//System.pushLayer(Editor.instance);
 System.pushLayer(layer);
-Editor.viewportWindow.layer = layer;
 System.run();
+
+Editor.init();

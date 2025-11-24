@@ -1,0 +1,121 @@
+:not(:defined) {
+  visibility: hidden;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+div {
+    overflow: inherit;
+}
+
+body {
+    padding: 0;
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: visible;
+    background: var(--sl-color-neutral-0);
+    font-family: var(--sl-font-sans);
+    display: flex;
+    flex-direction: column;
+}
+
+canvas {
+    position: absolute;
+}
+
+sl-split-panel {
+    --min: 15%;
+    --max: 85%;
+    background-color: var(--sl-color-neutral-200);
+}
+
+.editor-window {
+    width: 100%;
+    height: 100%;
+    border: 1px solid #5d83a8;
+    border-radius: var(--sl-border-radius-medium);
+    display: flex;
+    flex-direction: column;
+    color: #fafaff;
+    overflow: hidden;
+    font-family: sans-serif;
+    background-color: var(--sl-color-neutral-0);
+}
+
+.window-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--sl-spacing-2x-small) var(--sl-spacing-x-small);
+    background: #24303f;
+}
+
+.window-title {
+    font-size: var(--sl-font-size-large);
+}
+
+.window-body {
+    flex: 1;
+    padding: var(--sl-spacing-x-small);
+    overflow: auto;
+}
+
+.app-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* ensures center block is in middle */
+    position: relative;
+
+    padding: var(--sl-spacing-2x-small);
+    background: var(--sl-color-background-secondary);
+    color: var(--sl-color-text);
+    border-bottom: 1px solid var(--sl-color-border);
+    font-family: var(--sl-font-sans);
+    user-select: none;
+}
+
+.toolbar-left,
+.toolbar-right {
+    display: flex;
+    align-items: center;
+
+    gap: var(--sl-spacing-large);
+
+    position: absolute;
+    top: 0;
+    height: 100%;
+    display: flex;
+}
+
+.toolbar-left {
+    left: var(--sl-spacing-x-small);
+}
+
+.toolbar-right {
+    right: var(--sl-spacing-x-small);
+}
+
+.toolbar-center {
+    display: flex;
+    align-items: center;
+}
+
+.app-title {
+    font-weight: var(--sl-font-weight-semibold);
+    color: var(--sl-color-text);
+    opacity: 0.85;
+    font-size: var(--sl-font-size-large);
+}
+
+#root {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: var(--sl-border-radius-medium);
+}

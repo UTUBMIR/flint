@@ -1,6 +1,6 @@
-import { type IRenderer } from "./irenderer.js";
-import { type Color, type TextAlign, type TextBaseLine } from "./graphics.js";
-import Vector2D from "./vector2d.js";
+import { type IRenderer } from "./irenderer";
+import { type Color, type TextAlign, type TextBaseLine } from "./graphics";
+import Vector2D from "./vector2d";
 
 export class Renderer2D implements IRenderer {
     public canvas!: HTMLCanvasElement;

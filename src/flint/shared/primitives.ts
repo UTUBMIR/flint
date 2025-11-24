@@ -1,4 +1,4 @@
-import Vector2D from "./vector2d.js";
+import Vector2D from "./vector2d";
 
 export class Rect {
     public position: Vector2D;

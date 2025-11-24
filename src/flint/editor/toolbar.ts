@@ -1,10 +1,10 @@
-import type { SystemEvent } from "../runtime/system-event.js";
-import type { Color } from "../shared/graphics.js";
-import type { IRenderer } from "../shared/irenderer.js";
-import { Rect } from "../shared/primitives.js";
-import Vector2D from "../shared/vector2d.js";
+import type { SystemEvent } from "../runtime/system-event";
+import type { Color } from "../shared/graphics";
+import type { IRenderer } from "../shared/irenderer";
+import { Rect } from "../shared/primitives";
+import Vector2D from "../shared/vector2d";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
-import { Button } from "./interaction.js";
+import { Button } from "./interaction";
 
 
 export class Toolbar {

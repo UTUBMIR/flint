@@ -1,5 +1,5 @@
-import InputAxis from "./input-axis.js";
-import Vector2D from "./vector2d.js";
+import InputAxis from "./input-axis";
+import Vector2D from "./vector2d";
 
 export default class Input {
     public static pressedKeys = new Set<string>();
