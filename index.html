@@ -1,30 +1,112 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="sl-theme-dark" lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flint</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css" />
 </head>
 
-<style>
-    body {
-        margin: 0;
-        padding: 0;
-        width: 100vw;
-        height: 100vh;
-        overflow: hidden;
-        background-color: black;
-    }
 
-    canvas {
-        position: absolute;
-    }
-</style>
 
 <body>
-    <div id="root"></div>
+    <div class="app-toolbar">
+        <div class="toolbar-left">
+            <span class="app-title">Flint</span>
+            <sl-button-group>
+                <sl-dropdown>
+                    <sl-button size="small" slot="trigger">File</sl-button>
+                    <sl-menu>
+                        <sl-menu-label>Project</sl-menu-label>
+                        <sl-menu-item id="new-project-button" value="create-project">
+                            <sl-icon slot="prefix" name="plus-lg"></sl-icon>
+                            New project
+                        </sl-menu-item>
+                        <sl-menu-item id="open-project-button" value="open-project">
+                            <sl-icon slot="prefix" name="folder2"></sl-icon>
+                            Open project
+                        </sl-menu-item>
+                    </sl-menu>
+                </sl-dropdown>
+                <sl-button size="small">View</sl-button>
+                <sl-button size="small">Window</sl-button>
+                <sl-button size="small">Help</sl-button>
+            </sl-button-group>
+        </div>
 
+        <div class="toolbar-center">
+            <sl-button-group>
+                <sl-button id="run-button" size="small" disabled>
+                    <sl-icon name="play" style="font-size: var(--sl-font-size-large);" slot="prefix"></sl-icon>
+                    Run
+                </sl-button>
+            </sl-button-group>
+        </div>
+
+        <div class="toolbar-right">
+
+        </div>
+    </div>
+
+
+    <sl-split-panel position="80" style="height: 100%;">
+        <div slot="start">
+
+            <sl-split-panel vertical position="75" style="height: 100%;">
+                <sl-split-panel position="80" slot="start">
+                    <div slot="start" class="editor-window">
+                        <div class="window-header">
+                            <span class="window-title">Viewport</span>
+                        </div>
+
+                        <div class="window-body" style="padding: 1px;">
+                            <div id="root"></div>
+                        </div>
+                    </div>
+
+
+                    <div slot="end" class="editor-window">
+                        <div class="window-header">
+                            <span class="window-title">Hierarchy</span>
+                        </div>
+
+                        <div class="window-body">
+                            <sl-tree id="hierarchy-tree" style="--indent-guide-width: 1px;">
+
+                            </sl-tree>
+
+                        </div>
+                    </div>
+                </sl-split-panel>
+                <div slot="end" class="editor-window">
+                    <div class="window-header">
+                        <span class="window-title">Assets</span>
+                    </div>
+
+                    <div class="window-body">
+                        <p>Here is some content inside the window.</p>
+                        <sl-button>Action</sl-button>
+                    </div>
+                </div>
+            </sl-split-panel>
+        </div>
+        <div slot="end" class="editor-window">
+            <div class="window-header">
+                <span class="window-title">Inspector</span>
+            </div>
+
+            <div class="window-body" id="inspector-body">
+
+            </div>
+        </div>
+    </sl-split-panel>
+
+
+    <script type="module"
+        src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
     <script type="module" src="./dist/main.js"></script>
 </body>
 

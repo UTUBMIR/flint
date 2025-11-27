@@ -1,5 +1,5 @@
-import type Vector2D from "../../shared/vector2d.js";
-import Component from "../component.js";
+import type Vector2D from "../../shared/vector2d";
+import Component from "../component";
 
 export default class Camera extends Component  {
     public enabled: boolean = true;
@@ -8,6 +8,9 @@ export default class Camera extends Component  {
         return this.parent.transform.position;
     }
 
+    public get angle(): number {
+        return this.parent.transform.angle;
+    }
 
     //TODO: implement camera stuff
     onAttach(): void {

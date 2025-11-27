@@ -1,6 +1,6 @@
-import { type IRenderer } from "./irenderer.js";
-import { type Color, type TextAlign, type TextBaseLine } from "./graphics.js";
-import Vector2D from "./vector2d.js";
+import { type IRenderer } from "./irenderer";
+import { type Color, type TextAlign, type TextBaseLine } from "./graphics";
+import Vector2D from "./vector2d";
 
 export class Renderer2D implements IRenderer {
     public canvas!: HTMLCanvasElement;
@@ -60,8 +60,16 @@ export class Renderer2D implements IRenderer {
         this.updateFont();
     }
 
+    resetTransform(): void {
+        this.ctx.resetTransform();
+    }
+
     translate(position: Vector2D): void {
         this.ctx.translate(position.x, position.y);
+    }
+
+    rotate(angle: number): void {
+        this.ctx.rotate(angle);
     }
 
     private updateFont() {
@@ -69,11 +77,21 @@ export class Renderer2D implements IRenderer {
     }
 
     public clearCanvas(): void {
+        this.ctx.save();
+
+        this.ctx.resetTransform();
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.ctx.restore();
     }
 
     public fillCanvas(): void {
+        this.ctx.save();
+
+        this.ctx.resetTransform();
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.ctx.restore();
     }
 
     public fillRect(position: Vector2D, size: Vector2D): void {

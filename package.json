@@ -21,11 +21,13 @@
     "type": "module",
     "main": "main.js",
     "scripts": {
-        "build": "tsc"
+        "build": "npx esbuild src/main.ts --bundle --outfile=dist/main.js --target=esnext --minify --keep-names"
     },
     "devDependencies": {
         "@eslint/js": "^9.39.1",
+        "@shoelace-style/shoelace": "^2.20.1",
         "@types/wicg-file-system-access": "^2023.10.7",
+        "esbuild": "^0.27.0",
         "esbuild-wasm": "^0.27.0",
         "eslint": "^9.39.1",
         "globals": "^16.5.0",

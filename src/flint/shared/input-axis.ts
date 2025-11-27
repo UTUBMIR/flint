@@ -1,4 +1,4 @@
-import Input from "./input.js";
+import Input from "./input";
 
 export type KeyboardBinding = {
     type: "keyboard";

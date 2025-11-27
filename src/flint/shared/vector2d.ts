@@ -1,4 +1,4 @@
-import type { IVector } from "./ivector.js";
+import type { IVector } from "./ivector";
 
 export default class Vector2D implements IVector {
     public static readonly zero: Vector2D = new Vector2D();

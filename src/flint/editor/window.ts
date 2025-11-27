@@ -1,9 +1,9 @@
-import type { IRenderer } from "../shared/irenderer.js";
-import Vector2D from "../shared/vector2d.js";
+import type { IRenderer } from "../shared/irenderer";
+import Vector2D from "../shared/vector2d";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
-import type { Color } from "../shared/graphics.js";
-import { Rect } from "../shared/primitives.js";
-import type { SystemEvent } from "../runtime/system-event.js";
+import type { Color } from "../shared/graphics";
+import { Rect } from "../shared/primitives";
+import type { SystemEvent } from "../runtime/system-event";
 
 
 export default abstract class Window {

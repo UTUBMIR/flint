@@ -1,12 +1,11 @@
-import type GameObject from "./game-object.js";
-import { type IRenderer } from "../shared/irenderer.js";
-import { type Canvas } from "./system.js";
-import { type ILayer } from "../shared/ilayer.js";
-import { SystemEventEmitter, SystemEvent } from "./system-event.js";
-import Camera from "./components/camera.js";
-import Vector2D from "../shared/vector2d.js";
+import type GameObject from "./game-object";
+import { type IRenderer } from "../shared/irenderer";
+import { type Canvas } from "./system";
+import { SystemEventEmitter, SystemEvent } from "./system-event";
+import Camera from "./components/camera";
+import Vector2D from "../shared/vector2d";
 
-export default class Layer implements ILayer {
+export default class Layer {
     public canvas!: Canvas;
     public renderer!: IRenderer;
     protected objects: GameObject[] = [];
@@ -37,11 +36,18 @@ export default class Layer implements ILayer {
         this.renderer.setCanvas(this.canvas.element, this.canvas.ctx); //FIXME: make it work with more than one camera
         this.renderer.clearCanvas();
 
-        this.renderer.fillColor = "#fff";
+        this.renderer.fillColor = "#222";
         this.renderer.fillCanvas();
         for (const camera of this.cameras) {
             if (camera.enabled) {
-                this.renderer.translate(new Vector2D().subtract(camera.position));
+                this.renderer.resetTransform();
+
+                const canvasHalf = new Vector2D(this.canvas.ctx.canvas.width, this.canvas.ctx.canvas.height).divide(2);
+
+                this.renderer.translate(canvasHalf);
+                this.renderer.rotate(camera.angle * Math.PI / 180);
+                this.renderer.translate(Vector2D.zero.subtract(camera.position));
+
                 for (const obj of this.objects) obj.onRender(this.renderer);
             }
         }

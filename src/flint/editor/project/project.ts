@@ -1,8 +1,9 @@
-import Component from "../../runtime/component.js";
-import type Layer from "../../runtime/layer.js";
-import { System } from "../../runtime/system.js";
-import Builder from "./builder.js";
-import ModuleLoader from "./module-loader.js";
+import Component from "../../runtime/component";
+import type Layer from "../../runtime/layer";
+import { System } from "../../runtime/system";
+import { Notifier } from "../editor";
+import Builder from "./builder";
+import ModuleLoader from "./module-loader";
 
 export class Project {
     private static compiled: string;
@@ -10,23 +11,47 @@ export class Project {
 
     private constructor() { }
 
+    public static openProject(folderHandle: FileSystemDirectoryHandle) {
+        Project.folderHandle = folderHandle;
+    }
+
     public static async newProject(folderHandle: FileSystemDirectoryHandle) {
         Project.folderHandle = folderHandle;
 
-        try {
-            await Project.folderHandle.getFileHandle("index.ts", { create: true });
+        const files: { name: string, content: string }[] = [
+            { name: "index.ts", content: `export * from "./shared.ts";` },
+            {
+                name: "shared.ts", content:
+                    `import Input from "./flint/shared/input";
+import { System } from "./flint/runtime/system";
 
+export let shared = { Input, System };`},
+        ];
+
+        try {
+            for (const file of files) {
+                // Create or get the file handle
+                const fileHandle = await Project.folderHandle.getFileHandle(file.name, { create: true });
+
+                // Create a writable stream
+                const writable = await fileHandle.createWritable();
+
+                // Write the file content
+                await writable.write(file.content);
+
+                // Close the stream to save changes
+                await writable.close();
+            }
         } catch (error) {
-            console.error(`Error: ${error}`);
+            console.error(`Error writing files: ${error}`);
         }
-        return "";
     }
 
     public static async getAllTsFiles(dirHandle: FileSystemDirectoryHandle, path = ""): Promise<{ fileHandle: FileSystemFileHandle, path: string }[]> {
         const files: { fileHandle: FileSystemFileHandle, path: string }[] = [];
 
         for await (const [name, handle] of dirHandle.entries()) {
-            if (handle.kind === "file" && name.endsWith(".ts")) {
+            if (handle.kind === "file" && (name.endsWith(".ts") || name.endsWith(".json"))) {
                 files.push({ fileHandle: handle, path: path + name });
             } else if (handle.kind === "directory") {
                 const nestedFiles = await Project.getAllTsFiles(handle, path + name + "/");
@@ -48,17 +73,26 @@ export class Project {
 
             Builder.files.set(path, text);
         }
-        const result = (await Builder.build()).outputFiles[0]?.text;
+        try {
+            const result = (await Builder.build()).outputFiles[0]?.text;
 
-        if (!result) return false;
+            if (!result) return false;
 
-        this.compiled = result;
-        return true;
+            this.compiled = result;
+            return true;
+        }
+        catch (error) {
+            Notifier.notify(`${error}`, "danger", 15000);
+            return false;
+        }
     }
 
-    public static async run() {
-        if (!this.folderHandle) return;
-        
+    public static async run(): Promise<boolean> {
+        if (!this.folderHandle) {
+            Notifier.notify("Open project first.", "danger");
+            return false;
+        }
+
         if (await this.compile()) {
             const module = await ModuleLoader.load(this.compiled);
 
@@ -71,21 +105,21 @@ export class Project {
 
                 const component = System.customComponents.get(name);
                 if (component) {
-                    const obj = (System.layers[1] as Layer).getObjects()[0];
+                    const obj = (System.layers[0] as Layer).getObjects()[0];
                     if (!obj) {
-                        return;
+                        return true;
                     }
                     if (!oldComponentType) {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         obj.addComponent(new (component as any)());
-                        return;
+                        return true;
                     }
 
                     const objComponent = obj.getComponent(oldComponentType);
                     if (!objComponent) {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         obj.addComponent(new (component as any)());
-                        return;
+                        return true;
                     }
 
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -114,7 +148,11 @@ export class Project {
             //     } catch (error) {
             //         console.log(error);
             //     }
-
         }
+        else {
+            return false;
+        }
+
+        return true;
     }
 }

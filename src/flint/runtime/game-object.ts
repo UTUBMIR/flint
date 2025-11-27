@@ -1,7 +1,7 @@
-import type Component from "./component.js";
-import Transform from "./transform.js";
-import type { IRenderer } from "../shared/irenderer.js";
-import Layer from "./layer.js";
+import type Component from "./component";
+import Transform from "./transform";
+import type { IRenderer } from "../shared/irenderer";
+import Layer from "./layer";
 
 export default class GameObject {
     public layer!: Layer;
