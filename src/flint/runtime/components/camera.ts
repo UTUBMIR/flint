@@ -8,6 +8,9 @@ export default class Camera extends Component  {
         return this.parent.transform.position;
     }
 
+    public get angle(): number {
+        return this.parent.transform.angle;
+    }
 
     //TODO: implement camera stuff
     onAttach(): void {

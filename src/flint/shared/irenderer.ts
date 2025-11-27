@@ -23,7 +23,10 @@ export interface IRenderer {
 
     set fontStyle(style: string);
 
+    resetTransform(): void;
+
     translate(position: Vector2D): void;
+    rotate(angle: number): void;
 
     clearCanvas(): void;
     fillCanvas(): void;

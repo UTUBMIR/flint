@@ -39,7 +39,7 @@
 
         <div class="toolbar-center">
             <sl-button-group>
-                <sl-button id="run-button" size="small" variant="primary" disabled>
+                <sl-button id="run-button" size="small" disabled>
                     <sl-icon name="play" style="font-size: var(--sl-font-size-large);" slot="prefix"></sl-icon>
                     Run
                 </sl-button>
@@ -57,58 +57,49 @@
 
             <sl-split-panel vertical position="75" style="height: 100%;">
                 <sl-split-panel position="80" slot="start">
-                    <div slot="start">
-                        <div class="editor-window">
-                            <div class="window-header">
-                                <span class="window-title">Viewport</span>
-                            </div>
-
-                            <div class="window-body" style="padding: 1px;">
-                                <div id="root"></div>
-                            </div>
-                        </div>
-
-                    </div>
-                    <div slot="end">
-                        <div class="editor-window">
-                            <div class="window-header">
-                                <span class="window-title">Hierarchy</span>
-                            </div>
-
-                            <div class="window-body">
-                                <sl-tree id="hierarchy-tree" style="--indent-guide-width: 1px;">
-
-                                </sl-tree>
-
-                            </div>
-                        </div>
-                    </div>02
-                </sl-split-panel>
-                <div slot="end">
-                    <div class="editor-window">
+                    <div slot="start" class="editor-window">
                         <div class="window-header">
-                            <span class="window-title">Assets</span>
+                            <span class="window-title">Viewport</span>
+                        </div>
+
+                        <div class="window-body" style="padding: 1px;">
+                            <div id="root"></div>
+                        </div>
+                    </div>
+
+
+                    <div slot="end" class="editor-window">
+                        <div class="window-header">
+                            <span class="window-title">Hierarchy</span>
                         </div>
 
                         <div class="window-body">
-                            <p>Here is some content inside the window.</p>
-                            <sl-button>Action</sl-button>
+                            <sl-tree id="hierarchy-tree" style="--indent-guide-width: 1px;">
+
+                            </sl-tree>
+
                         </div>
+                    </div>
+                </sl-split-panel>
+                <div slot="end" class="editor-window">
+                    <div class="window-header">
+                        <span class="window-title">Assets</span>
+                    </div>
+
+                    <div class="window-body">
+                        <p>Here is some content inside the window.</p>
+                        <sl-button>Action</sl-button>
                     </div>
                 </div>
             </sl-split-panel>
         </div>
-        <div slot="end">
-            <div class="editor-window">
-                <div class="window-header">
-                    <span class="window-title">Inspector</span>
-                </div>
+        <div slot="end" class="editor-window">
+            <div class="window-header">
+                <span class="window-title">Inspector</span>
+            </div>
 
-                <div class="window-body">
-                    <sl-tree id="inspector-tree">
+            <div class="window-body" id="inspector-body">
 
-                    </sl-tree>
-                </div>
             </div>
         </div>
     </sl-split-panel>

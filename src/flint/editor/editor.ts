@@ -86,7 +86,7 @@ export default class Editor {
         Builder.init();
 
         Editor.hierarchy = new Hierarchy(document.getElementById("hierarchy-tree")! as SlTree);
-        Editor.inspector = new Inspector(document.getElementById("inspector-tree")! as SlTree);
+        Editor.inspector = new Inspector(document.getElementById("inspector-body")! as HTMLDivElement);
 
         try {
             document.getElementById("open-project-button")?.addEventListener("click", ToolBarActions.openProject);
@@ -97,10 +97,18 @@ export default class Editor {
         } catch (error) {
             console.error(`Error: Failed to initialize UI: ${error}`);
         }
+
+        Editor.hierarchy.onUpdate(); //HACK: to get it working on ipad where its currently impossible to select folder for read/write
+        Editor.updateInspectorFields();
+    }
+
+    public static updateInspectorFields() {
+        Editor.inspector.update();
+        requestAnimationFrame(Editor.updateInspectorFields);
     }
 
     public static onProjectLoad() {
         Editor.runButton.disabled = false;
-        Editor.hierarchy.onUpdate();
+        // Editor.hierarchy.onUpdate();
     }
 }
