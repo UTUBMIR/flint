@@ -44,7 +44,7 @@ export default class Hierarchy {
                 const oldLabel = textNode.textContent || "";
 
                 // Create Shoelace input
-                const input = document.createElement("sl-input") as any;
+                const input = document.createElement("sl-input") as HTMLInputElement;
                 input.type = "text";
                 input.value = oldLabel;
                 input.style.width = "100%";
