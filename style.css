@@ -26,7 +26,7 @@
 }
 
 sl-color-picker::part(trigger) {
-    margin-top: 9px;
+    margin-top: 10px;
 }
 
 .inspector-field sl-input,

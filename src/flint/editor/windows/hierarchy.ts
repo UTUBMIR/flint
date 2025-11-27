@@ -27,7 +27,7 @@ export default class Hierarchy {
 
         const treeItems = document.querySelectorAll("sl-tree-item");
 
-        treeItems.forEach(item => {
+        treeItems.forEach(item => {//BUG: This will change ALL inputs at the page
             item.addEventListener("dblclick", async () => {
                 // Prevent multiple inputs
                 if (item.querySelector("sl-input")) return;

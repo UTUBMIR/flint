@@ -14,15 +14,15 @@ System.init(new Renderer2D());
 const layer = new Layer();
 layer.addObject(new GameObject([
     new Shape(),
-]));
+], new Transform(new Vector2D(), new Vector2D(100, 100))));
 
 layer.addObject(new GameObject([
     new Shape(),
-], new Transform(new Vector2D(150, 0))));
+], new Transform(new Vector2D(150, 0), new Vector2D(100, 100))));
 
 layer.addObject(new GameObject([
     new Shape(),
-], new Transform(new Vector2D(300, 0))));
+], new Transform(new Vector2D(300, 0), new Vector2D(100, 100))));
 
 
 layer.addObject(new GameObject([

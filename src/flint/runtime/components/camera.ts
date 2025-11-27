@@ -5,11 +5,11 @@ export default class Camera extends Component  {
     public enabled: boolean = true;
 
     public get position(): Vector2D {
-        return this.parent.transform.position;
+        return this.transform.position;
     }
 
     public get angle(): number {
-        return this.parent.transform.angle;
+        return this.transform.angle;
     }
 
     //TODO: implement camera stuff

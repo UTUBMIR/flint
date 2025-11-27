@@ -1,7 +1,6 @@
 {
     // Visit https://aka.ms/tsconfig to read more about this file
     "compilerOptions": {
-        
         // File Layout
         "rootDir": "./src",
         "outDir": "./dist",
@@ -27,6 +26,8 @@
         // Stricter Typechecking Options
         "noUncheckedIndexedAccess": true,
         "exactOptionalPropertyTypes": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
         // Style Options
         // "noImplicitReturns": true,
         // "noImplicitOverride": true,
