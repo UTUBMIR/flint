@@ -7,6 +7,10 @@ import InputAxis from "../shared/input-axis";
 import Component from "./component";
 import type Layer from "./layer";
 
+//default components
+import Camera from "./components/camera";
+import Shape from "./components/shape";
+
 export type Canvas = {
     element: HTMLCanvasElement,
     ctx: RenderingContext
@@ -51,11 +55,18 @@ export class System {
 
     private constructor() { }
 
+    private static addBasicComponents() {
+        this.components.set("Camera", Camera);
+        this.components.set("Shape", Shape);
+    }
+
     public static init(renderer: IRenderer): void {
         this.initRootDiv();
         this._renderer = renderer;
         Input.init();
         this.loadPlayConfig(playConfig);
+
+        this.addBasicComponents();
 
         document.addEventListener('contextmenu', event => event.preventDefault());
 
