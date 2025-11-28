@@ -97,36 +97,32 @@ export let shared = { Input, System };`},
             const module = await ModuleLoader.load(this.compiled);
 
             for (const [name, value] of Object.entries(module)) {
-                const oldComponentType = System.customComponents.get(name);
+                const oldComponentType = System.components.get(name);
                 if (value as Component) {
-                    System.customComponents.set(name, value as typeof Component);
+                    System.components.set(name, value as typeof Component);
+                }
+
+                if (!oldComponentType || !oldComponentType.prototype) {
+                    return true;
                 }
 
 
-                const component = System.customComponents.get(name);
-                if (component) {
-                    const obj = (System.layers[0] as Layer).getObjects()[0];
-                    if (!obj) {
-                        return true;
-                    }
-                    if (!oldComponentType) {
+                const component = System.components.get(name);
+                if (!component) return false;
+
+                for (const layer of System.layers) {
+                    for (const obj of layer.getObjects()) {
+                        const objComponent = obj.getComponent(oldComponentType);
+                        if (!objComponent) {
+                            continue;
+                        }
+
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        obj.addComponent(new (component as any)());
-                        return true;
+                        obj.addComponent(objComponent.swapClass((component as any)));
+                        obj.removeComponent(oldComponentType);
                     }
-
-                    const objComponent = obj.getComponent(oldComponentType);
-                    if (!objComponent) {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        obj.addComponent(new (component as any)());
-                        return true;
-                    }
-
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    obj.addComponent(objComponent.swapClass((component as any)));
-                    obj.removeComponent(oldComponentType);
-
                 }
+
             }
 
 

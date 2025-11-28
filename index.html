@@ -55,7 +55,7 @@
     <sl-split-panel position="80" style="height: 100%;">
         <div slot="start">
 
-            <sl-split-panel vertical position="75" style="height: 100%;">
+            <sl-split-panel vertical position="75" style="height: 100%;" primary="start">
                 <sl-split-panel position="80" slot="start">
                     <div slot="start" class="editor-window">
                         <div class="window-header">
@@ -68,11 +68,13 @@
                     </div>
 
 
-                    <div slot="end" class="editor-window">
+                    <div slot="end" class="editor-window" style="overflow: hidden;">
                         <div class="window-header">
                             <span class="window-title">Hierarchy</span>
-                            <sl-icon-button id="new-game-object-button" name="plus-square"
-                                style="font-size: var(--sl-font-size-large);"></sl-icon-button>
+                            <sl-tooltip content="Create object">
+                                <sl-icon-button id="create-object-button" name="plus-square"
+                                    style="font-size: var(--sl-font-size-large);"></sl-icon-button>
+                            </sl-tooltip>
                         </div>
 
                         <div class="window-body">
@@ -97,6 +99,14 @@
         <div slot="end" class="editor-window">
             <div class="window-header">
                 <span class="window-title">Inspector</span>
+                <sl-tooltip content="Add component">
+                    <sl-icon-button id="add-component-button" name="plus-square"
+                        style="font-size: var(--sl-font-size-large);"></sl-icon-button>
+                </sl-tooltip>
+                <sl-dialog id="add-component-dialog" label="Add component">
+                    <sl-select value="" hoist></sl-select>
+                    <sl-button slot="footer" disabled>Add component</sl-button>
+                </sl-dialog>
             </div>
 
             <div class="window-body" id="inspector-body">

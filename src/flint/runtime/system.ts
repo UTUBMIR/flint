@@ -18,7 +18,7 @@ type PlayConfig = {
 
 export class System {
     public static layers: Layer[] = [];
-    public static customComponents = new Map<string, typeof Component>();
+    public static components = new Map<string, typeof Component>();
 
     public static showColliders: boolean = false;
     public static readonly dpr = window.devicePixelRatio || 1;

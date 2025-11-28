@@ -7,6 +7,8 @@ export class WheelScrubBehavior implements FieldBehavior {
 
     attach(el: HTMLInputElement, ctx: BehaviorContext) {
         const handleWheel = (ev: WheelEvent) => {
+            if (document.activeElement != el) return;
+            
             ev.preventDefault(); // prevent page scroll
 
             let delta = ev.deltaY * -0.1; // negative so wheel up = increase

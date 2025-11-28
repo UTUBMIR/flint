@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Vector2D from "../../shared/vector2d.js";
 import type GameObject from "../../runtime/game-object.js";
-import Editor from "../editor.js";
+import Editor, { Notifier } from "../editor.js";
 import Component from "../../runtime/component.js";
 import { ComponentBuilder } from "../component-builder.js";
+import { System } from "../../runtime/system.js";
 
 class InspectorComponent {
     public readonly element: HTMLElement;
@@ -33,14 +34,61 @@ export default class Inspector {
     private components: InspectorComponent[] = [];
 
     private element: HTMLDivElement;
+    private dialog: any;
+    private dialogSelect: HTMLSelectElement;
+    private dialogAddButton: HTMLButtonElement;
 
-    public constructor(element: HTMLDivElement) {
+    public constructor(element: HTMLDivElement, dialog: HTMLElement) {
         this.element = element;
+        this.dialog = dialog;
+
+        this.dialogSelect = this.dialog.getElementsByTagName("sl-select")[0] as HTMLSelectElement;
+        this.dialogAddButton = this.dialog.getElementsByTagName("sl-button")[0] as HTMLButtonElement;
 
         Editor.hierarchy.element.addEventListener("sl-selection-change", this.onEvent.bind(this));
+
+        this.dialogSelect.addEventListener("sl-change", () => {
+            this.dialogAddButton.disabled = false;
+        });
+
+        this.dialogAddButton.addEventListener("click", () => {
+            this.dialog.hide();
+            if (this.currentObject) {
+                const component = System.components.get(this.dialogSelect.value);
+                if (!component) return;
+
+                this.currentObject.addComponent(new (component as any)());
+
+            }
+        });
     }
 
-    public addComponent(component: Component) {
+    public async addComponent() {
+        if (!this.currentObject) {
+            Notifier.notify("Select object first.", "primary");
+            return;
+        }
+
+        this.dialogAddButton.disabled = true;
+
+        this.dialogSelect.innerHTML = "";
+
+        for (const [_key, component] of System.components) {
+            if (component.name === undefined) continue;
+            
+            this.dialogSelect.appendChild(Object.assign(document.createElement("sl-option"), {
+                value: component.name,
+                textContent: ComponentBuilder.splitPascalCase(component.name)
+            }));
+        }
+
+        (this.dialogSelect as any).value = "";
+
+
+        this.dialog.show();
+    }
+
+    private addInspectorComponent(component: Component) {
         const ic = new InspectorComponent(component);
 
         this.element.appendChild(ic.element);
@@ -66,11 +114,11 @@ export default class Inspector {
         ComponentBuilder.clearFields();
         this.components = [];
 
-        this.addComponent(this.currentObject.transform as Component);
+        this.addInspectorComponent(this.currentObject.transform as Component);
 
 
         for (const component of this.currentObject.getAllComponents()) {
-            this.addComponent(component);
+            this.addInspectorComponent(component);
         }
     }
 
@@ -102,10 +150,10 @@ export default class Inspector {
             ComponentBuilder.clearFields();
             this.components = [];
 
-            this.addComponent(this.currentObject.transform as Component);
+            this.addInspectorComponent(this.currentObject.transform as Component);
 
             for (const component of this.currentObject.getAllComponents()) {
-                this.addComponent(component);
+                this.addInspectorComponent(component);
             }
         }
 

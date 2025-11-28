@@ -84,16 +84,28 @@ export default class Editor {
     public static init(): void {
         Builder.init();
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        Editor.hierarchy = new Hierarchy(document.getElementById("hierarchy-tree")! as any);
-        Editor.inspector = new Inspector(document.getElementById("inspector-body")! as HTMLDivElement);
+
 
         try {
-            document.getElementById("open-project-button")?.addEventListener("click", ToolBarActions.openProject);
-            document.getElementById("new-project-button")?.addEventListener("click", ToolBarActions.newProject);
+            const addComponentDialog = document.getElementById("add-component-dialog")!;
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            Editor.hierarchy = new Hierarchy(document.getElementById("hierarchy-tree")! as any);
+            Editor.inspector = new Inspector(document.getElementById("inspector-body")! as HTMLDivElement, addComponentDialog);
+
+
+            document.getElementById("open-project-button")!.addEventListener("click", ToolBarActions.openProject);
+            document.getElementById("new-project-button")!.addEventListener("click", ToolBarActions.newProject);
             this.runButton = document.getElementById("run-button")! as HTMLButtonElement;
 
             this.runButton.addEventListener("click", ToolBarActions.runProject);
+
+            document.getElementById("create-object-button")!.addEventListener("click", Editor.hierarchy.createObject.bind(Editor.hierarchy));
+
+            const addComponentButton = document.getElementById("add-component-button")!;
+
+            addComponentButton.addEventListener("click", Editor.inspector.addComponent.bind(Editor.inspector));
+
         } catch (error) {
             console.error(`Error: Failed to initialize UI: ${error}`);
         }

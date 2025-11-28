@@ -11,11 +11,11 @@
 .inspector-field {
     display: flex;
     align-items: center;
-    margin-bottom: var(--sl-spacing-2x-small);
     /* spacing between fields */
 }
 
-#new-game-object-button::part(base) {
+#create-object-button::part(base),
+#add-component-button::part(base) {
     padding: 0;
 }
 
@@ -36,7 +36,7 @@ sl-tree-item.no-caret::part(expand-button) {
 }
 
 sl-color-picker::part(trigger) {
-    margin-top: 9px;
+    margin-top: 4px;
 }
 
 .inspector-field sl-input,
@@ -57,13 +57,12 @@ sl-details::part(header) {
 
 }
 
-
 body {
     padding: 0;
     margin: 0;
     width: 100vw;
     height: 100vh;
-    overflow: visible;
+    overflow: hidden;
     background: var(--sl-color-neutral-0);
     font-family: var(--sl-font-sans);
     display: flex;
@@ -79,7 +78,7 @@ canvas {
 }
 
 sl-split-panel {
-    --min: 15%;
+    --min: 200px;
     --max: 85%;
     background-color: var(--sl-color-neutral-200);
 }

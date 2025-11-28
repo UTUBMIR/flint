@@ -83,7 +83,7 @@ export class ComponentBuilder {
         return value !== null && typeof value === "object" && !Array.isArray(value);
     }
 
-    private static splitPascalCase(pascalCaseString: string): string {
+    public static splitPascalCase(pascalCaseString: string): string {
         // This regex finds either:
         // 1. A sequence of two or more uppercase letters (e.g., "XML", "HTML") followed by a word boundary or a single uppercase letter followed by a lowercase letter.
         // 2. An optional uppercase letter followed by one or more lowercase letters.
