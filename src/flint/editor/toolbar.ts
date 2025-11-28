@@ -1,5 +1,5 @@
 import type { SystemEvent } from "../runtime/system-event";
-import type { Color } from "../shared/graphics";
+import type { ColorString } from "../shared/graphics";
 import type { IRenderer } from "../shared/irenderer";
 import { Rect } from "../shared/primitives";
 import Vector2D from "../shared/vector2d";
@@ -31,7 +31,7 @@ export class Toolbar {
     }
 
     public onRender(r: IRenderer) {
-        r.fillColor = visualsConfig.colors.toolbarColor as Color;
+        r.fillColor = visualsConfig.colors.toolbarColor as ColorString;
         r.fillRect(Vector2D.zero, this.size);
 
         for (const item of this.tabs) {

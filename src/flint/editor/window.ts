@@ -1,7 +1,7 @@
 import type { IRenderer } from "../shared/irenderer";
 import Vector2D from "../shared/vector2d";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
-import type { Color } from "../shared/graphics";
+import type { ColorString } from "../shared/graphics";
 import { Rect } from "../shared/primitives";
 import type { SystemEvent } from "../runtime/system-event";
 
@@ -39,27 +39,27 @@ export default abstract class Window {
     public onUpdate(): void { };
 
     private onRenderInternal(r: IRenderer) {
-        r.fillColor = visualsConfig.colors.windowColor as Color;
-        r.lineColor = visualsConfig.colors.windowEdgeColor as Color;
+        r.fillColor = visualsConfig.colors.windowColor as ColorString;
+        r.lineColor = visualsConfig.colors.windowEdgeColor as ColorString;
         r.lineWidth = Window.borderWidth;
         r.lineJoin = "bevel";
 
-        r.shadowColor = visualsConfig.colors.windowShadowColor as Color;
+        r.shadowColor = visualsConfig.colors.windowShadowColor as ColorString;
         r.shadowBlur = 20;
 
         r.strokeRect(this.position, this.size);
         r.fillRect(this.position, this.size);
 
-        r.fillColor = visualsConfig.colors.titleColor as Color;
+        r.fillColor = visualsConfig.colors.titleColor as ColorString;
         r.fillRect(this.position, new Vector2D(this.rect.width, Window.titleBarHeight));
 
 
 
-        r.fillColor = visualsConfig.colors.titleBarItemColor as Color;
+        r.fillColor = visualsConfig.colors.titleBarItemColor as ColorString;
 
         //r.fillRect(this.position.add(this.titlePosition), new Vector2D(120, Window.titleBarHeight));
 
-        r.fillColor = visualsConfig.colors.textColor as Color;
+        r.fillColor = visualsConfig.colors.textColor as ColorString;
         r.textBaseLine = "middle";
         r.textAlign = "left";
         r.fontSize = 16;

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BehaviorRegistry } from "../../component-builder";
 import type { FieldRenderer, GetType, SetType } from "../field-renderer";
-import SlColorPicker from "@shoelace-style/shoelace/dist/components/color-picker/color-picker.js";
 
 
 export class ColorRenderer implements FieldRenderer {
@@ -23,7 +22,7 @@ export class ColorRenderer implements FieldRenderer {
             update: this.update
         };
 
-        const picker = document.createElement("sl-color-picker") as SlColorPicker;
+        const picker = document.createElement("sl-color-picker") as any;
         picker.noFormatToggle = true;
         picker.hoist = true;
 

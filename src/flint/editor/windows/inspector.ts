@@ -2,19 +2,17 @@
 import Vector2D from "../../shared/vector2d.js";
 import type GameObject from "../../runtime/game-object.js";
 import Editor from "../editor.js";
-import SlTreeItem from "@shoelace-style/shoelace/dist/components/tree-item/tree-item.component.js";
-import SlDetails from "@shoelace-style/shoelace/dist/components/details/details.component.js";
 import Component from "../../runtime/component.js";
 import { ComponentBuilder } from "../component-builder.js";
 
 class InspectorComponent {
-    public readonly element: SlDetails;
+    public readonly element: HTMLElement;
     public readonly component: Component;
 
     public constructor(component: Component) {
         this.component = component;
 
-        this.element = Object.assign(document.createElement("sl-details") as SlDetails, {
+        this.element = Object.assign(document.createElement("sl-details") as HTMLElement, {
             summary: component.constructor.name,
             open: true
         });
@@ -50,7 +48,7 @@ export default class Inspector {
     }
 
     public onEvent(event: Event) {
-        const selection = (event as CustomEvent).detail.selection as SlTreeItem[];
+        const selection = (event as CustomEvent).detail.selection as HTMLElement[];
         const parsed = (selection[0]! as unknown as { hierarchyId: string }).hierarchyId
 
             .split("-")

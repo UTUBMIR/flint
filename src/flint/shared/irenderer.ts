@@ -1,4 +1,4 @@
-import { type Color, type TextAlign, type TextBaseLine } from "./graphics";
+import { type ColorString, type TextAlign, type TextBaseLine } from "./graphics";
 import Vector2D from "./vector2d";
 
 export interface IRenderer {
@@ -7,13 +7,13 @@ export interface IRenderer {
 
     setCanvas(canvas: HTMLCanvasElement, ctx: RenderingContext): void;
 
-    set fillColor(color: Color);
+    set fillColor(color: ColorString);
 
-    set lineColor(color: Color);
+    set lineColor(color: ColorString);
     set lineWidth(width: number);
     set lineJoin(lineJoin: "bevel" | "miter" | "round");
 
-    set shadowColor(color: Color);
+    set shadowColor(color: ColorString);
     set shadowBlur(blur: number);
 
     set textBaseLine(baseline: TextBaseLine);

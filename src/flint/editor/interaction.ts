@@ -5,7 +5,7 @@ import { Rect } from "../shared/primitives";
 import Vector2D from "../shared/vector2d";
 import Editor from "./editor";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
-import type { Color } from "../shared/graphics";
+import type { ColorString } from "../shared/graphics";
 import { System } from "../runtime/system";
 
 
@@ -182,7 +182,7 @@ export class Click {
 
 export class Button extends Click {
     public text: string;
-    public color: Color = visualsConfig.colors.toolbarTab as Color;
+    public color: ColorString = visualsConfig.colors.toolbarTab as ColorString;
 
     public constructor(rect: Rect, text?: string) {
         super(rect);
@@ -190,17 +190,17 @@ export class Button extends Click {
     }
 
     public onHoverLeave() {
-        this.color = visualsConfig.colors.toolbarTab as Color;
+        this.color = visualsConfig.colors.toolbarTab as ColorString;
     };
 
     public onHover() {
-        this.color = visualsConfig.colors.toolbarTabSelected as Color;
+        this.color = visualsConfig.colors.toolbarTabSelected as ColorString;
     };
 
     public onMouseUp = this.onHover;
 
     public onMouseDown() {
-        this.color = visualsConfig.colors.toolbarTabPressed as Color;
+        this.color = visualsConfig.colors.toolbarTabPressed as ColorString;
         this.onClick();
     };
 
@@ -210,7 +210,7 @@ export class Button extends Click {
 
         if (this.text === "") return;
 
-        r.fillColor = visualsConfig.colors.textColor as Color;
+        r.fillColor = visualsConfig.colors.textColor as ColorString;
         r.textBaseLine = "middle";
         r.textAlign = "center";
         r.fontSize = 16;

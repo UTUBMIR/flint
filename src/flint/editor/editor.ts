@@ -1,4 +1,3 @@
-import type SlTree from "@shoelace-style/shoelace/dist/components/tree/tree.component.js";
 import Builder from "./project/builder";
 import { Project } from "./project/project";
 import Hierarchy from "./windows/hierarchy";
@@ -85,7 +84,8 @@ export default class Editor {
     public static init(): void {
         Builder.init();
 
-        Editor.hierarchy = new Hierarchy(document.getElementById("hierarchy-tree")! as SlTree);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Editor.hierarchy = new Hierarchy(document.getElementById("hierarchy-tree")! as any);
         Editor.inspector = new Inspector(document.getElementById("inspector-body")! as HTMLDivElement);
 
         try {

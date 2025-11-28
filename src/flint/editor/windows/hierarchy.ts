@@ -1,29 +1,35 @@
-import type SlTree from "@shoelace-style/shoelace/dist/components/tree/tree.js";
 import type Layer from "../../runtime/layer";
 import { System } from "../../runtime/system";
-import type SlTreeItem from "@shoelace-style/shoelace/dist/components/tree-item/tree-item.component.js";
 
 export default class Hierarchy {
-    public element: SlTree;
+    public element: HTMLElement;
     public layers = new Map<number, Layer>();
 
-    public constructor(element: SlTree) {
+    public constructor(element: HTMLElement) {
         this.element = element;
     }
 
     public onUpdate() {
         this.layers.clear();
-        for (const [layerIndex, layer] of System.layers.entries()) {
-            const name = `new Layer${layerIndex > 0 ? " " + layerIndex : ""}`;
+        for (let layerIndex = System.layers.length - 1; layerIndex >= 0; layerIndex--) {
+            const layer = System.layers[layerIndex]!;
+            const layerName = `new Layer${layerIndex > 0 ? " " + layerIndex : ""}`;
 
-            const layerItem = this.addItem(name, layerIndex.toString(), this.element);
-            for (const [index] of layer.getObjects().entries()) {
-                const name = `new GameObject${index > 0 ? " " + index : ""}`;
+            const layerItem = this.addItem(layerName, layerIndex.toString(), this.element);
 
-                this.addItem(name, layerIndex.toString() + "-" + index.toString(), layerItem);
+            const objects = layer.getObjects();
+            for (let index = objects.length - 1; index >= 0; index--) {
+                const objectName = `new GameObject${index > 0 ? " " + index : ""}`;
+                this.addItem(
+                    objectName,
+                    `${layerIndex}-${index}`,
+                    layerItem
+                );
             }
+
             this.layers.set(layerIndex, layer);
         }
+
 
         const treeItems = document.querySelectorAll("sl-tree-item");
 
@@ -75,8 +81,8 @@ export default class Hierarchy {
 
     }
 
-    public addItem(text: string, id: string, parent: SlTree | SlTreeItem): SlTreeItem {
-        const item = Object.assign(document.createElement("sl-tree-item") as SlTreeItem, {
+    public addItem(text: string, id: string, parent: HTMLElement): HTMLElement {
+        const item = Object.assign(document.createElement("sl-tree-item") as HTMLElement, {
             textContent: text,
             hierarchyId: id
         });

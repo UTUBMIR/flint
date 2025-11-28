@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import SlTreeItem from "@shoelace-style/shoelace/dist/components/tree-item/tree-item.component.js";
 import Component from "./../runtime/component";
 import type { FieldBehavior } from "./fields/field-behaviour";
 import type { FieldRenderer } from "./fields/field-renderer";
@@ -164,7 +163,7 @@ export class ComponentBuilder {
 
     public static tree(root: Component, path: string[]): HTMLElement {
         const obj = this.get(root, path);
-        const treeItem = document.createElement("sl-tree-item") as SlTreeItem;
+        const treeItem = document.createElement("sl-tree-item") as any;
         treeItem.expanded = true;
         treeItem.textContent = this.lastKey(path) || "root";
 
@@ -202,6 +201,7 @@ export class ComponentBuilder {
 
             if (childField.tagName !== "SL-TREE-ITEM") {
                 const treeItem = document.createElement("sl-tree-item");
+                treeItem.classList.add("no-caret");
                 treeItem.appendChild(childField);
                 tree.appendChild(treeItem);
             }

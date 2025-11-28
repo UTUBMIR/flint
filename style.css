@@ -11,8 +11,16 @@
 .inspector-field {
     display: flex;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: var(--sl-spacing-2x-small);
     /* spacing between fields */
+}
+
+#new-game-object-button::part(base) {
+    padding: 0;
+}
+
+sl-tree-item.no-caret::part(expand-button) {
+  display: none;
 }
 
 .inspector-label {
@@ -20,13 +28,15 @@
     /* fixed width for all labels */
     text-align: left;
     left: 0;
-    margin-right: 8px;
+    margin-right: var(--sl-spacing-x-small);
+    margin-left: var(--sl-spacing-small);
     /* space between label and input */
     font-weight: 500;
+    cursor: pointer;
 }
 
 sl-color-picker::part(trigger) {
-    margin-top: 10px;
+    margin-top: 9px;
 }
 
 .inspector-field sl-input,

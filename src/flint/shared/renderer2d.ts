@@ -1,5 +1,5 @@
 import { type IRenderer } from "./irenderer";
-import { type Color, type TextAlign, type TextBaseLine } from "./graphics";
+import { type ColorString, type TextAlign, type TextBaseLine } from "./graphics";
 import Vector2D from "./vector2d";
 
 export class Renderer2D implements IRenderer {
@@ -16,12 +16,12 @@ export class Renderer2D implements IRenderer {
         this.updateFont();
     }
 
-    set fillColor(color: Color) {
+    set fillColor(color: ColorString) {
         this.ctx.fillStyle = color;
     }
 
 
-    set lineColor(color: Color) {
+    set lineColor(color: ColorString) {
         this.ctx.strokeStyle = color;
     }
 
@@ -34,7 +34,7 @@ export class Renderer2D implements IRenderer {
     }
 
 
-    set shadowColor(color: Color) {
+    set shadowColor(color: ColorString) {
         this.ctx.shadowColor = color;
     }
     set shadowBlur(blur: number) {
