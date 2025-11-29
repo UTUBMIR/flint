@@ -1,7 +1,8 @@
 import GameObject from "../../runtime/game-object";
 import Layer from "../../runtime/layer";
 import { System } from "../../runtime/system";
-import { Notifier } from "../editor";
+import { Metadata } from "../../shared/metadata";
+import Editor, { Notifier } from "../editor";
 
 export default class Hierarchy {
     public element: HTMLElement;
@@ -69,7 +70,10 @@ export default class Hierarchy {
 
             const objects = layer.getObjects();
             for (let index = objects.length - 1; index >= 0; index--) {
-                const objectName = `new GameObject${index > 0 ? " " + index : ""}`;
+                const objectName = Metadata.getClass(
+                    objects[index]!, "inspector-name") ??
+                    `new GameObject${index > 0 ? " " + index : ""}`;
+
                 this.addItem(
                     objectName,
                     `${layerIndex}-${index}`,
@@ -114,6 +118,18 @@ export default class Hierarchy {
                 // Exit edit mode
                 const exitEdit = (saveValue: boolean) => {
                     textNode.textContent = saveValue ? input.value || oldLabel : oldLabel;
+
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    let parsed = (item as any).hierarchyId;
+                    if (parsed) {
+                        parsed = parsed.split("-")
+                        .map((i: string) => Number.parseInt(i));
+
+                        const layer = Editor.hierarchy.layers.get(parsed[0] ?? 0);
+                        const gameObject = layer?.getObjects()[parsed[1] ?? 0];
+
+                        Metadata.setClass(gameObject!, "inspector-name", textNode.textContent);
+                    }
                     input.remove();
                 };
 

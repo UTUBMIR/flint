@@ -1,4 +1,4 @@
-import { FieldRenderer } from "../../editor/component-builder";
+import { customRenderer } from "../../editor/component-builder";
 import type { ColorString } from "../../shared/graphics";
 import type Vector2D from "../../shared/vector2d";
 import Component from "../component";
@@ -6,7 +6,7 @@ import Component from "../component";
 export default class Camera extends Component  {
     public enabled: boolean = true;
 
-    @FieldRenderer("color")
+    @customRenderer("color")
     public backgroundColor: ColorString = "#222" as ColorString;
 
     public get position(): Vector2D {

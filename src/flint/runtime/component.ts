@@ -1,9 +1,10 @@
 import type GameObject from "./game-object";
 import type { IRenderer } from "../shared/irenderer";
 import type Transform from "./transform";
+import { hideFromInspector } from "../editor/component-builder";
 
-/* @__SIDE_EFFECTS__ */
 export default abstract class Component {
+    @hideFromInspector()
     public parent!: GameObject;
 
     public get transform(): Transform {

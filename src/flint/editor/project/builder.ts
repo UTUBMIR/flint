@@ -93,7 +93,9 @@ export default class Builder {
             format: "esm",
             target: ["esnext"],
             plugins: [Builder.virtualFsPlugin],
-            external: ["@flint/input"]
+            external: ["flint/*"],
+            minify: true,
+            keepNames: true
         });
     }
 }

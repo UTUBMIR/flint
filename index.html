@@ -99,18 +99,17 @@
         <div slot="end" class="editor-window">
             <div class="window-header">
                 <span class="window-title">Inspector</span>
-                <sl-tooltip content="Add component">
-                    <sl-icon-button id="add-component-button" name="plus-square"
-                        style="font-size: var(--sl-font-size-large);"></sl-icon-button>
-                </sl-tooltip>
+
+            </div>
+
+            <div class="window-body" style="display: flex; flex-direction: column; align-items: center;">
+                <div id="inspector-body" style="width: 100%;"></div>
+                <sl-button id="add-component-button" style="font-size: var(--sl-font-size-large); margin-top: 1%; width: 50%; display: none;">Add
+                    component</sl-button>
                 <sl-dialog id="add-component-dialog" label="Add component">
                     <sl-select value="" hoist></sl-select>
                     <sl-button slot="footer" disabled>Add component</sl-button>
                 </sl-dialog>
-            </div>
-
-            <div class="window-body" id="inspector-body">
-
             </div>
         </div>
     </sl-split-panel>

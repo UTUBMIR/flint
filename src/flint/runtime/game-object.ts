@@ -10,6 +10,7 @@ export default class GameObject {
 
     public constructor(components?: Component[], transform?: Transform) {
         this.transform = transform ?? new Transform();
+        this.transform.parent = this;
 
         if (components) {
             this.addComponents(components);

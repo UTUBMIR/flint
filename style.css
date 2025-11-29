@@ -81,12 +81,13 @@ sl-split-panel {
     --min: 200px;
     --max: 85%;
     background-color: var(--sl-color-neutral-200);
+    overflow: hidden;
 }
 
 .editor-window {
     width: 100%;
     height: 100%;
-    border: 1px solid #283748;
+    border: 1px solid #2e3235; /*#283748*/
     border-radius: var(--sl-border-radius-medium);
     display: flex;
     flex-direction: column;
@@ -101,7 +102,7 @@ sl-split-panel {
     justify-content: space-between;
     align-items: center;
     padding: var(--sl-spacing-2x-small) var(--sl-spacing-x-small);
-    background: #24303f;
+    background: #383c3f; /*#24303f*/
 }
 
 .window-title {

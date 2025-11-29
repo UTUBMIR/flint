@@ -102,10 +102,6 @@ export default class Editor {
 
             document.getElementById("create-object-button")!.addEventListener("click", Editor.hierarchy.createObject.bind(Editor.hierarchy));
 
-            const addComponentButton = document.getElementById("add-component-button")!;
-
-            addComponentButton.addEventListener("click", Editor.inspector.addComponent.bind(Editor.inspector));
-
         } catch (error) {
             console.error(`Error: Failed to initialize UI: ${error}`);
         }

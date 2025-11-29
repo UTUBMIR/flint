@@ -1,12 +1,12 @@
 import Component from "./component";
 import Vector2D from "../shared/vector2d";
-import { FieldRenderer } from "../editor/component-builder";
+import { customRenderer } from "../editor/component-builder";
 
 export default class Transform extends Component {
     public position: Vector2D;
     public size: Vector2D;
     
-    @FieldRenderer("angle")
+    @customRenderer("angle")
     public angle: number;
 
     public constructor(position?: Vector2D, size?: Vector2D, angle?: number) {

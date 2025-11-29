@@ -36,6 +36,7 @@ export default class Inspector {
     private element: HTMLDivElement;
     private dialog: any;
     private dialogSelect: HTMLSelectElement;
+    private addComponentButton: HTMLButtonElement;
     private dialogAddButton: HTMLButtonElement;
 
     public constructor(element: HTMLDivElement, dialog: HTMLElement) {
@@ -46,6 +47,12 @@ export default class Inspector {
         this.dialogAddButton = this.dialog.getElementsByTagName("sl-button")[0] as HTMLButtonElement;
 
         Editor.hierarchy.element.addEventListener("sl-selection-change", this.onEvent.bind(this));
+
+
+        this.addComponentButton = document.getElementById("add-component-button")! as HTMLButtonElement;
+        this.addComponentButton.addEventListener("click", this.addComponent.bind(this));
+
+
 
         this.dialogSelect.addEventListener("sl-change", () => {
             this.dialogAddButton.disabled = false;
@@ -58,7 +65,6 @@ export default class Inspector {
                 if (!component) return;
 
                 this.currentObject.addComponent(new (component as any)());
-
             }
         });
     }
@@ -75,7 +81,7 @@ export default class Inspector {
 
         for (const [_key, component] of System.components) {
             if (component.name === undefined) continue;
-            
+
             this.dialogSelect.appendChild(Object.assign(document.createElement("sl-option"), {
                 value: component.name,
                 textContent: ComponentBuilder.splitPascalCase(component.name)
@@ -110,6 +116,7 @@ export default class Inspector {
         }
 
         this.element.innerHTML = "";
+        this.addComponentButton.style.display = "initial";
 
         ComponentBuilder.clearFields();
         this.components = [];

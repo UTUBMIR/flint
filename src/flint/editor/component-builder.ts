@@ -11,9 +11,15 @@ import { Metadata } from "../shared/metadata";
 import { AngleRenderer } from "./fields/renderers/angle-renderer";
 import { BooleanRenderer } from "./fields/renderers/boolean-renderer";
 
-export function FieldRenderer(renderer: string) {
+export function customRenderer(renderer: string) {
     return (target: any, key: string) => {
         Metadata.setField(target, key, "field-renderer", renderer);
+    };
+}
+
+export function hideFromInspector() {
+    return (target: any, key: string) => {
+        Metadata.setField(target, key, "hide-in-inspector", true);
     };
 }
 
@@ -168,7 +174,7 @@ export class ComponentBuilder {
         treeItem.textContent = this.lastKey(path) || "root";
 
         for (const key of Object.keys(obj)) {
-            if (key === "parent") continue;
+            if (Metadata.getField(obj, key, "hide-in-inspector")) continue;
 
             const childPath = [...path, key];
             const child = this.field(root, childPath);
@@ -194,7 +200,8 @@ export class ComponentBuilder {
         const tree = document.createElement("sl-tree");
 
         for (const key of Object.keys(root)) {
-            if (key === "parent") continue;
+            if (Metadata.getField(root, key, "hide-in-inspector")) continue;
+
             const childPath = [key];
             const childField = this.field(root, childPath);
 

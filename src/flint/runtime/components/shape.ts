@@ -1,17 +1,17 @@
 import Component from "../component";
 import type { IRenderer } from "../../shared/irenderer";
 import type { ColorString } from "../../shared/graphics";
-import { FieldRenderer } from "../../editor/component-builder";
+import { customRenderer } from "../../editor/component-builder";
 import Vector2D from "../../shared/vector2d";
 
 export default class Shape extends Component {
-    @FieldRenderer("color")
+    @customRenderer("color")
     private fillColor: ColorString = "#294a31";
 
-    @FieldRenderer("color")
+    @customRenderer("color")
     private lineColor: ColorString = "#a8a25d";
 
-    @FieldRenderer("color")
+    @customRenderer("color")
     private shadowColor: ColorString = "#34a838";
 
     onRender(renderer: IRenderer): void {
