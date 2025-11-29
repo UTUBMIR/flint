@@ -1,7 +1,7 @@
 import GameObject from "../../runtime/game-object";
 import Layer from "../../runtime/layer";
 import { System } from "../../runtime/system";
-import { Metadata } from "../../shared/metadata";
+import Metadata from "../../shared/metadata";
 import Editor, { Notifier } from "../editor";
 
 export default class Hierarchy {

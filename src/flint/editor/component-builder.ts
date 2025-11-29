@@ -7,7 +7,7 @@ import { WheelScrubBehavior } from "./fields/behaviours/wheel-scrub-behaviour";
 import { DragScrubBehavior } from "./fields/behaviours/drag-scrub-behaviour";
 import { ColorRenderer } from "./fields/renderers/color-renderer";
 import { StringRenderer } from "./fields/renderers/string-renderer";
-import { Metadata } from "../shared/metadata";
+import Metadata from "../shared/metadata";
 import { AngleRenderer } from "./fields/renderers/angle-renderer";
 import { BooleanRenderer } from "./fields/renderers/boolean-renderer";
 

@@ -107,8 +107,11 @@ export default class Inspector {
 
             .split("-")
             .map(i => Number.parseInt(i));
+            
+        if (parsed.length !== 2) return;
 
         const layer = Editor.hierarchy.layers.get(parsed[0] ?? 0);
+
         this.currentObject = layer?.getObjects()[parsed[1] ?? 0];
 
         if (!this.currentObject) {

@@ -1,5 +1,4 @@
 import Component from "../../runtime/component";
-import type Layer from "../../runtime/layer";
 import { System } from "../../runtime/system";
 import { Notifier } from "../editor";
 import Builder from "./builder";
@@ -19,13 +18,11 @@ export class Project {
         Project.folderHandle = folderHandle;
 
         const files: { name: string, content: string }[] = [
-            { name: "index.ts", content: `export * from "./shared.ts";` },
-            {
-                name: "shared.ts", content:
-                    `import Input from "./flint/shared/input";
-import { System } from "./flint/runtime/system";
-
-export let shared = { Input, System };`},
+            { name: "index.ts", content: 
+`export * from "./flint/runtime/system";
+export { default as Input } from "./flint/shared/input";
+export { default as Metadata } from "./flint/shared/metadata";
+` }
         ];
 
         try {
@@ -97,6 +94,8 @@ export let shared = { Input, System };`},
             const module = await ModuleLoader.load(this.compiled);
 
             for (const [name, value] of Object.entries(module)) {
+                if (name === "System" || name === "Input" || name === "Metadata") continue;
+
                 const oldComponentType = System.components.get(name);
                 if (value as Component) {
                     System.components.set(name, value as typeof Component);

@@ -53,7 +53,7 @@ export default class Builder {
             });
 
 
-            build.onLoad({ filter: /.*/, namespace: "virtual" }, (args: {path: string}) => {
+            build.onLoad({ filter: /.*/, namespace: "virtual" }, (args: { path: string }) => {
                 const normalizedPath = args.path;
 
                 const content = Builder.files.get(normalizedPath);
@@ -95,7 +95,14 @@ export default class Builder {
             plugins: [Builder.virtualFsPlugin],
             external: ["flint/*"],
             minify: true,
-            keepNames: true
+            keepNames: true,
+            tsconfigRaw: {
+                compilerOptions: {
+                    experimentalDecorators: true,
+                    emitDecoratorMetadata: true,
+                }
+            }
+
         });
     }
 }

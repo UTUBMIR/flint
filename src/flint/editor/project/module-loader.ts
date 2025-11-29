@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { System } from "../../runtime/system";
 import Input from "../../shared/input";
+import Metadata from "../../shared/metadata";
 
 export default class ModuleLoader {
     private constructor() { }
 
-    private static createTempURL(code: string, type = "text/javascript"): string {
+    private static createTempURL(code: string, type = "text/javascript") {
         const blob = new Blob([code], { type });
         return URL.createObjectURL(blob);
     }
@@ -14,13 +16,27 @@ export default class ModuleLoader {
     }
 
     public static async load(module: string) {
-        const url = ModuleLoader.createTempURL(module);
+        const url = this.createTempURL(module);
         const loadedModule = await import(url);
-        ModuleLoader.deleteTempUrl(url);
+        this.deleteTempUrl(url);
 
-        if (loadedModule.shared) {
-            loadedModule.shared.System = System;
-            loadedModule.shared.Input = Input;
+        if (loadedModule.System) {
+            for (const key of Object.keys(System)) {
+                loadedModule.System[key] = (System as any)[key];
+            }
+        }
+
+        if (loadedModule.Input) {
+            for (const key of Object.keys(Input)) {
+                loadedModule.Input[key] = (Input as any)[key];
+            }
+        }
+
+        if (loadedModule.Metadata) {
+            Metadata.importFrom(loadedModule.Metadata);
+            for (const key of Object.keys(Metadata)) {
+                loadedModule.Metadata[key] = (Metadata as any)[key];
+            }
         }
 
         return loadedModule;
