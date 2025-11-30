@@ -125,7 +125,7 @@ export default class Hierarchy {
                         parsed = parsed.split("-")
                         .map((i: string) => Number.parseInt(i));
 
-                        const layer = Editor.hierarchy.layers.get(parsed[0] ?? 0);
+                        const layer = Editor.hierarchyWindow.layers.get(parsed[0] ?? 0);
                         const gameObject = layer?.getObjects()[parsed[1] ?? 0];
 
                         Metadata.setClass(gameObject!, "inspector-name", textNode.textContent);

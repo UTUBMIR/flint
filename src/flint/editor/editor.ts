@@ -1,7 +1,8 @@
 import Builder from "./project/builder";
 import { Project } from "./project/project";
-import Hierarchy from "./windows/hierarchy";
-import Inspector from "./windows/inspector";
+import Assets from "./windows/assets";
+import HierarchyWindow from "./windows/hierarchy";
+import InspectorWindow from "./windows/inspector";
 
 
 export class Notifier {
@@ -73,8 +74,9 @@ class ToolBarActions {
 export default class Editor {
     public static draggedItem: unknown | undefined;
 
-    public static hierarchy: Hierarchy;
-    public static inspector: Inspector;
+    public static hierarchyWindow: HierarchyWindow;
+    public static inspectorWindow: InspectorWindow;
+    public static assetsWindow: Assets;
 
     public static runButton: HTMLButtonElement;
 
@@ -90,8 +92,10 @@ export default class Editor {
             const addComponentDialog = document.getElementById("add-component-dialog")!;
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            Editor.hierarchy = new Hierarchy(document.getElementById("hierarchy-tree")! as any);
-            Editor.inspector = new Inspector(document.getElementById("inspector-body")! as HTMLDivElement, addComponentDialog);
+            Editor.hierarchyWindow = new HierarchyWindow(document.getElementById("hierarchy-tree")! as any);
+            Editor.inspectorWindow = new InspectorWindow(document.getElementById("inspector-body")! as HTMLDivElement, addComponentDialog);
+
+            Editor.assetsWindow = new Assets(document.getElementById("assets-window")! as HTMLDivElement, document.getElementById("assets-grid")! as HTMLDivElement);
 
 
             document.getElementById("open-project-button")!.addEventListener("click", ToolBarActions.openProject);
@@ -100,18 +104,18 @@ export default class Editor {
 
             this.runButton.addEventListener("click", ToolBarActions.runProject);
 
-            document.getElementById("create-object-button")!.addEventListener("click", Editor.hierarchy.createObject.bind(Editor.hierarchy));
+            document.getElementById("create-object-button")!.addEventListener("click", Editor.hierarchyWindow.createObject.bind(Editor.hierarchyWindow));
 
         } catch (error) {
             console.error(`Error: Failed to initialize UI: ${error}`);
         }
 
-        Editor.hierarchy.onUpdate(); //HACK: to get it working on ipad where its currently impossible to select folder for read/write
+        Editor.hierarchyWindow.onUpdate(); //HACK: to get it working on ipad where its currently impossible to select folder for read/write
         Editor.updateInspectorFields();
     }
 
     public static updateInspectorFields() {
-        Editor.inspector.update();
+        Editor.inspectorWindow.update();
         requestAnimationFrame(Editor.updateInspectorFields);
     }
 

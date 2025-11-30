@@ -72,8 +72,7 @@
                         <div class="window-header">
                             <span class="window-title">Hierarchy</span>
                             <sl-tooltip content="Create object">
-                                <sl-icon-button id="create-object-button" name="plus-square"
-                                    style="font-size: var(--sl-font-size-large);"></sl-icon-button>
+                                <sl-icon-button id="create-object-button" name="plus-square"></sl-icon-button>
                             </sl-tooltip>
                         </div>
 
@@ -87,12 +86,37 @@
                 <div slot="end" class="editor-window">
                     <div class="window-header">
                         <span class="window-title">Assets</span>
+                        <sl-tooltip content="Go to previous folder">
+                            <sl-icon-button id="assets-back-button" name="arrow-90deg-left"></sl-icon-button>
+                        </sl-tooltip>
                     </div>
 
-                    <div class="window-body">
-                        <p>Here is some content inside the window.</p>
-                        <sl-button>Action</sl-button>
+                    <div class="window-body" id="assets-window">
+                        <sl-dropdown id="assets-context-dropdown" style="position: absolute;">
+                            <sl-menu id="assets-context-menu">
+                                <sl-menu-label>Create</sl-menu-label>
+                                <sl-menu-item id="new-folder-button" value="new-folder">
+                                    <sl-icon slot="prefix" name="folder2"></sl-icon>
+                                    New folder
+                                </sl-menu-item>
+                                <sl-menu-item id="new-component-button" value="new-component">
+                                    <sl-icon slot="prefix" name="code-slash"></sl-icon>
+                                    New component
+                                </sl-menu-item>
+                                <sl-menu-item id="new-json-button" value="new-json">
+                                    <sl-icon slot="prefix" name="text-left"></sl-icon>
+                                    New JSON file
+                                </sl-menu-item>
+                            </sl-menu>
+                        </sl-dropdown>
+                        <div id="assets-grid">
+
+                        </div>
                     </div>
+                    <sl-dialog id="create-component-dialog" label="Create component">
+                        <sl-input></sl-input>
+                        <sl-button slot="footer" disabled>Create component</sl-button>
+                    </sl-dialog>
                 </div>
             </sl-split-panel>
         </div>
@@ -102,9 +126,10 @@
 
             </div>
 
-            <div class="window-body" style="display: flex; flex-direction: column; align-items: center;">
+            <div class="window-body" style="display: flex; flex-direction: column; align-items: center;" id="inspector-drop-target">
                 <div id="inspector-body" style="width: 100%;"></div>
-                <sl-button id="add-component-button" style="font-size: var(--sl-font-size-large); margin-top: 1%; width: 50%; display: none;">Add
+                <sl-button id="add-component-button"
+                    style="font-size: var(--sl-font-size-large); margin-top: 1%; width: 50%; display: none;">Add
                     component</sl-button>
                 <sl-dialog id="add-component-dialog" label="Add component">
                     <sl-select value="" hoist></sl-select>

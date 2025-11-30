@@ -68,7 +68,7 @@ export class System {
 
         this.addBasicComponents();
 
-        document.addEventListener('contextmenu', event => event.preventDefault());
+        this.rootDiv.addEventListener('contextmenu', event => event.preventDefault());
 
 
         for (const event of ["mousedown", "mouseup", "mousemove", "touchstart", "touchmove", "touchend"]) {
@@ -107,7 +107,7 @@ export class System {
 
     public static createCanvas(): Canvas {
         const canvas = document.createElement("canvas");
-        const ctxName = this.getContextName(canvas, this.renderingContext.name);
+        const ctxName = this.getContextName(this.renderingContext.name);
         const ctx = canvas.getContext(ctxName);
 
         if (!ctx) {
@@ -125,7 +125,7 @@ export class System {
         return { element: canvas, ctx: ctx };
     }
 
-    private static getContextName(canvas: HTMLCanvasElement, ctxName: string): string {
+    private static getContextName(ctxName: string): string {
         switch (ctxName) {
             case CanvasRenderingContext2D.name:
                 return "2d";

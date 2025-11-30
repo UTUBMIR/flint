@@ -89,16 +89,30 @@ export class ComponentBuilder {
         return value !== null && typeof value === "object" && !Array.isArray(value);
     }
 
-    public static splitPascalCase(pascalCaseString: string): string {
-        // This regex finds either:
-        // 1. A sequence of two or more uppercase letters (e.g., "XML", "HTML") followed by a word boundary or a single uppercase letter followed by a lowercase letter.
-        // 2. An optional uppercase letter followed by one or more lowercase letters.
-        // 3. A single uppercase letter.
-        // This helps handle acronyms and single-letter words correctly.
+    public static splitPascalCase(pascalCaseString: string, joiner: " " | "-" = " "): string {
         const regex = /[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g;
         const words = pascalCaseString.match(regex);
-        return words ? words.join(" ").toLowerCase() : pascalCaseString;
+        return words ? words.join(joiner).toLowerCase() : pascalCaseString;
     }
+
+    public static joinToPascalCase(str: string): string {
+        if (!str) return str;
+
+        const normalized = str
+            .replace(/[-_]+/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        return normalized
+            .split(" ")
+            .map(word =>
+                word.length === 0
+                    ? word
+                    : word[0]!.toUpperCase() + word.slice(1).toLowerCase()
+            )
+            .join("");
+    }
+
 
     private static wrapField(labelText: string, input: HTMLElement) {
         const wrapper = document.createElement("div");

@@ -1,57 +1,74 @@
 import Component from "../../runtime/component";
 import { System } from "../../runtime/system";
-import { Notifier } from "../editor";
+import Editor, { Notifier } from "../editor";
 import Builder from "./builder";
+import ProjectConfig from "./project-config";
 import ModuleLoader from "./module-loader";
+import type { AssetData } from "../windows/assets";
+import { ComponentBuilder } from "../component-builder";
+import Assets from "../windows/assets";
 
 export class Project {
     private static compiled: string;
     public static folderHandle: FileSystemDirectoryHandle;
 
+    private static createComponentDialog: HTMLElement & { show: () => void; hide: () => void };
+    private static createComponentButton: HTMLButtonElement;
+    private static createComponentInput: HTMLInputElement;
+
     private constructor() { }
 
-    public static openProject(folderHandle: FileSystemDirectoryHandle) {
+    static {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Project.createComponentDialog = document.getElementById("create-component-dialog")! as any;
+
+        Project.createComponentButton = Project.createComponentDialog.querySelector("sl-button") as HTMLButtonElement;
+        Project.createComponentButton.addEventListener("click", () => {
+            Project.createComponentDialog.hide();
+            Project.createComponent(Project.createComponentInput.value.trim());
+        });
+
+        Project.createComponentInput = Project.createComponentDialog.querySelector("sl-input") as HTMLInputElement;
+        Project.createComponentInput.addEventListener("sl-input", () => {
+            Project.createComponentButton.disabled = Project.createComponentInput.value.trim() === "";
+        });
+    }
+
+    public static async openProject(folderHandle: FileSystemDirectoryHandle) {
         Project.folderHandle = folderHandle;
+        await ProjectConfig.ensureLoaded();
+        await Project.getAllTextFiles(Project.folderHandle);
     }
 
     public static async newProject(folderHandle: FileSystemDirectoryHandle) {
         Project.folderHandle = folderHandle;
+        await ProjectConfig.ensureLoaded();
+        await Project.getAllTextFiles(Project.folderHandle);
 
-        const files: { name: string, content: string }[] = [
-            { name: "index.ts", content: 
-`export * from "./flint/runtime/system";
-export { default as Input } from "./flint/shared/input";
-export { default as Metadata } from "./flint/shared/metadata";
-` }
-        ];
-
-        try {
-            for (const file of files) {
-                // Create or get the file handle
-                const fileHandle = await Project.folderHandle.getFileHandle(file.name, { create: true });
-
-                // Create a writable stream
-                const writable = await fileHandle.createWritable();
-
-                // Write the file content
-                await writable.write(file.content);
-
-                // Close the stream to save changes
-                await writable.close();
-            }
-        } catch (error) {
-            console.error(`Error writing files: ${error}`);
-        }
     }
 
-    public static async getAllTsFiles(dirHandle: FileSystemDirectoryHandle, path = ""): Promise<{ fileHandle: FileSystemFileHandle, path: string }[]> {
+    public static async getAllTextFiles(dirHandle: FileSystemDirectoryHandle, path = ""): Promise<{ fileHandle: FileSystemFileHandle, path: string }[]> {
         const files: { fileHandle: FileSystemFileHandle, path: string }[] = [];
 
         for await (const [name, handle] of dirHandle.entries()) {
             if (handle.kind === "file" && (name.endsWith(".ts") || name.endsWith(".json"))) {
+                Editor.assetsWindow.addAsset({
+                    id: crypto.randomUUID(),
+                    name,
+                    type: name.split(".").pop() === "ts" ? "component" : "json",
+                    path: "/" + path + name
+                });
+
                 files.push({ fileHandle: handle, path: path + name });
             } else if (handle.kind === "directory") {
-                const nestedFiles = await Project.getAllTsFiles(handle, path + name + "/");
+                Editor.assetsWindow.addAsset({
+                    id: crypto.randomUUID(),
+                    name,
+                    type: "folder",
+                    path: "/" + path + name
+                });
+
+                const nestedFiles = await Project.getAllTextFiles(handle, path + name + "/");
                 files.push(...nestedFiles);
             }
         }
@@ -61,8 +78,13 @@ export { default as Metadata } from "./flint/shared/metadata";
 
 
     public static async compile(): Promise<boolean> {
-        const tsFiles = await Project.getAllTsFiles(Project.folderHandle);
         Builder.files.clear();
+        Editor.assetsWindow.clearAssets();
+
+        const tsFiles = await Project.getAllTextFiles(Project.folderHandle);
+
+
+        Builder.files.set("index.ts", ProjectConfig.config.index);
 
         for (const { fileHandle, path } of tsFiles) {
             const file = await fileHandle.getFile();
@@ -149,5 +171,70 @@ export { default as Metadata } from "./flint/shared/metadata";
         }
 
         return true;
+    }
+
+    public static async openInFileEditor(path: string) {
+        if (!ProjectConfig.config.rootPath) {
+            const path = prompt("Due to browser restrictions - to open file in VSCode enter absolute path to your project folder:", "C:/path/to/your/project/folder");
+            if (!path) {
+                return;
+            }
+            ProjectConfig.config.rootPath = path;
+            await ProjectConfig.save();
+        }
+
+        window.location.href = "vscode://file/" + ProjectConfig.config.rootPath + path;
+    }
+
+    public static showCreateComponentWindow() {
+        Project.createComponentButton.disabled = true;
+        Project.createComponentInput.value = "";
+        Project.createComponentDialog.show();
+    }
+
+    public static async createComponent(name: string) {
+        const fileBaseName = ComponentBuilder.splitPascalCase(name, "-");
+
+        const assetPath = Editor.assetsWindow.currentPath.replace(/^\//, "");
+
+        const relativeFilePath = `${assetPath}/${fileBaseName}.ts`;
+
+        const fileContent =
+            `import Component from "./flint/runtime/component";
+
+export class ${name} extends Component {
+    onAttach() {
+        // Component initialization code
+    }
+
+    onUpdate() {
+        // Code which should run every frame
+    }
+}
+`;
+        let folderHandle = Project.folderHandle;
+        const parts = assetPath.split("/").filter(Boolean);
+
+        for (const part of parts) {
+            folderHandle = await folderHandle.getDirectoryHandle(part, { create: true });
+        }
+
+        const fileHandle = await folderHandle.getFileHandle(fileBaseName + ".ts", { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(fileContent);
+        await writable.close();
+
+        Editor.assetsWindow.addAsset({
+            id: crypto.randomUUID(),
+            name: fileBaseName + ".ts",
+            type: "component",
+            path: `${assetPath}/${fileBaseName}.ts`
+        });
+
+        const exportPath = `${assetPath}/${fileBaseName}`;
+        ProjectConfig.config.index += `export * from "./${exportPath}";`;
+        await ProjectConfig.save();
+
+        Project.openInFileEditor("/" + relativeFilePath);
     }
 }

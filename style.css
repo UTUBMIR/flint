@@ -20,7 +20,7 @@
 }
 
 sl-tree-item.no-caret::part(expand-button) {
-  display: none;
+    display: none;
 }
 
 .inspector-label {
@@ -79,15 +79,101 @@ canvas {
 
 sl-split-panel {
     --min: 200px;
-    --max: 85%;
+    --max: calc(100% - 200px);
     background-color: var(--sl-color-neutral-200);
     overflow: hidden;
 }
 
+sl-icon, sl-icon-button {
+    font-size: var(--sl-font-size-large);
+}
+
+sl-menu-label::part(base) {
+    font-size: var(--sl-font-size-medium);
+}
+
+/* assets */
+.asset-card {
+    aspect-ratio: 1;
+}
+:root {
+    --asset-max-width: 120px;
+}
+
+/* constrain asset cards so they never grow past the max width but can shrink to min-width */
+#assets-grid .asset-card {
+    flex: 0 1 var(--asset-max-width);
+    max-width: var(--asset-max-width);
+    min-width: 120px; /* keep existing minimum */
+}
+#assets-grid {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap: var(--sl-spacing-medium);
+}
+
+.asset-card {
+    flex: 1;
+    min-width: 120px;
+    height: 120px;
+    cursor: pointer;
+    display: flex;
+    flex-shrink: 0;
+}
+
+.asset-card-inner {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1;
+
+}
+
+.asset-card-inner::part(body) {
+    aspect-ratio: 1;
+
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* контент по центру */
+    padding: 12px;
+    background: #1a1a1e;
+    border: 1px solid #2d3440;
+
+    box-sizing: border-box;
+    transition: 0.15s;
+}
+
+.asset-card-inner::part(body):hover {
+    background: #242830;
+    border-color: #3b4554;
+}
+
+.asset-icon {
+    font-size: 58px;
+    color: #8da0bd;
+    margin-bottom: 8px;
+}
+
+.asset-name {
+    font-size: 14px;
+    color: #e2e5ec;
+    text-align: center;
+    word-break: break-word;
+    user-select: none;
+}
+
+/* assets */
+
+
 .editor-window {
     width: 100%;
     height: 100%;
-    border: 1px solid #2e3235; /*#283748*/
+    border: 1px solid #2e3235;
+    /*#283748*/
     border-radius: var(--sl-border-radius-medium);
     display: flex;
     flex-direction: column;
@@ -102,7 +188,8 @@ sl-split-panel {
     justify-content: space-between;
     align-items: center;
     padding: var(--sl-spacing-2x-small) var(--sl-spacing-x-small);
-    background: #383c3f; /*#24303f*/
+    background: #383c3f;
+    /*#24303f*/
 }
 
 .window-title {

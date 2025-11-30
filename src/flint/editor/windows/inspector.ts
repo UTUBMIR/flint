@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Vector2D from "../../shared/vector2d.js";
-import type GameObject from "../../runtime/game-object.js";
-import Editor, { Notifier } from "../editor.js";
-import Component from "../../runtime/component.js";
-import { ComponentBuilder } from "../component-builder.js";
-import { System } from "../../runtime/system.js";
+import Vector2D from "../../shared/vector2d";
+import type GameObject from "../../runtime/game-object";
+import Editor, { Notifier } from "../editor";
+import Component from "../../runtime/component";
+import { ComponentBuilder } from "../component-builder";
+import { System } from "../../runtime/system";
 
 class InspectorComponent {
     public readonly element: HTMLElement;
@@ -33,6 +33,7 @@ export default class Inspector {
     private currentObject: GameObject | undefined;
     private components: InspectorComponent[] = [];
 
+    private dropTarget: HTMLDivElement | null = null;
     private element: HTMLDivElement;
     private dialog: any;
     private dialogSelect: HTMLSelectElement;
@@ -43,10 +44,21 @@ export default class Inspector {
         this.element = element;
         this.dialog = dialog;
 
+        this.dropTarget = document.getElementById("inspector-drop-target") as HTMLDivElement;
+        this.dropTarget.addEventListener("dragover", (ev) => {
+            ev.preventDefault();
+        });
+
+        this.dropTarget.addEventListener("drop", (ev) => {
+            ev.preventDefault();
+            const data = ev.dataTransfer!.getData("text/plain");
+            this.currentObject?.addComponent(new (System.components.get(data) as any)());
+        });
+
         this.dialogSelect = this.dialog.getElementsByTagName("sl-select")[0] as HTMLSelectElement;
         this.dialogAddButton = this.dialog.getElementsByTagName("sl-button")[0] as HTMLButtonElement;
 
-        Editor.hierarchy.element.addEventListener("sl-selection-change", this.onEvent.bind(this));
+        Editor.hierarchyWindow.element.addEventListener("sl-selection-change", this.onEvent.bind(this));
 
 
         this.addComponentButton = document.getElementById("add-component-button")! as HTMLButtonElement;
@@ -107,10 +119,10 @@ export default class Inspector {
 
             .split("-")
             .map(i => Number.parseInt(i));
-            
+
         if (parsed.length !== 2) return;
 
-        const layer = Editor.hierarchy.layers.get(parsed[0] ?? 0);
+        const layer = Editor.hierarchyWindow.layers.get(parsed[0] ?? 0);
 
         this.currentObject = layer?.getObjects()[parsed[1] ?? 0];
 
