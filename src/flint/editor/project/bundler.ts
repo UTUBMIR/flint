@@ -1,13 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-
-
-export default class Builder {
+export default class Bundler {
     public static files = new Map<string, string>();
 
     private static esbuild: typeof import("esbuild-wasm");
     private static readonly virtualFsPlugin = {
         name: "virtual-fs",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setup(build: any) {
             build.onResolve({ filter: /.*/ }, (args: { path: string; resolveDir: string; importer: string }) => {
                 // Ensure the import has .ts or .json extension
@@ -56,7 +53,7 @@ export default class Builder {
             build.onLoad({ filter: /.*/, namespace: "virtual" }, (args: { path: string }) => {
                 const normalizedPath = args.path;
 
-                const content = Builder.files.get(normalizedPath);
+                const content = Bundler.files.get(normalizedPath);
                 if (!content) {
                     console.warn("Missing virtual file:", normalizedPath);
                     return { contents: "export {}", loader: "ts" };
@@ -75,24 +72,24 @@ export default class Builder {
     private constructor() { }
 
     public static async init() {
-        if (!Builder.esbuild) {
+        if (!Bundler.esbuild) {
             const { default: esbuild } = await import("https://esm.sh/esbuild-wasm@0.19.12");
             await esbuild.initialize({
                 wasmURL: "https://esm.sh/esbuild-wasm@0.19.12/esbuild.wasm",
             });
-            Builder.esbuild = esbuild;
+            Bundler.esbuild = esbuild;
         }
-        return Builder;
+        return Bundler;
     }
 
-    public static async build() {
-        return await Builder.esbuild.build({
+    public static async bundle() {
+        return await Bundler.esbuild.build({
             entryPoints: ["/index.ts"],
             bundle: true,
             write: false,
             format: "esm",
             target: ["esnext"],
-            plugins: [Builder.virtualFsPlugin],
+            plugins: [Bundler.virtualFsPlugin],
             external: ["flint/*"],
             minify: true,
             keepNames: true,
@@ -102,7 +99,6 @@ export default class Builder {
                     emitDecoratorMetadata: true,
                 }
             }
-
         });
     }
 }

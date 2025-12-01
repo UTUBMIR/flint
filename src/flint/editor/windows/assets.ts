@@ -100,6 +100,7 @@ export default class Assets {
             this.contextDropdownElement.show();
 
             if (this.cachedWidth === 0) {
+                this.positionDropdown(e);
                 this.contextDropdownElement.addEventListener(
                     "sl-after-show",
                     () => this.positionDropdown(e),
@@ -126,8 +127,8 @@ export default class Assets {
     }
 
     /** Removes asset and all nested assets if folder */
-    public removeAsset(asset: AssetData) {
-        this.allAssets = this.allAssets.filter(a => !a.path.startsWith(asset.path));
+    public removeAsset(path: string) {
+        this.allAssets = this.allAssets.filter(a => !a.path.startsWith(path));
         this.renderCurrentFolder();
     }
 

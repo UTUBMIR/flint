@@ -1,4 +1,4 @@
-import Builder from "./project/builder";
+import Bundler from "./project/bundler";
 import { Project } from "./project/project";
 import Assets from "./windows/assets";
 import HierarchyWindow from "./windows/hierarchy";
@@ -84,7 +84,7 @@ export default class Editor {
 
 
     public static init(): void {
-        Builder.init();
+        Bundler.init();
 
 
 

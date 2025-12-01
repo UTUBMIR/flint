@@ -1,12 +1,10 @@
 import Component from "../../runtime/component";
 import { System } from "../../runtime/system";
 import Editor, { Notifier } from "../editor";
-import Builder from "./builder";
+import Bundler from "./bundler";
 import ProjectConfig from "./project-config";
 import ModuleLoader from "./module-loader";
-import type { AssetData } from "../windows/assets";
 import { ComponentBuilder } from "../component-builder";
-import Assets from "../windows/assets";
 
 export class Project {
     private static compiled: string;
@@ -78,22 +76,22 @@ export class Project {
 
 
     public static async compile(): Promise<boolean> {
-        Builder.files.clear();
+        Bundler.files.clear();
         Editor.assetsWindow.clearAssets();
 
         const tsFiles = await Project.getAllTextFiles(Project.folderHandle);
 
 
-        Builder.files.set("index.ts", ProjectConfig.config.index);
+        Bundler.files.set("index.ts", ProjectConfig.config.index);
 
         for (const { fileHandle, path } of tsFiles) {
             const file = await fileHandle.getFile();
             const text = await file.text();
 
-            Builder.files.set(path, text);
+            Bundler.files.set(path, text);
         }
         try {
-            const result = (await Builder.build()).outputFiles[0]?.text;
+            const result = (await Bundler.bundle()).outputFiles[0]?.text;
 
             if (!result) return false;
 
@@ -196,11 +194,13 @@ export class Project {
         const fileBaseName = ComponentBuilder.splitPascalCase(name, "-");
 
         const assetPath = Editor.assetsWindow.currentPath.replace(/^\//, "");
-
         const relativeFilePath = `${assetPath}/${fileBaseName}.ts`;
 
-        const fileContent =
-            `import Component from "./flint/runtime/component";
+        const depth = assetPath.split("/").filter(Boolean).length;
+        const importPrefix = "../".repeat(depth);
+        const importPath = `${importPrefix}flint/runtime/component`;
+
+        const fileContent = `import Component from "${importPath}";
 
 export class ${name} extends Component {
     onAttach() {
@@ -212,9 +212,9 @@ export class ${name} extends Component {
     }
 }
 `;
+
         let folderHandle = Project.folderHandle;
         const parts = assetPath.split("/").filter(Boolean);
-
         for (const part of parts) {
             folderHandle = await folderHandle.getDirectoryHandle(part, { create: true });
         }
@@ -228,13 +228,43 @@ export class ${name} extends Component {
             id: crypto.randomUUID(),
             name: fileBaseName + ".ts",
             type: "component",
-            path: `${assetPath}/${fileBaseName}.ts`
+            path: relativeFilePath
         });
 
-        const exportPath = `${assetPath}/${fileBaseName}`;
-        ProjectConfig.config.index += `export * from "./${exportPath}";`;
+        ProjectConfig.config.index += `\nexport * from "./${relativeFilePath.replace(/\.ts$/, "")}";`;
         await ProjectConfig.save();
 
-        Project.openInFileEditor("/" + relativeFilePath);
+        await Project.openInFileEditor("/" + relativeFilePath);
+    }
+
+
+    public static async deleteComponent(name: string) {
+        const fileBaseName = ComponentBuilder.splitPascalCase(name, "-");
+        const assetPath = Editor.assetsWindow.currentPath.replace(/^\//, "");
+        const relativeFilePath = `${assetPath}/${fileBaseName}.ts`;
+
+        let folderHandle = Project.folderHandle;
+        const parts = assetPath.split("/").filter(Boolean);
+        for (const part of parts) {
+            folderHandle = await folderHandle.getDirectoryHandle(part, { create: false });
+            if (!folderHandle) return; // folder doesn't exist
+        }
+
+        try {
+            await folderHandle.removeEntry(fileBaseName + ".ts");
+        } catch (e) {
+            console.warn("File not found:", e);
+        }
+
+        // Remove export from index
+        const exportLine = `export * from "./${relativeFilePath.replace(/\.ts$/, "")}";`;
+        ProjectConfig.config.index = ProjectConfig.config.index
+            .split("\n")
+            .filter(line => line.trim() !== exportLine)
+            .join("\n");
+
+        await ProjectConfig.save();
+
+        Editor.assetsWindow.removeAsset(relativeFilePath);
     }
 }
