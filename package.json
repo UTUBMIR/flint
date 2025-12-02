@@ -6,7 +6,8 @@
         "engine",
         "TypeScript",
         "ts",
-        "runtime"
+        "runtime",
+        "editor"
     ],
     "homepage": "https://github.com/UTUBMIR/flint#readme",
     "bugs": {
@@ -21,7 +22,7 @@
     "type": "module",
     "main": "main.js",
     "scripts": {
-        "build": "npx esbuild src/main.ts --bundle --outfile=dist/main.js --target=esnext --minify --keep-names"
+        "build": "npx esbuild src/main.ts --bundle --outfile=dist/main.js --target=esnext --minify --keep-names && tsc && node ./type-generator.js"
     },
     "devDependencies": {
         "@eslint/js": "^9.39.1",

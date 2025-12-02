@@ -12,15 +12,23 @@ export default class Layer {
     public readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(true, true);
     public readonly cameras: Camera[] = [];
 
+    /**
+     * Called once when this layer is attached.
+     */
     public onAttach(): void { }
 
-    /** Called every frame */
+    /**
+     * Called every frame after {@link onAttach}.
+     */
     onUpdate(): void {
         // custom logic for subclasses can go here (override)
         this.updateObjects();
     }
 
-    /** Called every frame after onUpdate */
+    /**
+     * Called every frame after {@link onUpdate}.
+     * @param renderer - The renderer used to draw this component.
+     */
     onRender(): void {
         this.renderObjects();
     }

@@ -11,12 +11,19 @@ import Metadata from "../shared/metadata";
 import { AngleRenderer } from "./fields/renderers/angle-renderer";
 import { BooleanRenderer } from "./fields/renderers/boolean-renderer";
 
+/**
+ * Sets a custom renderer for a field
+ * @param renderer - Renderer name
+ */
 export function customRenderer(renderer: string) {
     return (target: any, key: string) => {
         Metadata.setField(target, key, "field-renderer", renderer);
     };
 }
 
+/**
+ * Hides field from inspector
+ */
 export function hideFromInspector() {
     return (target: any, key: string) => {
         Metadata.setField(target, key, "hide-in-inspector", true);

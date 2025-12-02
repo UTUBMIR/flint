@@ -1,41 +1,27 @@
 {
-    // Visit https://aka.ms/tsconfig to read more about this file
     "compilerOptions": {
-        // File Layout
+
         "rootDir": "./src",
         "outDir": "./dist",
-        // Environment Settings
-        // See also https://aka.ms/tsconfig/module
+
         "module": "esnext",
         "target": "esnext",
         "types": [
             "@types/wicg-file-system-access"
         ],
-        // For nodejs:
-        // "lib": ["esnext"],
-        // "types": ["node"],
-        // and npm install -D @types/node
-        // Other Outputs
+
         "sourceMap": false,
-        "declaration": false,
+        "declaration": true,
         "moduleResolution": "bundler",
-        //"declarationDir": "types",
+        "declarationDir": "./types",
         "declarationMap": false,
-        "emitDeclarationOnly": false,
-        //"outFile": "./types/index.d.ts",
-        // Stricter Typechecking Options
+        "emitDeclarationOnly": true,
+
         "noUncheckedIndexedAccess": true,
         "exactOptionalPropertyTypes": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
-        // Style Options
-        // "noImplicitReturns": true,
-        // "noImplicitOverride": true,
-        // "noUnusedLocals": true,
-        // "noUnusedParameters": true,
-        // "noFallthroughCasesInSwitch": true,
-        // "noPropertyAccessFromIndexSignature": true,
-        // Recommended Options
+
         "strict": true,
         "jsx": "react-jsx",
         "verbatimModuleSyntax": true,
@@ -49,6 +35,7 @@
     },
     "exclude": [
         "./dist",
+        "./types",
         "./node_modules"
     ]
 }

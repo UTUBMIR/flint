@@ -1,13 +1,96 @@
-import Component from "../../runtime/component";
-import { System } from "../../runtime/system";
-import Editor, { Notifier } from "../editor";
-import Bundler from "./bundler";
+import Editor from "../editor";
 import ProjectConfig from "./project-config";
-import ModuleLoader from "./module-loader";
 import { ComponentBuilder } from "../component-builder";
+import { Builder } from "./builder";
+
+export class FileTracker {
+    private constructor() { }
+
+    static timestamps = new Map<string, number>();
+    static intervalId: number | null = null;
+
+    private static debounceTimer: number | null = null;
+    private static debounceDelay = 50; // auto adjustable
+
+    static async startWatchingDirectory(
+        dirHandle: FileSystemDirectoryHandle,
+        intervalMs: number = 200
+    ) {
+        if (this.intervalId !== null) return;
+
+        this.intervalId = setInterval(async () => {
+            const updated = await this.directoryWasUpdated(dirHandle);
+            if (updated) {
+                this.scheduleRebuild();
+            }
+        }, intervalMs);
+    }
+
+    static stopWatching() {
+        if (this.intervalId !== null) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+
+        if (this.debounceTimer !== null) {
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = null;
+        }
+    }
+
+    private static scheduleRebuild() {
+        /* If timer already started -> stop it and start a new one */
+        if (this.debounceTimer !== null) {
+            clearTimeout(this.debounceTimer);
+        }
+
+        this.debounceTimer = setTimeout(async () => {
+            const start = performance.now();
+            await Builder.buildForEditor(false);
+            const end = performance.now();
+
+            FileTracker.debounceDelay = end - start;
+
+            this.debounceTimer = null;
+        }, this.debounceDelay);
+    }
+
+    private static async directoryWasUpdated(
+        dirHandle: FileSystemDirectoryHandle,
+        currentPath = ""
+    ) {
+        let anyUpdated = false;
+
+        for await (const entry of dirHandle.values()) {
+            const fullPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+
+            if (entry.kind === "file") {
+                const fileUpdated = await this.wasUpdated(fullPath, entry);
+                if (fileUpdated) anyUpdated = true;
+            }
+
+            if (entry.kind === "directory") {
+                const subUpdated = await this.directoryWasUpdated(entry, fullPath);
+                if (subUpdated) anyUpdated = true;
+            }
+        }
+
+        return anyUpdated;
+    }
+
+    private static async wasUpdated(path: string, fileHandle: FileSystemFileHandle) {
+        const file = await fileHandle.getFile();
+        const newTimestamp = file.lastModified;
+        const prevTimestamp = this.timestamps.get(path);
+
+        this.timestamps.set(path, newTimestamp);
+
+        return prevTimestamp !== undefined && prevTimestamp !== newTimestamp;
+    }
+}
+
 
 export class Project {
-    private static compiled: string;
     public static folderHandle: FileSystemDirectoryHandle;
 
     private static createComponentDialog: HTMLElement & { show: () => void; hide: () => void };
@@ -32,25 +115,35 @@ export class Project {
         });
     }
 
+    public static async run() {
+        return await Builder.buildForEditor();
+    }
+
     public static async openProject(folderHandle: FileSystemDirectoryHandle) {
-        Project.folderHandle = folderHandle;
-        await ProjectConfig.ensureLoaded();
-        await Project.getAllTextFiles(Project.folderHandle);
+        await Project.startupProject(folderHandle);
     }
 
     public static async newProject(folderHandle: FileSystemDirectoryHandle) {
+        await Project.startupProject(folderHandle);
+    }
+
+    private static async startupProject(folderHandle: FileSystemDirectoryHandle) {
         Project.folderHandle = folderHandle;
         await ProjectConfig.ensureLoaded();
         await Project.getAllTextFiles(Project.folderHandle);
 
+        await Builder.buildForEditor();
+
+        await FileTracker.startWatchingDirectory(Project.folderHandle);
     }
 
-    public static async getAllTextFiles(dirHandle: FileSystemDirectoryHandle, path = ""): Promise<{ fileHandle: FileSystemFileHandle, path: string }[]> {
+    public static async getAllTextFiles(dirHandle: FileSystemDirectoryHandle, path = "") {
         const files: { fileHandle: FileSystemFileHandle, path: string }[] = [];
+        const assets: {id: string, name: string, type: string, path: string}[] = [];
 
         for await (const [name, handle] of dirHandle.entries()) {
             if (handle.kind === "file" && (name.endsWith(".ts") || name.endsWith(".json"))) {
-                Editor.assetsWindow.addAsset({
+                assets.push({
                     id: crypto.randomUUID(),
                     name,
                     type: name.split(".").pop() === "ts" ? "component" : "json",
@@ -59,116 +152,19 @@ export class Project {
 
                 files.push({ fileHandle: handle, path: path + name });
             } else if (handle.kind === "directory") {
-                Editor.assetsWindow.addAsset({
+                assets.push({
                     id: crypto.randomUUID(),
                     name,
                     type: "folder",
                     path: "/" + path + name
                 });
 
-                const nestedFiles = await Project.getAllTextFiles(handle, path + name + "/");
+                const nestedFiles = (await Project.getAllTextFiles(handle, path + name + "/")).files;
                 files.push(...nestedFiles);
             }
         }
 
-        return files;
-    }
-
-
-    public static async compile(): Promise<boolean> {
-        Bundler.files.clear();
-        Editor.assetsWindow.clearAssets();
-
-        const tsFiles = await Project.getAllTextFiles(Project.folderHandle);
-
-
-        Bundler.files.set("index.ts", ProjectConfig.config.index);
-
-        for (const { fileHandle, path } of tsFiles) {
-            const file = await fileHandle.getFile();
-            const text = await file.text();
-
-            Bundler.files.set(path, text);
-        }
-        try {
-            const result = (await Bundler.bundle()).outputFiles[0]?.text;
-
-            if (!result) return false;
-
-            this.compiled = result;
-            return true;
-        }
-        catch (error) {
-            Notifier.notify(`${error}`, "danger", 15000);
-            return false;
-        }
-    }
-
-    public static async run(): Promise<boolean> {
-        if (!this.folderHandle) {
-            Notifier.notify("Open project first.", "danger");
-            return false;
-        }
-
-        if (await this.compile()) {
-            const module = await ModuleLoader.load(this.compiled);
-
-            for (const [name, value] of Object.entries(module)) {
-                if (name === "System" || name === "Input" || name === "Metadata") continue;
-
-                const oldComponentType = System.components.get(name);
-                if (value as Component) {
-                    System.components.set(name, value as typeof Component);
-                }
-
-                if (!oldComponentType || !oldComponentType.prototype) {
-                    return true;
-                }
-
-
-                const component = System.components.get(name);
-                if (!component) return false;
-
-                for (const layer of System.layers) {
-                    for (const obj of layer.getObjects()) {
-                        const objComponent = obj.getComponent(oldComponentType);
-                        if (!objComponent) {
-                            continue;
-                        }
-
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        obj.addComponent(objComponent.swapClass((component as any)));
-                        obj.removeComponent(oldComponentType);
-                    }
-                }
-
-            }
-
-
-            //     DynamicModuleLoader.unloadAll();
-
-            //     const className = Builder.extractClassName(this.source);
-            //     if (!className) throw new Error("Class not found");
-
-            //     this.compiled += `
-            // return ${className};
-            //     `;
-            //     console.log(className);
-
-            //     let script: HTMLScriptElement;
-            //     try {
-            //         const script = document.createElement("script");
-            //         script.innerHTML = this.compiled;
-            //         document.body.appendChild(script);
-            //     } catch (error) {
-            //         console.log(error);
-            //     }
-        }
-        else {
-            return false;
-        }
-
-        return true;
+        return {files, assets};
     }
 
     public static async openInFileEditor(path: string) {
