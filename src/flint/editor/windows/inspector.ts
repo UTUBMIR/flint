@@ -51,8 +51,10 @@ export default class Inspector {
 
         this.dropTarget.addEventListener("drop", (ev) => {
             ev.preventDefault();
-            const data = ev.dataTransfer!.getData("text/plain");
-            this.currentObject?.addComponent(new (System.components.get(data) as any)());
+
+            ev.dataTransfer!.items[0]?.getAsString((componentName) => {
+                this.currentObject?.addComponent(new (System.components.get(componentName) as any)());
+            });
         });
 
         this.dialogSelect = this.dialog.getElementsByTagName("sl-select")[0] as HTMLSelectElement;

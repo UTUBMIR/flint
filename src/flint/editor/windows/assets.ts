@@ -175,7 +175,7 @@ export default class Assets {
 
         if (asset.type !== "folder") {
             function dragstartHandler(ev: DragEvent) {
-                ev.dataTransfer!.setData("text/plain", ComponentBuilder.joinToPascalCase(asset.path.split("/").pop()!.split(".")[0]!));
+                ev.dataTransfer!.items.add(ComponentBuilder.joinToPascalCase(asset.path.split("/").pop()!.split(".")[0]!), "text/plain");
             }
 
             card.addEventListener("dragstart", dragstartHandler);
