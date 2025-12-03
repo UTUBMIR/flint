@@ -22,6 +22,11 @@ export default class Input {
         return this.pressedMouseButtons.has(button);
     }
 
+    /**
+     * Gets the value of an input axis by its name.
+     * @param name of the axis
+     * @returns axis value (from -1 to 1)
+     */
     public static getAxis(name: string): number {
         const axis = this.inputAxes.find(a => a.name === name);
 
@@ -45,27 +50,27 @@ export default class Input {
         document.addEventListener("touchmove", this.onMouseMove.bind(this));
     }
 
-    public static onKeyDown(event: KeyboardEvent) {
+    private static onKeyDown(event: KeyboardEvent) {
         this.pressedKeys.add(event.code);
         this.updateInputAxes();
     }
 
-    public static onKeyUp(event: KeyboardEvent) {
+    private static onKeyUp(event: KeyboardEvent) {
         this.pressedKeys.delete(event.code);
         this.updateInputAxes();
     }
 
-    public static onMouseDown(event: MouseEvent) {
+    private static onMouseDown(event: MouseEvent) {
         this.pressedMouseButtons.add(event.button);
         this.updateInputAxes();
     }
 
-    public static onMouseUp(event: MouseEvent) {
+    private static onMouseUp(event: MouseEvent) {
         this.pressedMouseButtons.delete(event.button);
         this.updateInputAxes();
     }
 
-    public static onMouseMove(event: MouseEvent | TouchEvent) {
+    private static onMouseMove(event: MouseEvent | TouchEvent) {
         if (event instanceof MouseEvent) {
             this.mousePosition.set(event.pageX, event.pageY);
         }

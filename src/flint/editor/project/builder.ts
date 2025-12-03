@@ -1,6 +1,6 @@
-import type Component from "../../runtime/component";
+import type Component from "../..//runtime/component";
 import { System } from "../../runtime/system";
-import Editor, { Notifier } from "../editor";
+import Editor, { Notifier } from "../../editor/editor";
 import Bundler from "./bundler";
 import ModuleLoader from "./module-loader";
 import { Project } from "./project";
@@ -88,26 +88,6 @@ export class Builder {
                 }
 
             }
-
-
-            //     DynamicModuleLoader.unloadAll();
-
-            //     const className = Builder.extractClassName(this.source);
-            //     if (!className) throw new Error("Class not found");
-
-            //     this.compiled += `
-            // return ${className};
-            //     `;
-            //     console.log(className);
-
-            //     let script: HTMLScriptElement;
-            //     try {
-            //         const script = document.createElement("script");
-            //         script.innerHTML = this.compiled;
-            //         document.body.appendChild(script);
-            //     } catch (error) {
-            //         console.log(error);
-            //     }
         }
         else {
             return false;

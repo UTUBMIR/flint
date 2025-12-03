@@ -130,16 +130,27 @@ export class Project {
     private static async startupProject(folderHandle: FileSystemDirectoryHandle) {
         Project.folderHandle = folderHandle;
         await ProjectConfig.ensureLoaded();
+
         await Project.getAllTextFiles(Project.folderHandle);
 
+        Editor.loadingDialogProgressBar.value = 0;
+        Editor.loadingDialogProgressBar.indeterminate = false;
+        Editor.loadingDialog.show();
+
+        await Project.copyTypesToDirectory(folderHandle, window.location.origin + "/types/", (total, loaded) => {
+            Editor.loadingDialogProgressBar.value = (loaded / total) * 100;
+        });
+
         await Builder.buildForEditor();
+
+        Editor.loadingDialog.hide();
 
         await FileTracker.startWatchingDirectory(Project.folderHandle);
     }
 
     public static async getAllTextFiles(dirHandle: FileSystemDirectoryHandle, path = "") {
         const files: { fileHandle: FileSystemFileHandle, path: string }[] = [];
-        const assets: {id: string, name: string, type: string, path: string}[] = [];
+        const assets: { id: string, name: string, type: string, path: string }[] = [];
 
         for await (const [name, handle] of dirHandle.entries()) {
             if (handle.kind === "file" && (name.endsWith(".ts") || name.endsWith(".json"))) {
@@ -164,7 +175,7 @@ export class Project {
             }
         }
 
-        return {files, assets};
+        return { files, assets };
     }
 
     public static async openInFileEditor(path: string) {
@@ -192,11 +203,7 @@ export class Project {
         const assetPath = Editor.assetsWindow.currentPath.replace(/^\//, "");
         const relativeFilePath = `${assetPath}/${fileBaseName}.ts`;
 
-        const depth = assetPath.split("/").filter(Boolean).length;
-        const importPrefix = "../".repeat(depth);
-        const importPath = `${importPrefix}flint/runtime/component`;
-
-        const fileContent = `import Component from "${importPath}";
+        const fileContent = `import Component from "@flint/runtime/component";
 
 export class ${name} extends Component {
     onAttach() {
@@ -262,5 +269,55 @@ export class ${name} extends Component {
         await ProjectConfig.save();
 
         Editor.assetsWindow.removeAsset(relativeFilePath);
+    }
+
+    private static async copyTypesToDirectory(
+        dirHandle: FileSystemDirectoryHandle,
+        typesBaseUrl: string,
+        callback?: (total: number, loaded: number) => void
+    ) {
+        const fileList = await fetch(typesBaseUrl + "files.json").then(r => r.json());
+
+        const allFiles: string[] = [
+            ...(fileList.types || []),
+            ...(fileList.json || [])
+        ];
+
+        const tasks: Promise<void>[] = [];
+        let loaded = 0;
+
+        for (const filePath of allFiles) {
+            tasks.push((async () => {
+                const url = typesBaseUrl + filePath;
+
+                let response: Response;
+                if (filePath.endsWith("d.ts")) {
+                    response = await fetch(url);
+                } else {
+                    response = await fetch(typesBaseUrl.replace("types/", "src/") + filePath);
+                }
+
+
+                const content = await response.text();
+
+                const pathParts = filePath.split("/");
+                const fileName = pathParts.pop()!;
+                let currentDir = dirHandle;
+
+                for (const folder of pathParts) {
+                    currentDir = await currentDir.getDirectoryHandle(folder, { create: true });
+                }
+
+                const fileHandle = await currentDir.getFileHandle(fileName, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(content);
+                await writable.close();
+
+                if (callback) callback(allFiles.length, ++loaded);
+            })());
+        }
+
+        await Promise.all(tasks);
+        console.log("All type/json files copied!");
     }
 }

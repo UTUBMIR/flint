@@ -8,8 +8,22 @@ type ConfigType = {
 export default class ProjectConfig {
     public static readonly configFileName = "project-config.json";
     public static config: ConfigType;
+
+    public static tsConfig = `{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@flint/*": [
+                "flint/*"
+            ]
+        },
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+    }
+}`;
+
     private static defaultConfig: ConfigType = {
-        index: `export * from "./flint/runtime/system";export { default as Input } from "./flint/shared/input";export { default as Metadata } from "./flint/shared/metadata";`
+        index: `export * from "@flint/runtime/system";export { default as Input } from "@flint/shared/input";export { default as Metadata } from "@flint/shared/metadata";`
     };
 
     public static async save() {
@@ -25,6 +39,11 @@ export default class ProjectConfig {
             const file = await fileHandle.getFile();
             const content = await file.text();
             this.config = JSON.parse(content);
+
+            const tsFileHandle = await Project.folderHandle.getFileHandle("tsconfig.json");
+            const tsFile = await tsFileHandle.getFile();
+            ProjectConfig.tsConfig = await tsFile.text();
+
             return true;
         } catch {
             return false;
@@ -36,6 +55,11 @@ export default class ProjectConfig {
         const writable = await fileHandle.createWritable();
         await writable.write(JSON.stringify(ProjectConfig.defaultConfig, null, 4));
         await writable.close();
+
+        const tsFileHandle = await Project.folderHandle.getFileHandle("tsconfig.json", { create: true });
+        const tsWritable = await tsFileHandle.createWritable();
+        await tsWritable.write(ProjectConfig.tsConfig);
+        await tsWritable.close();
     }
 
     public static async ensureLoaded() {

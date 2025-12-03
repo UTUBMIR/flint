@@ -77,6 +77,10 @@ canvas {
     filter: brightness(1.75);
 }
 
+#loading-dialog::part(close-button__base) {
+    display: none;
+}
+
 sl-split-panel {
     --min: 200px;
     --max: calc(100% - 200px);

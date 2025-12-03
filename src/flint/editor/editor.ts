@@ -45,7 +45,7 @@ class ToolBarActions {
 
     public static async openProject() {
         try {
-            Project.openProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
+            await Project.openProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
             Editor.onProjectLoad();
             Notifier.notify("Project loaded successfully.", "success");
         } catch (error) {
@@ -55,7 +55,7 @@ class ToolBarActions {
 
     public static async newProject() {
         try {
-            Project.newProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
+            await Project.newProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
             Editor.onProjectLoad();
             Notifier.notify("Project created successfully.", "success");
         } catch (error) {
@@ -80,6 +80,9 @@ export default class Editor {
 
     public static runButton: HTMLButtonElement;
 
+    public static loadingDialog: HTMLElement & { show: () => void, hide: () => void };
+    public static loadingDialogProgressBar: HTMLElement & { value: number, indeterminate: boolean };
+
     private constructor() { }
 
 
@@ -97,6 +100,17 @@ export default class Editor {
 
             Editor.assetsWindow = new Assets(document.getElementById("assets-window")! as HTMLDivElement, document.getElementById("assets-grid")! as HTMLDivElement);
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            Editor.loadingDialog = document.getElementById("loading-dialog")! as any;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            Editor.loadingDialog.addEventListener('sl-request-close', (event: any) => {
+                if (event.detail.source === 'overlay') {
+                    event.preventDefault();
+                }
+            });
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            Editor.loadingDialogProgressBar = Editor.loadingDialog.querySelector("sl-progress-bar")! as any;
 
             document.getElementById("open-project-button")!.addEventListener("click", ToolBarActions.openProject);
             document.getElementById("new-project-button")!.addEventListener("click", ToolBarActions.newProject);
@@ -112,6 +126,32 @@ export default class Editor {
 
         Editor.hierarchyWindow.onUpdate(); //HACK: to get it working on ipad where its currently impossible to select folder for read/write
         Editor.updateInspectorFields();
+        Editor.loadEngineFiles();
+    }
+
+    public static async loadEngineFiles() {
+        const fileList = await fetch(window.location.origin + "/types/" + "files.json").then(r => r.json());
+        const fileBaseUrl = window.location.origin + "/src/";
+
+        const allFiles: string[] = [
+            ...(fileList.types || []),
+            ...(fileList.json || [])
+        ];
+
+        const tasks: Promise<void>[] = [];
+
+        for (const filePath of allFiles) {
+            tasks.push((async () => {
+                const thisFile = filePath.replace("d.ts", "ts");
+                const url = fileBaseUrl + thisFile;
+                const content = await fetch(url).then(r => r.text());
+
+                Bundler.flintFiles.set(thisFile, content);
+            })());
+        }
+        await Promise.all(tasks);
+
+        console.log("All flint files loaded");
     }
 
     public static updateInspectorFields() {

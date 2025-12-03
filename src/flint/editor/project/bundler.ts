@@ -1,5 +1,8 @@
+import ProjectConfig from "./project-config";
+
 export default class Bundler {
     public static files = new Map<string, string>();
+    public static flintFiles = new Map<string, string>();
 
     private static esbuild: typeof import("esbuild-wasm");
     private static readonly virtualFsPlugin = {
@@ -9,6 +12,13 @@ export default class Bundler {
             build.onResolve({ filter: /.*/ }, (args: { path: string; resolveDir: string; importer: string }) => {
                 // Ensure the import has .ts or .json extension
                 const importPath = args.path.endsWith(".ts") || args.path.endsWith(".json") ? args.path : args.path + ".ts";
+
+                if (importPath.startsWith("@flint")) {
+                    return {
+                        path: importPath,
+                        namespace: "virtual",
+                    };
+                }
 
                 // Get the base directory
                 let baseDir = args.importer ? args.importer.replace(/\/[^/]*$/, "") : args.resolveDir;
@@ -51,10 +61,33 @@ export default class Bundler {
 
 
             build.onLoad({ filter: /.*/, namespace: "virtual" }, (args: { path: string }) => {
+                if (args.path.startsWith("@flint")) {
+                    const flintPath = "flint/" + args.path.replace("@flint/", "");
+                    const content = Bundler.flintFiles.get(flintPath);
+
+                    if (!content) {
+                        console.warn("Missing virtual flint file:", flintPath);
+                        
+                        return { contents: "export {}", loader: flintPath.endsWith(".json") ? "json" : "ts" };
+                    }
+
+                    return {
+                        contents: content,
+                        loader: flintPath.endsWith(".ts") ? "ts" : "json"
+                    };
+                }
+
                 const normalizedPath = args.path;
 
                 const content = Bundler.files.get(normalizedPath);
                 if (!content) {
+                    const content = Bundler.flintFiles.get(normalizedPath);
+                    if (content) {
+                        return {
+                            contents: content, loader: normalizedPath.endsWith(".ts") ? "ts" : "json"
+                        };
+                    }
+
                     console.warn("Missing virtual file:", normalizedPath);
                     return { contents: "export {}", loader: "ts" };
                 }
@@ -93,12 +126,7 @@ export default class Bundler {
             external: ["flint/*"],
             minify: true,
             keepNames: true,
-            tsconfigRaw: {
-                compilerOptions: {
-                    experimentalDecorators: true,
-                    emitDecoratorMetadata: true,
-                }
-            }
+            tsconfigRaw: ProjectConfig.tsConfig
         });
     }
 }
