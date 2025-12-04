@@ -28,9 +28,9 @@ export default class Shape extends Component {
         renderer.shadowColor = this.shadowColor;
         renderer.shadowBlur = 20;
 
-        renderer.fillRect(this.transform.position, this.transform.size);
+        renderer.fillRect(this.transform.position.subtract(this.transform.size.divide(2)), this.transform.size);
 
-        renderer.strokeRect(this.transform.position, this.transform.size);
+        renderer.strokeRect(this.transform.position.subtract(this.transform.size.divide(2)), this.transform.size);
 
 
         renderer.translate(this.transform.position);
