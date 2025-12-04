@@ -3,17 +3,70 @@ import Layer from "../../runtime/layer";
 import { System } from "../../runtime/system";
 import Metadata from "../../shared/metadata";
 import Editor, { Notifier } from "../editor";
+import { type DropdownType } from "../editor";
+
 
 export default class Hierarchy {
     public element: HTMLElement;
     public layers = new Map<number, Layer>();
 
     private selection: GameObject | Layer | undefined;
+    public contextDropdownElement: DropdownType;
+    public contextMenuElement: HTMLElement;
+    private cachedWidth = 0;
+    private cachedHeight = 0;
 
     public constructor(element: HTMLElement) {
         this.element = element;
 
         this.element.addEventListener("sl-selection-change", this.onSelectionChange.bind(this));
+
+        this.contextDropdownElement = this.element.parentElement!.querySelector("#hierarchy-context-dropdown") as DropdownType;
+        this.contextMenuElement = this.contextDropdownElement.querySelector("#hierarchy-context-menu") as HTMLElement;
+        this.setupContextMenu();
+    }
+
+    private setupContextMenu() {
+        this.contextDropdownElement.addEventListener("sl-after-show", () => {
+            if (this.cachedWidth === 0) {
+                this.cachedWidth = this.contextMenuElement.clientWidth;
+                this.cachedHeight = this.contextMenuElement.clientHeight;
+            }
+        });
+
+        this.element.parentElement!.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            this.contextDropdownElement.show();
+
+            if (this.cachedWidth === 0) {
+                this.positionDropdown(e);
+                this.contextDropdownElement.addEventListener(
+                    "sl-after-show",
+                    () => this.positionDropdown(e),
+                    { once: true }
+                );
+            } else {
+                this.positionDropdown(e);
+            }
+        });
+
+        this.contextMenuElement.querySelector("#new-layer-button")!.addEventListener("click", () => {
+            const layer = new Layer();
+            System.pushLayer(layer);
+            this.onUpdate();
+        });
+
+        this.contextMenuElement.querySelector("#new-gameobject-button")!.addEventListener("click", () => {
+            this.createObject();
+        });
+    }
+
+    private positionDropdown(e: MouseEvent) {
+        const x = Math.min(document.body.clientWidth - this.cachedWidth, e.pageX);
+        const y = Math.min(document.body.clientHeight - this.cachedHeight, e.pageY);
+
+        Object.assign(this.contextDropdownElement.style, { left: `${x}px`, top: `${y}px` });
+        this.contextDropdownElement.reposition();
     }
 
     private onSelectionChange(event: Event) {
@@ -86,7 +139,7 @@ export default class Hierarchy {
 
         const treeItems = document.querySelectorAll("sl-tree-item");
 
-        treeItems.forEach(item => {//BUG: This will change ALL inputs at the page
+        treeItems.forEach(item => {//BUG: This will change ALL inputs at the page (probably)
             item.addEventListener("dblclick", async () => {
                 // Prevent multiple inputs
                 if (item.querySelector("sl-input")) return;
@@ -123,7 +176,7 @@ export default class Hierarchy {
                     let parsed = (item as any).hierarchyId;
                     if (parsed) {
                         parsed = parsed.split("-")
-                        .map((i: string) => Number.parseInt(i));
+                            .map((i: string) => Number.parseInt(i));
 
                         const layer = Editor.hierarchyWindow.layers.get(parsed[0] ?? 0);
                         const gameObject = layer?.getObjects()[parsed[1] ?? 0];

@@ -4,6 +4,11 @@ import Assets from "./windows/assets";
 import HierarchyWindow from "./windows/hierarchy";
 import InspectorWindow from "./windows/inspector";
 
+export type DropdownType = HTMLElement & {
+    show: () => void;
+    hide: () => void;
+    reposition: () => void;
+};
 
 export class Notifier {
     public static escapeHtml(html: string) {

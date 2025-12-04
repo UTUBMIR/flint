@@ -90,6 +90,19 @@
                         </div>
 
                         <div class="window-body">
+                            <sl-dropdown id="hierarchy-context-dropdown" style="position: absolute;">
+                                <sl-menu id="hierarchy-context-menu">
+                                    <sl-menu-label>Create</sl-menu-label>
+                                    <sl-menu-item id="new-layer-button" value="new-layer">
+                                        <sl-icon slot="prefix" name="layers"></sl-icon>
+                                        New Layer
+                                    </sl-menu-item>
+                                    <sl-menu-item id="new-gameobject-button" value="new-gameobject">
+                                        <sl-icon slot="prefix" name="box"></sl-icon>
+                                        New GameObject
+                                    </sl-menu-item>
+                                </sl-menu>
+                            </sl-dropdown>
                             <sl-tree id="hierarchy-tree" style="--indent-guide-width: 1px;">
 
                             </sl-tree>

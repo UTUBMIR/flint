@@ -1,11 +1,6 @@
 import { ComponentBuilder } from "../component-builder";
 import { Project } from "../project/project";
-
-type DropdownType = HTMLElement & {
-    show: () => void;
-    hide: () => void;
-    reposition: () => void;
-};
+import { type DropdownType } from "../editor";
 
 export type AssetData = {
     id: string;
