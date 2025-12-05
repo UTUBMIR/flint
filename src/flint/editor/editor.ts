@@ -1,8 +1,15 @@
+import GameObject from "../runtime/game-object";
+import Layer from "../runtime/layer";
+import Vector2D from "../shared/vector2d";
 import Bundler from "./project/bundler";
 import { Project } from "./project/project";
 import Assets from "./windows/assets";
-import HierarchyWindow from "./windows/hierarchy";
+import HierarchyWindow, { editorName } from "./windows/hierarchy";
 import InspectorWindow from "./windows/inspector";
+
+import Camera from "../runtime/components/camera";
+import Shape from "../runtime/components/shape";
+import Transform from "../runtime/transform";
 
 export type DropdownType = HTMLElement & {
     show: () => void;
@@ -49,23 +56,15 @@ class ToolBarActions {
     private constructor() { }
 
     public static async openProject() {
-        try {
-            await Project.openProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
-            Editor.onProjectLoad();
-            Notifier.notify("Project loaded successfully.", "success");
-        } catch (error) {
-            console.error(`Error: ${error}`);
-        }
+        await Project.openProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
+        Editor.onProjectLoad();
+        Notifier.notify("Project loaded successfully.", "success");
     }
 
     public static async newProject() {
-        try {
-            await Project.newProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
-            Editor.onProjectLoad();
-            Notifier.notify("Project created successfully.", "success");
-        } catch (error) {
-            console.error(`Error: ${error}`);
-        }
+        await Project.newProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
+        Editor.onProjectLoad();
+        Notifier.notify("Project created successfully.", "success");
     }
 
     public static async runProject() {
@@ -88,13 +87,18 @@ export default class Editor {
     public static loadingDialog: HTMLElement & { show: () => void, hide: () => void };
     public static loadingDialogProgressBar: HTMLElement & { value: number, indeterminate: boolean };
 
+
+    private static _defaultLayer: Layer;
+
+    public static get defaultLayer(): Layer {
+        return this._defaultLayer;
+    }
+
     private constructor() { }
 
 
     public static init(): void {
         Bundler.init();
-
-
 
         try {
             const addComponentDialog = document.getElementById("add-component-dialog")!;
@@ -129,9 +133,24 @@ export default class Editor {
             console.error(`Error: Failed to initialize UI: ${error}`);
         }
 
-        Editor.hierarchyWindow.onUpdate(); //HACK: to get it working on ipad where its currently impossible to select folder for read/write
+        Editor.hierarchyWindow.onUpdate(); //FIXME: why is this even needed?
         Editor.updateInspectorFields();
         Editor.loadEngineFiles();
+
+        Editor._defaultLayer = new Layer();
+        Editor._defaultLayer.addObject(new GameObject([
+            new Shape()
+        ], new Transform(
+            undefined,
+            new Vector2D(100, 100)
+        )));
+
+        Editor._defaultLayer.addObject(new GameObject([
+            new Camera()
+        ]));
+
+        editorName("New Layer")(Layer);
+        editorName("New GameObject")(GameObject);
     }
 
     public static async loadEngineFiles() {

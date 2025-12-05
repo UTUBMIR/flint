@@ -6,6 +6,22 @@ import Editor, { Notifier } from "../editor";
 import { type DropdownType } from "../editor";
 
 
+/**
+ * Sets a name for and object, exists only in the Editor.
+ * @param name - Name to show in the Editor.
+ */
+export function editorName(name: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (target: any) => {
+        if (typeof target === "function") {
+            Metadata.setClass(target.prototype, "editor-name", name);
+        } else {
+            Metadata.setClass(target, "editor-name", name);
+        }
+    };
+}
+
+
 export default class Hierarchy {
     public element: HTMLElement;
     public layers = new Map<number, Layer>();
@@ -117,14 +133,16 @@ export default class Hierarchy {
 
         for (let layerIndex = System.layers.length - 1; layerIndex >= 0; layerIndex--) {
             const layer = System.layers[layerIndex]!;
-            const layerName = `new Layer${layerIndex > 0 ? " " + layerIndex : ""}`;
+            const layerName = Metadata.getClass(
+                    layer, "editor-name") ??
+                    `new Layer${layerIndex > 0 ? " " + layerIndex : ""}`;
 
             const layerItem = this.addItem(layerName, layerIndex.toString(), this.element);
 
             const objects = layer.getObjects();
             for (let index = objects.length - 1; index >= 0; index--) {
                 const objectName = Metadata.getClass(
-                    objects[index]!, "inspector-name") ??
+                    objects[index]!, "editor-name") ??
                     `new GameObject${index > 0 ? " " + index : ""}`;
 
                 this.addItem(

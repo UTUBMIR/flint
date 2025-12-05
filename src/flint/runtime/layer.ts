@@ -2,7 +2,7 @@ import type GameObject from "./game-object";
 import { type IRenderer } from "../shared/irenderer";
 import { type Canvas } from "./system";
 import { SystemEventEmitter, SystemEvent } from "./system-event";
-import Camera from "./components/camera";
+import type Camera from "./components/camera";
 import Vector2D from "../shared/vector2d";
 
 export default class Layer {

@@ -67,6 +67,8 @@ export default class ProjectConfig {
         if (!exists) {
             await ProjectConfig.create();
             ProjectConfig.config = ProjectConfig.defaultConfig;
+            return true;
         }
+        return false;
     }
 }

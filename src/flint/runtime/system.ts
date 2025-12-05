@@ -4,12 +4,15 @@ import { SystemEvent, SystemEventEmitter } from "./system-event";
 import playConfig from "./config/play-config.json" with { type: 'json' };
 import type { AxisBinding } from "../shared/input-axis";
 import InputAxis from "../shared/input-axis";
-import Component from "./component";
+import type Component from "./component";
 import type Layer from "./layer";
 
 //default components
 import Camera from "./components/camera";
 import Shape from "./components/shape";
+
+export type UUID = `${string}-${string}-${string}-${string}-${string}`;
+
 
 export type Canvas = {
     element: HTMLCanvasElement,

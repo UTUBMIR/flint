@@ -1,4 +1,4 @@
-import InputAxis from "./input-axis";
+import type InputAxis from "./input-axis";
 import Vector2D from "./vector2d";
 
 export default class Input {

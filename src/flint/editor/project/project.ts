@@ -2,6 +2,8 @@ import Editor from "../editor";
 import ProjectConfig from "./project-config";
 import { ComponentBuilder } from "../component-builder";
 import { Builder } from "./builder";
+import { System, type UUID } from "../../runtime/system";
+import Metadata from "../../shared/metadata";
 
 export class FileTracker {
     private constructor() { }
@@ -10,11 +12,10 @@ export class FileTracker {
     static intervalId: number | null = null;
 
     private static debounceTimer: number | null = null;
-    private static debounceDelay = 50; // auto adjustable
+    private static debounceDelay = 200; // auto adjustable
 
     static async startWatchingDirectory(
-        dirHandle: FileSystemDirectoryHandle,
-        intervalMs: number = 200
+        dirHandle: FileSystemDirectoryHandle
     ) {
         if (this.intervalId !== null) return;
 
@@ -23,7 +24,7 @@ export class FileTracker {
             if (updated) {
                 this.scheduleRebuild();
             }
-        }, intervalMs);
+        }, this.debounceDelay);
     }
 
     static stopWatching() {
@@ -50,6 +51,8 @@ export class FileTracker {
             const end = performance.now();
 
             FileTracker.debounceDelay = end - start;
+            this.stopWatching();
+            this.startWatchingDirectory(Project.folderHandle);
 
             this.debounceTimer = null;
         }, this.debounceDelay);
@@ -65,6 +68,8 @@ export class FileTracker {
             const fullPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
 
             if (entry.kind === "file") {
+                if (fullPath.endsWith("metadata.json")) continue; // dont react on metadata updates
+
                 const fileUpdated = await this.wasUpdated(fullPath, entry);
                 if (fileUpdated) anyUpdated = true;
             }
@@ -97,6 +102,8 @@ export class Project {
     private static createComponentButton: HTMLButtonElement;
     private static createComponentInput: HTMLInputElement;
 
+    public static names: Map<UUID, string> = new Map();
+
     private constructor() { }
 
     static {
@@ -124,12 +131,15 @@ export class Project {
     }
 
     public static async newProject(folderHandle: FileSystemDirectoryHandle) {
-        await Project.startupProject(folderHandle);
+        if (await Project.startupProject(folderHandle)) {
+            System.pushLayer(Editor.defaultLayer);
+            Editor.hierarchyWindow.onUpdate();
+        }
     }
 
-    private static async startupProject(folderHandle: FileSystemDirectoryHandle) {
+    private static async startupProject(folderHandle: FileSystemDirectoryHandle): Promise<boolean> {
         Project.folderHandle = folderHandle;
-        await ProjectConfig.ensureLoaded();
+        const wasCreated = await ProjectConfig.ensureLoaded();
 
         await Project.getAllTextFiles(Project.folderHandle);
 
@@ -141,11 +151,15 @@ export class Project {
             Editor.loadingDialogProgressBar.value = (loaded / total) * 100;
         });
 
+        await Metadata.loadFromFile(Project.folderHandle);
+        await Metadata.saveToFile(Project.folderHandle);
+
         await Builder.buildForEditor();
 
         Editor.loadingDialog.hide();
 
         await FileTracker.startWatchingDirectory(Project.folderHandle);
+        return wasCreated;
     }
 
     public static async getAllTextFiles(dirHandle: FileSystemDirectoryHandle, path = "") {

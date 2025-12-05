@@ -2,7 +2,7 @@
 import Vector2D from "../../shared/vector2d";
 import type GameObject from "../../runtime/game-object";
 import Editor, { Notifier } from "../editor";
-import Component from "../../runtime/component";
+import type Component from "../../runtime/component";
 import { ComponentBuilder } from "../component-builder";
 import { System } from "../../runtime/system";
 

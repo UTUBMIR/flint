@@ -1,16 +1,18 @@
 import type Component from "./component";
 import Transform from "./transform";
 import type { IRenderer } from "../shared/irenderer";
-import Layer from "./layer";
+import type Layer from "./layer";
 
 export default class GameObject {
     public layer!: Layer;
     private components: Component[] = [];
-    public readonly transform;
+    public readonly transform: Transform;
+    public readonly uuid: string;
 
-    public constructor(components?: Component[], transform?: Transform) {
+    public constructor(components?: Component[], transform?: Transform, uuid?: string) {
         this.transform = transform ?? new Transform();
         this.transform.parent = this;
+        this.uuid = uuid ?? crypto.randomUUID();
 
         if (components) {
             this.addComponents(components);

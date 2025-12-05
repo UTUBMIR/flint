@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Component from "./../runtime/component";
+import type Component from "./../runtime/component";
 import type { FieldBehavior } from "./fields/field-behaviour";
 import type { FieldRenderer } from "./fields/field-renderer";
 import { NumberRenderer } from "./fields/renderers/number-renderer";

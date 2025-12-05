@@ -6,13 +6,13 @@ import Vector2D from "../../shared/vector2d";
 
 export default class Shape extends Component {
     @customRenderer("color")
-    private fillColor: ColorString = "#294a31";
+    private fillColor: ColorString = "#0d102b";
 
     @customRenderer("color")
-    private lineColor: ColorString = "#a8a25d";
+    private lineColor: ColorString = "#171772";
 
     @customRenderer("color")
-    private shadowColor: ColorString = "#34a838";
+    private shadowColor: ColorString = "#041aa9";
 
     onRender(renderer: IRenderer): void {
         renderer.fillColor = this.fillColor;
