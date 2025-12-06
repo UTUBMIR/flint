@@ -134,7 +134,7 @@ export class Project {
 
         setInterval(async () => {
             await Project.saveProject();
-        }, 4000); // FIXME: implement autosave in a better way
+        }, 60000); // FIXME: implement autosave in a better way
     }
 
     public static async newProject(folderHandle: FileSystemDirectoryHandle) {
@@ -148,10 +148,10 @@ export class Project {
 
         setInterval(async () => {
             await Project.saveProject();
-        }, 4000); // FIXME: implement autosave in a better way
+        }, 60000); // FIXME: implement autosave in a better way
     }
 
-    private static async saveProject() {
+    public static async saveProject() {
         const data = ProjectLoader.serialize({ layers: System.layers });
         const blob = new Blob([data], { type: "text/plain" });
         const cs = new CompressionStream("gzip");

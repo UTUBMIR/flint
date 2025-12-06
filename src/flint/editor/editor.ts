@@ -55,17 +55,28 @@ export class Notifier {
 class ToolBarActions {
     private constructor() { }
 
+    public static async newProject() {
+        await Project.newProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
+        Editor.onProjectLoad();
+        Notifier.notify("Project created successfully.", "success");
+    }
+
     public static async openProject() {
         await Project.openProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
         Editor.onProjectLoad();
         Notifier.notify("Project loaded successfully.", "success");
     }
 
-    public static async newProject() {
-        await Project.newProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
-        Editor.onProjectLoad();
-        Notifier.notify("Project created successfully.", "success");
+    public static async saveProject() {
+        try {
+            await Project.saveProject();
+            Notifier.notify("Project saved successfully.", "success");
+        }
+        catch (e: unknown) {
+            Notifier.notify("Could not save the project: " + e, "warning");
+        }
     }
+
 
     public static async runProject() {
         if (await Project.run()) {
@@ -112,8 +123,8 @@ export default class Editor {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             Editor.loadingDialog = document.getElementById("loading-dialog")! as any;
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            Editor.loadingDialog.addEventListener('sl-request-close', (event: any) => {
-                if (event.detail.source === 'overlay') {
+            Editor.loadingDialog.addEventListener("sl-request-close", function (event: any) {
+                if (event.detail.source === "overlay") {
                     event.preventDefault();
                 }
             });
@@ -121,8 +132,17 @@ export default class Editor {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             Editor.loadingDialogProgressBar = Editor.loadingDialog.querySelector("sl-progress-bar")! as any;
 
-            document.getElementById("open-project-button")!.addEventListener("click", ToolBarActions.openProject);
             document.getElementById("new-project-button")!.addEventListener("click", ToolBarActions.newProject);
+            document.getElementById("open-project-button")!.addEventListener("click", ToolBarActions.openProject);
+
+            document.getElementById("save-project-button")!.addEventListener("click", ToolBarActions.saveProject);
+            document.addEventListener("keydown", async function (event) {
+                if (event.ctrlKey && event.code === "KeyS") {
+                    event.preventDefault();
+                    await ToolBarActions.saveProject();
+                }
+            });
+
             this.runButton = document.getElementById("run-button")! as HTMLButtonElement;
 
             this.runButton.addEventListener("click", ToolBarActions.runProject);
