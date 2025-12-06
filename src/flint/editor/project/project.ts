@@ -153,24 +153,26 @@ export class Project {
 
     private static async saveProject() {
         const data = ProjectLoader.serialize({ layers: System.layers });
-
-        const fileHandle = await Project.folderHandle.getFileHandle("project.json", { create: true });
+        const blob = new Blob([data], { type: "text/plain" });
+        const cs = new CompressionStream("gzip");
+        const compressed = new Response(blob.stream().pipeThrough(cs));
+        const fileHandle = await Project.folderHandle.getFileHandle("project.gz", { create: true });
         const writable = await fileHandle.createWritable();
-        await writable.write(data);
+        await writable.write(await compressed.arrayBuffer());
         await writable.close();
     }
 
     private static async loadProject() {
         try {
-            await (await (await Project.folderHandle.getFileHandle("project.json")).getFile()).text().then(async (raw) => {
-                const projectData = ProjectLoader.deserialize(raw);
-                for (const layer of projectData.layers) {
-                    System.pushLayer(layer);
-                }
-            });
+            const fileHandle = await Project.folderHandle.getFileHandle("project.gz");
+            const file = await fileHandle.getFile();
+            const ds = new DecompressionStream("gzip");
+            const decompressed = await new Response(file.stream().pipeThrough(ds)).arrayBuffer();
+            const decoded = new TextDecoder().decode(decompressed);
+            const projectData = ProjectLoader.deserialize(decoded);
+            for (const layer of projectData.layers) System.pushLayer(layer);
             return true;
-        }
-        catch (e: unknown) {
+        } catch (e) {
             console.log("could not load the project:", e);
             return false;
         }

@@ -10,7 +10,7 @@ function getAllFiles(dir, allowedExt = [], baseDir = dir) {
 
         if (entry.isDirectory()) {
             results = results.concat(getAllFiles(fullPath, allowedExt, baseDir));
-        } else if (entry.isFile()) {
+        } else if (entry.isFile() && entry.name != "main.d.ts") { // Skip main file because id doesn`t export anything
             if (allowedExt.some(ext => entry.name.endsWith(ext))) {
                 results.push(path.relative(baseDir, fullPath).replace(/\\/g, "/"));
             }
