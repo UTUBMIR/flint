@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Vector2D from "../shared/vector2d";
 import type Component from "./component";
 import GameObject from "./game-object";
 import Layer from "./layer";
@@ -14,74 +13,46 @@ export type ProjectData = {
     layers: Layer[];
 };
 
-function serializeValue(value: any): any {
-    if (value === null || typeof value !== "object") return value;
-    if (Array.isArray(value)) return value.map(serializeValue);
+function restorePrototypesDeep(loaded: any, template: any): void {
+    if (!loaded || !template) return;
 
-    const result: any = { __class__: value.constructor.name };
-    for (const [key, val] of Object.entries(value)) {
-        if (key === "parent") continue;
-        result[key] = serializeValue(val);
+    for (const key of Object.keys(loaded)) {
+        const lVal = loaded[key];
+        const tVal = template[key];
+
+        if (tVal == null || typeof tVal !== "object") continue;
+        if (lVal == null || typeof lVal !== "object") continue;
+
+        // Case 1: Arrays
+        if (Array.isArray(lVal) && Array.isArray(tVal)) {
+            for (let i = 0; i < lVal.length; i++) {
+                const lItem = lVal[i];
+                const tItem = tVal[0]; // template for array item
+
+                if (lItem && typeof lItem === "object" && tItem && typeof tItem === "object") {
+                    Object.setPrototypeOf(
+                        lItem,
+                        Object.getPrototypeOf(tItem)
+                    );
+                    restorePrototypesDeep(lItem, tItem);
+                }
+            }
+            continue;
+        }
+
+        // Case 2: Plain object
+        Object.setPrototypeOf(
+            lVal,
+            Object.getPrototypeOf(tVal)
+        );
+
+        restorePrototypesDeep(lVal, tVal);
     }
-    return result;
 }
 
-function deserializeValue(value: any): any {
-    if (value === null || typeof value !== "object") return value;
-    if (Array.isArray(value)) return value.map(deserializeValue);
-
-    let obj: any = value;
-    if (value.__class__) {
-        const Cls = System.components.get(value.__class__);
-        if (Cls) {
-            obj = Object.create(Cls.prototype);
-        } else if (value.__class__ === "Transform") {
-            obj = new Transform();
-        }
-        else if (value.__class__ === "Vector2D") {
-            obj = new Vector2D();
-
-        } else {
-            console.warn(`Class ${value.__class__} not found`);
-            obj = {};
-        }
-    }
-
-    for (const [key, val] of Object.entries(value)) {
-        if (key === "__class__") continue;
-        obj[key] = deserializeValue(val);
-    }
-
-    return obj;
-}
 
 export class ProjectLoader {
     private constructor() { }
-
-    public static serialize(data: ProjectData): string {
-        const raw: RawProjectData = { layers: [] };
-
-        for (const layer of data.layers) {
-            const rawLayer: { objects: { uuid: UUID, components: { name: string, data: any }[] }[] } = { objects: [] };
-
-            for (const obj of layer.getObjects()) {
-                const rawObject: { uuid: UUID, components: { name: string, data: any }[] } = { uuid: obj.uuid as UUID, components: [] };
-
-                for (const comp of [obj.transform, ...obj.getAllComponents()]) {
-                    rawObject.components.push({
-                        name: comp.constructor.name,
-                        data: serializeValue(comp)
-                    });
-                }
-
-                rawLayer.objects.push(rawObject);
-            }
-
-            raw.layers.push(rawLayer);
-        }
-
-        return JSON.stringify(raw);
-    }
 
     public static deserialize(data: string): ProjectData {
         const raw = JSON.parse(data) as RawProjectData;
@@ -91,38 +62,61 @@ export class ProjectLoader {
             const gameLayer = new Layer();
 
             for (const obj of layer.objects) {
-                let transform: Transform;
+                let transform: Transform | null = null;
                 const components: Component[] = [];
 
                 for (const comp of obj.components) {
-                    let cmp: any;
-                    if (comp.name === "Transform") {
-                        cmp = new Transform();
-                    } else {
-                        const CompClass = System.components.get(comp.name);
-                        if (!CompClass) {
-                            console.warn(`Component with name ${comp.name} not found in system registry.`);
-                            continue;
-                        }
-                        cmp = Object.create(CompClass.prototype);
+                    const CompClass = System.components.get(comp.name) || (comp.name === "Transform" ? Transform : undefined);
+
+                    if (!CompClass) {
+                        console.warn(`Component "${comp.name}" not registered.`);
+                        continue;
                     }
 
-                    Object.assign(cmp, deserializeValue(comp.data));
+                    const template: any = new (CompClass as any)();
+                    const loaded: any = comp.data;
 
-                    if (cmp instanceof Transform) transform = cmp;
-                    else components.push(cmp);
+                    restorePrototypesDeep(loaded, template);
+
+                    const instance: any = new (CompClass as any)();
+                    Object.assign(instance, loaded);
+
+                    if (instance instanceof Transform) transform = instance;
+                    else components.push(instance);
                 }
 
                 const go = new GameObject(components, transform!, obj.uuid);
                 gameLayer.addObject(go);
             }
-
             parsed.layers.push(gameLayer);
         }
-
         return parsed;
     }
 
+
+    public static serialize(data: ProjectData): string {
+        const raw: RawProjectData = { layers: [] };
+
+        for (const layer of data.layers) {
+            const rawLayer: { objects: { uuid: UUID, components: { name: string, data: any }[] }[] } = { objects: [] };
+            for (const obj of layer.getObjects()) {
+                const rawObject: { uuid: UUID, components: { name: string, data: any }[] } = { uuid: obj.uuid as UUID, components: [] };
+
+                for (const comp of [obj.transform, ...obj.getAllComponents()]) {
+                    const rawComp: { name: string, data: any } = { name: comp.constructor.name, data: {} };
+
+                    for (const key of Object.keys(comp)) {
+                        if (key === "parent") continue; // to avoid circular reference
+                        rawComp.data[key] = (comp as any)[key];
+                    }
+                    rawObject.components.push(rawComp);
+                }
+                rawLayer.objects.push(rawObject);
+            }
+            raw.layers.push(rawLayer);
+        }
+        return JSON.stringify(raw);
+    }
 
     public static load(project: ProjectData): void {
         for (const layer of project.layers) {

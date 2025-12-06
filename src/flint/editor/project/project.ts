@@ -170,8 +170,8 @@ export class Project {
             });
             return true;
         }
-        catch {
-            console.log("could not load the project");
+        catch (e: unknown) {
+            console.log("could not load the project:", e);
             return false;
         }
     }
