@@ -137,15 +137,32 @@ export default class Assets {
     private renderCurrentFolder() {
         this.gridElement.innerHTML = "";
 
-        const children = this.allAssets.filter(a => {
-            const parentPath = this.currentPath === "/" ? "/" : this.currentPath + "/";
-            const rest = a.path.replace(parentPath, "");
-            return a.path.startsWith(parentPath) && !rest.includes("/");
-        });
+        const parentPath = this.currentPath === "/" ? "/" : this.currentPath + "/";
+        const children = this.allAssets
+            .filter(a => {
+                const rest = a.path.replace(parentPath, "");
+                return a.path.startsWith(parentPath) && !rest.includes("/");
+            })
+            .sort((a, b) => {
+                const typeOrder = (asset: AssetData) => {
+                    if (asset.type === "folder") return 0;
+                    if (asset.path.endsWith(".json")) return 2;
+                    return 1; // components
+                };
+
+                const typeDiff = typeOrder(a) - typeOrder(b);
+                if (typeDiff !== 0) return typeDiff;
+
+                // sorting by name inside type
+                const nameA = a.name.toLowerCase();
+                const nameB = b.name.toLowerCase();
+                return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+            });
 
         children.forEach(a => this.renderAsset(a));
         this.updateBackButton();
     }
+
 
     private getIconForType(type: AssetData["type"]) {
         return type === "folder" ? "folder2" :

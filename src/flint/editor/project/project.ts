@@ -4,6 +4,7 @@ import { ComponentBuilder } from "../component-builder";
 import { Builder } from "./builder";
 import { System, type UUID } from "../../runtime/system";
 import Metadata from "../../shared/metadata";
+import { ProjectLoader } from "../../runtime/project-loader";
 
 export class FileTracker {
     private constructor() { }
@@ -128,12 +129,50 @@ export class Project {
 
     public static async openProject(folderHandle: FileSystemDirectoryHandle) {
         await Project.startupProject(folderHandle);
+        await Project.loadProject();
+        Editor.hierarchyWindow.onUpdate();
+
+        setInterval(async () => {
+            await Project.saveProject();
+        }, 4000); // FIXME: implement autosave in a better way
     }
 
     public static async newProject(folderHandle: FileSystemDirectoryHandle) {
-        if (await Project.startupProject(folderHandle)) {
+        if (await Project.startupProject(folderHandle) || !await Project.loadProject()) {
             System.pushLayer(Editor.defaultLayer);
             Editor.hierarchyWindow.onUpdate();
+        }
+
+        await Project.saveProject();
+        Editor.hierarchyWindow.onUpdate();
+
+        setInterval(async () => {
+            await Project.saveProject();
+        }, 4000); // FIXME: implement autosave in a better way
+    }
+
+    private static async saveProject() {
+        const data = ProjectLoader.serialize({ layers: System.layers });
+
+        const fileHandle = await Project.folderHandle.getFileHandle("project.json", { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(data);
+        await writable.close();
+    }
+
+    private static async loadProject() {
+        try {
+            await (await (await Project.folderHandle.getFileHandle("project.json")).getFile()).text().then(async (raw) => {
+                const projectData = ProjectLoader.deserialize(raw);
+                for (const layer of projectData.layers) {
+                    System.pushLayer(layer);
+                }
+            });
+            return true;
+        }
+        catch {
+            console.log("could not load the project");
+            return false;
         }
     }
 
@@ -143,13 +182,15 @@ export class Project {
 
         await Project.getAllTextFiles(Project.folderHandle);
 
-        Editor.loadingDialogProgressBar.value = 0;
-        Editor.loadingDialogProgressBar.indeterminate = false;
-        Editor.loadingDialog.show();
+        if (wasCreated) {
+            Editor.loadingDialogProgressBar.value = 0;
+            Editor.loadingDialogProgressBar.indeterminate = false;
+            Editor.loadingDialog.show();
 
-        await Project.copyTypesToDirectory(folderHandle, window.location.origin + "/types/", (total, loaded) => {
-            Editor.loadingDialogProgressBar.value = (loaded / total) * 100;
-        });
+            await Project.copyTypesToDirectory(folderHandle, window.location.origin + "/types/", (total, loaded) => {
+                Editor.loadingDialogProgressBar.value = (loaded / total) * 100;
+            });
+        }
 
         await Metadata.loadFromFile(Project.folderHandle);
         await Metadata.saveToFile(Project.folderHandle);
