@@ -170,6 +170,8 @@ export class Project {
             const decompressed = await new Response(file.stream().pipeThrough(ds)).arrayBuffer();
             const decoded = new TextDecoder().decode(decompressed);
             const projectData = ProjectLoader.deserialize(decoded);
+
+            System.layers.length = 0;
             for (const layer of projectData.layers) System.pushLayer(layer);
             return true;
         } catch (e) {
@@ -255,6 +257,7 @@ export class Project {
     }
 
     public static async createComponent(name: string) {
+        name = ComponentBuilder.joinToPascalCase(name); // just ensure that name is correct
         const fileBaseName = ComponentBuilder.splitPascalCase(name, "-");
 
         const assetPath = Editor.assetsWindow.currentPath.replace(/^\//, "");
@@ -288,7 +291,8 @@ export class ${name} extends Component {
             id: crypto.randomUUID(),
             name: fileBaseName + ".ts",
             type: "component",
-            path: relativeFilePath
+            path: relativeFilePath,
+            data: name
         });
 
         ProjectConfig.config.index += `\nexport * from "./${relativeFilePath.replace(/\.ts$/, "")}";`;

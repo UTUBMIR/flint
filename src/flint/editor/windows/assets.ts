@@ -1,4 +1,3 @@
-import { ComponentBuilder } from "../component-builder";
 import { Project } from "../project/project";
 import { type DropdownType } from "../editor";
 
@@ -7,6 +6,7 @@ export type AssetData = {
     name: string;
     type: "folder" | "component" | "json";
     path: string; // Full path, e.g., "/Folder 1/Component 1"
+    data: string;
 };
 
 export default class Assets {
@@ -50,7 +50,8 @@ export default class Assets {
                     id: crypto.randomUUID(),
                     name: `${label} ${count}`,
                     type,
-                    path: `${this.currentPath}${this.currentPath === "/" ? "" : "/"}${label} ${count}`
+                    path: `${this.currentPath}${this.currentPath === "/" ? "" : "/"}${label} ${count}`,
+                    data: ""
                 };
                 this.addAsset(newAsset);
             });
@@ -187,7 +188,7 @@ export default class Assets {
 
         if (asset.type !== "folder") {
             function dragstartHandler(ev: DragEvent) {
-                ev.dataTransfer!.items.add(ComponentBuilder.joinToPascalCase(asset.path.split("/").pop()!.split(".")[0]!), "text/plain");
+                ev.dataTransfer!.items.add(asset.data, "text/plain");
                 console.log(`Dragging asset: ${asset.path}`);
             }
 
