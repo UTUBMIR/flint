@@ -14,6 +14,13 @@
     /* spacing between fields */
 }
 
+.shortcut {
+    display: inline-block;
+    width: 50px;
+    text-align: left;
+    opacity: 0.6;
+}
+
 #create-object-button::part(base),
 #add-component-button::part(base) {
     padding: 0;
@@ -100,6 +107,7 @@ sl-menu-label::part(base) {
 .asset-card {
     aspect-ratio: 1;
 }
+
 :root {
     --asset-max-width: 120px;
 }
@@ -108,8 +116,10 @@ sl-menu-label::part(base) {
 #assets-grid .asset-card {
     flex: 0 1 var(--asset-max-width);
     max-width: var(--asset-max-width);
-    min-width: 120px; /* keep existing minimum */
+    min-width: 120px;
+    /* keep existing minimum */
 }
+
 #assets-grid {
     display: flex;
     flex-wrap: wrap;

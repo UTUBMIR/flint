@@ -139,9 +139,10 @@ export default class Editor {
             document.addEventListener("keydown", async function (event) {
                 if (event.ctrlKey && event.code === "KeyS") {
                     event.preventDefault();
+                    event.stopImmediatePropagation();
                     await ToolBarActions.saveProject();
                 }
-            });
+            }, true);
 
             this.runButton = document.getElementById("run-button")! as HTMLButtonElement;
 
