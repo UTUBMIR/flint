@@ -11,9 +11,7 @@ export class Builder {
 
     private constructor() { }
 
-    public static async compile(emitErrorMessages: boolean = true): Promise<boolean> {
-        Bundler.files.clear();
-
+    public static async compile(emitErrorMessages: boolean = true, entryPoint?: string): Promise<boolean> {
         const textFilesResult = await Project.getAllTextFiles(Project.folderHandle);
         const textFiles = textFilesResult.files;
         const textAssets = textFilesResult.assets;
@@ -27,7 +25,7 @@ export class Builder {
             Bundler.files.set(path, text);
         }
         try {
-            const result = (await Bundler.bundle()).outputFiles[0]?.text;
+            const result = (await Bundler.bundle(entryPoint)).outputFiles[0]?.text;
 
             if (!result) return false;
 
@@ -49,17 +47,77 @@ export class Builder {
         }
     }
 
+    public static async build(): Promise<boolean> {
+        if (!Project.folderHandle) {
+            Notifier.notify("Open project first.", "danger");
+            return false;
+        }
+
+        const buildFolder = await Project.folderHandle.getDirectoryHandle("build", { create: true });
+
+        Bundler.files.clear();
+        Bundler.files.set("main.ts", `import * from "./index";
+`);
+
+        if (await Builder.compile(true, "/main.ts")) {
+            // const module = await ModuleLoader.load(Builder.compiled);
+
+            // for (const [name, value] of Object.entries(module)) {
+            //     if (name === "System" || name === "Input" || name === "Metadata") continue;
+
+            //     const oldComponentType = System.components.get(name);
+            //     if (value as Component) {
+            //         System.components.set(name, value as typeof Component);
+            //     }
+
+            //     if (!oldComponentType || !oldComponentType.prototype) {
+            //         return true;
+            //     }
+
+
+            //     const component = System.components.get(name);
+            //     if (!component) return false;
+
+            //     for (const layer of System.layers) {
+            //         for (const obj of layer.getObjects()) {
+            //             const objComponent = obj.getComponent(oldComponentType);
+            //             if (!objComponent) {
+            //                 continue;
+            //             }
+
+            //             // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            //             obj.addComponent(objComponent.swapClass((component as any)));
+            //             obj.removeComponent(oldComponentType);
+            //         }
+            //     }
+
+            // }
+            const fileHandle = await buildFolder.getFileHandle("main.js", { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(Builder.compiled);
+            await writable.close();
+        }
+        else {
+            return false;
+        }
+
+        return true;
+    }
+
     public static async buildForEditor(emitErrorMessages: boolean = true): Promise<boolean> {
         if (!Project.folderHandle) {
             Notifier.notify("Open project first.", "danger");
             return false;
         }
 
+        Bundler.files.clear();
         if (await Builder.compile(emitErrorMessages)) {
             const module = await ModuleLoader.load(Builder.compiled);
 
-            for (const [name, value] of Object.entries(module)) {
-                if (name === "System" || name === "Input" || name === "Metadata") continue;
+            for (const name of ProjectConfig.config.components.map(c => c.name)) {
+                console.log(name);
+                console.log(module);
+                const value = module[name];
 
                 const oldComponentType = System.components.get(name);
                 if (value as Component) {

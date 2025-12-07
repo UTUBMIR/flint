@@ -115,15 +115,15 @@ export default class Bundler {
         return Bundler;
     }
 
-    public static async bundle() {
+    public static async bundle(entryPoint: string = "/index.ts") {
         return await Bundler.esbuild.build({
-            entryPoints: ["/index.ts"],
+            entryPoints: [entryPoint],
             bundle: true,
             write: false,
             format: "esm",
             target: ["esnext"],
             plugins: [Bundler.virtualFsPlugin],
-            external: ["flint/*"],
+            external: ["@flint/"],
             minify: true,
             keepNames: true,
             tsconfigRaw: ProjectConfig.tsConfig

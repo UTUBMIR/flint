@@ -24,7 +24,7 @@ export function customRenderer(renderer: string) {
 /**
  * Hides field from inspector
  */
-export function hideFromInspector() {
+export function hideInInspector() {
     return (target: any, key: string) => {
         Metadata.setField(target, key, "hide-in-inspector", true);
     };
@@ -157,7 +157,7 @@ export class ComponentBuilder {
                 renderer.render(root, path, this.get, this.set) as HTMLElement);
 
             if (renderer.update) {
-                this.fields.push({ update: renderer.update! });
+                this.fields.push({ update: renderer.update });
             }
             return wrapped;
         };
@@ -208,6 +208,7 @@ export class ComponentBuilder {
             } else {
                 // wrap primitive field in a container tree-item
                 const leafItem = document.createElement("sl-tree-item");
+                leafItem.classList.add("no-caret");
                 leafItem.appendChild(child);
                 // leafItem.expandable = false;
                 treeItem.appendChild(leafItem);
@@ -257,8 +258,6 @@ RendererRegistry.register(new ColorRenderer());
 RendererRegistry.register(new BooleanRenderer());
 RendererRegistry.register(new StringRenderer());
 RendererRegistry.register(new AngleRenderer());
-// RendererRegistry.register(new StringRenderer());
-// RendererRegistry.register(new BooleanRenderer());
 
 
 BehaviorRegistry.register("number", new WheelScrubBehavior());

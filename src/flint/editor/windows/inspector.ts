@@ -53,7 +53,6 @@ export default class Inspector {
             ev.preventDefault();
 
             ev.dataTransfer!.items[0]?.getAsString((componentName) => {
-                console.log(`Dropped component: ${componentName}`);
                 this.currentObject?.addComponent(new (System.components.get(componentName) as any)());
             });
         });

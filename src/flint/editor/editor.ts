@@ -77,6 +77,13 @@ class ToolBarActions {
         }
     }
 
+    public static async buildAndRun() {
+        if (await Project.buildAndRun()) {
+            Notifier.notify("Project builded successfully.", "success");
+        }
+
+    }
+
 
     public static async runProject() {
         if (await Project.run()) {
@@ -103,6 +110,12 @@ export default class Editor {
 
     public static get defaultLayer(): Layer {
         return this._defaultLayer;
+    }
+
+    private static _running = false;
+
+    public static get running(): boolean {
+        return this._running;
     }
 
     private constructor() { }
@@ -141,6 +154,15 @@ export default class Editor {
                     event.preventDefault();
                     event.stopImmediatePropagation();
                     await ToolBarActions.saveProject();
+                }
+            }, true);
+
+            document.getElementById("build-and-run-button")!.addEventListener("click", ToolBarActions.buildAndRun);
+            document.addEventListener("keydown", async function (event) {
+                if (event.ctrlKey && event.code === "KeyB") {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    await ToolBarActions.buildAndRun();
                 }
             }, true);
 

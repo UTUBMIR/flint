@@ -1,5 +1,6 @@
 import { Project } from "../project/project";
 import { type DropdownType } from "../editor";
+import ProjectConfig from "../project/project-config";
 
 export type AssetData = {
     id: string;
@@ -187,9 +188,12 @@ export default class Assets {
         const nameEl = card.querySelector(".asset-name") as HTMLSpanElement;
 
         if (asset.type !== "folder") {
+            if (asset.type === "component" && asset.data === undefined) {
+                const found = ProjectConfig.config.components.find(c => c.file === asset.path)?.name;
+                if (found) asset.data = found;
+            }
             function dragstartHandler(ev: DragEvent) {
                 ev.dataTransfer!.items.add(asset.data, "text/plain");
-                console.log(`Dragging asset: ${asset.path}`);
             }
 
             card.addEventListener("dragstart", dragstartHandler);

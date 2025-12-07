@@ -151,6 +151,10 @@ export class Project {
         }, 60000); // FIXME: implement autosave in a better way
     }
 
+    public static async buildAndRun() {
+        return await Builder.build();
+    }
+
     public static async saveProject() {
         const data = ProjectLoader.serialize({ layers: System.layers });
         const blob = new Blob([data], { type: "text/plain" });
@@ -296,6 +300,9 @@ export class ${name} extends Component {
         });
 
         ProjectConfig.config.index += `\nexport * from "./${relativeFilePath.replace(/\.ts$/, "")}";`;
+
+        ProjectConfig.config.components.push({name, file: relativeFilePath});
+
         await ProjectConfig.save();
 
         await Project.openInFileEditor("/" + relativeFilePath);
@@ -326,6 +333,8 @@ export class ${name} extends Component {
             .split("\n")
             .filter(line => line.trim() !== exportLine)
             .join("\n");
+
+        ProjectConfig.config.components.splice(ProjectConfig.config.components.findIndex(c => c.name === name), 1);
 
         await ProjectConfig.save();
 

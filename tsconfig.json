@@ -1,41 +1,32 @@
 {
     "compilerOptions": {
-
         "rootDir": "./src",
         "outDir": "./dist",
-
+        "declaration": true,
+        "emitDeclarationOnly": true,
+        "declarationDir": "./types",
         "module": "esnext",
         "target": "esnext",
-        "types": [
-            "@types/wicg-file-system-access"
-        ],
-
-        "sourceMap": false,
-        "declaration": true,
         "moduleResolution": "bundler",
-        "declarationDir": "./types",
-        "declarationMap": false,
-        "emitDeclarationOnly": true,
-
-        "noUncheckedIndexedAccess": true,
+        "skipLibCheck": true,
+        "stripInternal": true,
+        "strict": true,
         "exactOptionalPropertyTypes": true,
+        "noUncheckedIndexedAccess": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
-
-        "strict": true,
-        "jsx": "react-jsx",
         "verbatimModuleSyntax": true,
         "isolatedModules": true,
-        "noUncheckedSideEffectImports": true,
-        "moduleDetection": "force",
-        "skipLibCheck": true,
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true
     },
+    "include": [
+        "src"
+    ],
     "exclude": [
-        "./dist",
-        "./types",
-        "./node_modules"
+        "dist",
+        "types",
+        "node_modules"
     ]
 }

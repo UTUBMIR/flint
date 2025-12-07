@@ -1,13 +1,13 @@
 import type GameObject from "./game-object";
 import type { IRenderer } from "../shared/irenderer";
 import type Transform from "./transform";
-import { hideFromInspector } from "../editor/component-builder";
+import { hideInInspector } from "../editor/component-builder";
 
 export default abstract class Component {
     /**
      * GameObject which owns this component.
      */
-    @hideFromInspector()
+    @hideInInspector()
     public parent!: GameObject;
 
     /**

@@ -8,6 +8,13 @@
     box-sizing: border-box;
 }
 
+#inspector-body sl-tree-item::part(label),
+#inspector-body sl-tree-item {
+  display: block !important;
+  width: 100%;
+}
+
+
 .inspector-field {
     display: flex;
     align-items: center;
@@ -46,9 +53,9 @@ sl-color-picker::part(trigger) {
     margin-top: 4px;
 }
 
-.inspector-field sl-input,
-.inspector-field sl-checkbox {
+.inspector-field sl-input {
     flex: 1;
+    min-width: 10px !important;
     /* inputs take remaining space */
 }
 
