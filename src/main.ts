@@ -4,6 +4,6 @@ import Editor from "./flint/editor/editor";
 
 System.init(new Renderer2D());
 
-System.run();
+System.runRenderingOnly();
 
 Editor.init();

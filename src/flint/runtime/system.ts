@@ -10,6 +10,7 @@ import type Layer from "./layer";
 //default components
 import Camera from "./components/camera";
 import Shape from "./components/shape";
+import type GameObject from "./game-object";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -21,6 +22,12 @@ export type Canvas = {
 
 type PlayConfig = {
     input: { name: string, bindings: { value: number, keys: { type: string, code: string[] }[] }[] }[]
+}
+
+export enum RunningState {
+    Stopped,
+    Running,
+    RunningRenderingOnly
 }
 
 export class System {
@@ -38,6 +45,12 @@ export class System {
     private static readonly renderingContext = CanvasRenderingContext2D; //TODO: move this to a config file
     private static _renderer: IRenderer;
     private static readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(false, true);
+
+    private static _runningState: RunningState = RunningState.Stopped;
+
+    public static get isRunning(): RunningState {
+        return System._runningState;
+    }
 
     public static get deltaTime(): number {
         return this._deltaTime;
@@ -57,6 +70,15 @@ export class System {
 
 
     private constructor() { }
+
+    public static getGameObjectById(uuid: UUID): GameObject | undefined {
+        for (const layer of System.layers) {
+            const found = layer.getObjects().find(go => go.uuid === uuid);
+            if (found) {
+                return found;
+            }
+        }
+    }
 
     private static addBasicComponents() {
         this.components.set("Camera", Camera);
@@ -89,8 +111,19 @@ export class System {
     }
 
     public static run() {
-        requestAnimationFrame(this.mainTick.bind(this));
-        this.lastFrame = performance.now();
+        requestAnimationFrame(System.mainTick.bind(System));
+        System.lastFrame = performance.now();
+        System._runningState = RunningState.Running;
+    }
+
+    public static runRenderingOnly() {
+        requestAnimationFrame(System.renderOnlyTick.bind(System));
+        System.lastFrame = performance.now();
+        System._runningState = RunningState.RunningRenderingOnly;
+    }
+
+    public static stop() {
+        System._runningState = RunningState.Stopped;
     }
 
     private static mainTick(now: number) {
@@ -105,7 +138,22 @@ export class System {
             layer.onRender();
         }
 
-        requestAnimationFrame(this.mainTick.bind(this));
+        if (System._runningState === RunningState.Running) {
+            requestAnimationFrame(System.mainTick.bind(System));
+        }
+    }
+
+    private static renderOnlyTick(now: number) {
+        this._deltaTime = (now - this.lastFrame) / 1000;
+        this.lastFrame = now;
+
+        for (const layer of this.layers) {
+            layer.onRender();
+        }
+
+        if (System._runningState === RunningState.RunningRenderingOnly) {
+            requestAnimationFrame(System.renderOnlyTick.bind(System));
+        }
     }
 
     public static createCanvas(): Canvas {

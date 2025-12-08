@@ -124,7 +124,18 @@ export class Project {
     }
 
     public static async run() {
+        await Project.saveProject();
         return await Builder.buildForEditor();
+    }
+
+    public static async stop() {
+        const success = await Project.loadProject();
+        Editor.hierarchyWindow.onUpdate();
+
+        if (Editor.inspectorWindow.currentObject) {
+            Editor.inspectorWindow.currentObject = System.getGameObjectById(Editor.inspectorWindow.currentObject.uuid);
+        }
+        return success;
     }
 
     public static async openProject(folderHandle: FileSystemDirectoryHandle) {
@@ -299,7 +310,7 @@ export class ${name} extends Component {
             data: name
         });
 
-        ProjectConfig.config.components.push({name, file: relativeFilePath});
+        ProjectConfig.config.components.push({ name, file: relativeFilePath });
 
         await ProjectConfig.save();
 

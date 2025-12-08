@@ -30,7 +30,7 @@ class InspectorComponent {
 export default class Inspector {
     protected minSize: Vector2D = new Vector2D(250, 100);
     // private tree: Tree = new Tree(this.rect);
-    private currentObject: GameObject | undefined;
+    public currentObject: GameObject | undefined;
     private components: InspectorComponent[] = [];
 
     private dropTarget: HTMLDivElement | null = null;

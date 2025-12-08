@@ -10,6 +10,7 @@ import InspectorWindow from "./windows/inspector";
 import Camera from "../runtime/components/camera";
 import Shape from "../runtime/components/shape";
 import Transform from "../runtime/transform";
+import { System } from "../runtime/system";
 
 export type DropdownType = HTMLElement & {
     show: () => void;
@@ -78,6 +79,7 @@ class ToolBarActions {
     }
 
     public static async buildAndRun() {
+        await Project.saveProject();
         if (await Project.buildAndRun()) {
             Notifier.notify("Project builded successfully.", "success");
         }
@@ -86,8 +88,20 @@ class ToolBarActions {
 
 
     public static async runProject() {
-        if (await Project.run()) {
-            Notifier.notify("Project started.", "primary");
+        const start = Editor.runButtonIcon.name === "play";
+        Editor.runButtonIcon.name = start ? "stop" : "play";
+
+        if (start) {
+            if (await Project.run()) {
+                System.run();
+                Notifier.notify("Project started.", "primary");
+            }
+        }
+        else {
+            if (await Project.stop()) {
+                System.runRenderingOnly();
+                Notifier.notify("Project stopped.", "primary");
+            }
         }
     }
 }
@@ -101,6 +115,7 @@ export default class Editor {
     public static assetsWindow: Assets;
 
     public static runButton: HTMLButtonElement;
+    public static runButtonIcon: { name: string };
 
     public static loadingDialog: HTMLElement & { show: () => void, hide: () => void };
     public static loadingDialogProgressBar: HTMLElement & { value: number, indeterminate: boolean };
@@ -169,6 +184,8 @@ export default class Editor {
             this.runButton = document.getElementById("run-button")! as HTMLButtonElement;
 
             this.runButton.addEventListener("click", ToolBarActions.runProject);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this.runButtonIcon = this.runButton.querySelector("sl-icon")! as any;
 
             document.getElementById("create-object-button")!.addEventListener("click", Editor.hierarchyWindow.createObject.bind(Editor.hierarchyWindow));
 
