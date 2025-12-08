@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html class="sl-theme-dark" lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flint</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css" />
+</head>
+
+
+
+<body>
+    <div class="app-toolbar">
+        <div class="toolbar-left">
+            <span class="app-title">Flint</span>
+            <sl-button-group>
+                <sl-dropdown>
+                    <sl-button size="small" slot="trigger">File</sl-button>
+                    <sl-menu>
+                        <sl-menu-label>Project</sl-menu-label>
+                        <sl-menu-item id="new-project-button" value="create-project">
+                            <sl-icon slot="prefix" name="plus-lg"></sl-icon>
+                            New Project...
+                        </sl-menu-item>
+                        <sl-menu-item id="open-project-button" value="open-project">
+                            <sl-icon slot="prefix" name="folder2"></sl-icon>
+                            Open Project...
+                        </sl-menu-item>
+                        <sl-menu-item id="save-project-button" value="save-project">
+                            <sl-icon slot="prefix" name="floppy"></sl-icon>
+                            Save Project
+                            <span slot="suffix" class="shortcut">Ctrl+S</span>
+                        </sl-menu-item>
+
+                        <sl-menu-label>Export</sl-menu-label>
+                        <sl-menu-item id="build-and-run-button" value="build-and-run">
+                            <sl-icon slot="prefix" name="controller"></sl-icon>
+                            Build & Run
+                            <span slot="suffix" class="shortcut">Ctrl+B</span>
+                        </sl-menu-item>
+                    </sl-menu>
+                </sl-dropdown>
+                <sl-button size="small">View</sl-button>
+                <sl-button size="small">Window</sl-button>
+                <sl-button size="small">Help</sl-button>
+            </sl-button-group>
+        </div>
+
+        <div class="toolbar-center">
+            <sl-button-group>
+                <sl-button id="run-button" size="small" disabled>
+                    <sl-icon name="play" style="font-size: var(--sl-font-size-large);" slot="prefix"></sl-icon>
+                    Run
+                </sl-button>
+            </sl-button-group>
+        </div>
+
+        <div class="toolbar-right">
+
+        </div>
+    </div>
+
+    <sl-dialog id="loading-dialog" label="Loading">
+        <sl-progress-bar></sl-progress-bar>
+    </sl-dialog>
+
+    <sl-split-panel position="80" style="height: 100%;">
+        <div slot="start">
+
+            <sl-split-panel vertical position="75" style="height: 100%;" primary="start">
+                <sl-split-panel position="80" slot="start">
+                    <div slot="start" class="editor-window">
+                        <div class="window-header">
+                            <span class="window-title">Viewport</span>
+                        </div>
+
+                        <div class="window-body" style="padding: 1px;">
+                            <div id="root"></div>
+                        </div>
+                    </div>
+
+
+                    <div slot="end" class="editor-window" style="overflow: hidden;">
+                        <div class="window-header">
+                            <span class="window-title">Hierarchy</span>
+                            <sl-tooltip content="Create object">
+                                <sl-icon-button id="create-object-button" name="plus-square"></sl-icon-button>
+                            </sl-tooltip>
+                        </div>
+
+                        <div class="window-body">
+                            <sl-dropdown id="hierarchy-context-dropdown" style="position: absolute;">
+                                <sl-menu id="hierarchy-context-menu">
+                                    <sl-menu-label>Create</sl-menu-label>
+                                    <sl-menu-item id="new-layer-button" value="new-layer">
+                                        <sl-icon slot="prefix" name="layers"></sl-icon>
+                                        New Layer
+                                    </sl-menu-item>
+                                    <sl-menu-item id="new-gameobject-button" value="new-gameobject">
+                                        <sl-icon slot="prefix" name="box"></sl-icon>
+                                        New GameObject
+                                    </sl-menu-item>
+                                </sl-menu>
+                            </sl-dropdown>
+                            <sl-tree id="hierarchy-tree" style="--indent-guide-width: 1px;">
+
+                            </sl-tree>
+                        </div>
+                    </div>
+                </sl-split-panel>
+                <div slot="end" class="editor-window">
+                    <div class="window-header">
+                        <span class="window-title">Assets</span>
+                        <sl-tooltip content="Go to previous folder">
+                            <sl-icon-button id="assets-back-button" name="arrow-90deg-left"></sl-icon-button>
+                        </sl-tooltip>
+                    </div>
+
+                    <div class="window-body" id="assets-window">
+                        <sl-dropdown id="assets-context-dropdown" style="position: absolute;">
+                            <sl-menu id="assets-context-menu">
+                                <sl-menu-label>Create</sl-menu-label>
+                                <sl-menu-item id="new-folder-button" value="new-folder">
+                                    <sl-icon slot="prefix" name="folder2"></sl-icon>
+                                    New folder
+                                </sl-menu-item>
+                                <sl-menu-item id="new-component-button" value="new-component">
+                                    <sl-icon slot="prefix" name="code-slash"></sl-icon>
+                                    New component
+                                </sl-menu-item>
+                                <sl-menu-item id="new-json-button" value="new-json">
+                                    <sl-icon slot="prefix" name="text-left"></sl-icon>
+                                    New JSON file
+                                </sl-menu-item>
+                            </sl-menu>
+                        </sl-dropdown>
+                        <div id="assets-grid">
+
+                        </div>
+                    </div>
+                    <sl-dialog id="create-component-dialog" label="Create component">
+                        <sl-input autofocus></sl-input>
+                        <sl-button slot="footer" disabled>Create component</sl-button>
+                    </sl-dialog>
+                </div>
+            </sl-split-panel>
+        </div>
+        <div slot="end" class="editor-window">
+            <div class="window-header">
+                <span class="window-title">Inspector</span>
+
+            </div>
+
+            <div class="window-body" style="display: flex; flex-direction: column; align-items: center;"
+                id="inspector-drop-target">
+                <div id="inspector-body" style="width: 100%;"></div>
+                <sl-button id="add-component-button"
+                    style="font-size: var(--sl-font-size-large); margin-top: 1%; width: 50%; display: none;">Add
+                    component</sl-button>
+                <sl-dialog id="add-component-dialog" label="Add component">
+                    <sl-select autofocus value="" hoist></sl-select>
+                    <sl-button slot="footer" disabled>Add component</sl-button>
+                </sl-dialog>
+            </div>
+        </div>
+    </sl-split-panel>
+
+
+    <script type="module"
+        src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
+    <script type="module" src="./main.js"></script>
+</body>
+
+</html>
