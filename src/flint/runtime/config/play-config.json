@@ -1,0 +1,62 @@
+{
+    "input": [
+        {
+            "name": "horizontal",
+            "bindings": [
+                {
+                    "value": -1,
+                    "keys": [
+                        {
+                            "type": "keyboard",
+                            "code": [
+                                "KeyA",
+                                "ArrowLeft"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "value": 1,
+                    "keys": [
+                        {
+                            "type": "keyboard",
+                            "code": [
+                                "KeyD",
+                                "ArrowRight"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "vertical",
+            "bindings": [
+                {
+                    "value": -1,
+                    "keys": [
+                        {
+                            "type": "keyboard",
+                            "code": [
+                                "KeyW",
+                                "ArrowUp"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "value": 1,
+                    "keys": [
+                        {
+                            "type": "keyboard",
+                            "code": [
+                                "KeyS",
+                                "ArrowDown"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

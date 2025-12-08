@@ -1,0 +1,24 @@
+{
+    "colors": {
+        "window": {
+            "background": "#292e4a",
+            "edge": "#5d68a8",
+            "shadow": "#3446a8"
+        },
+        "titleBar": {
+            "background": "#24273f",
+            "item": "#202030",
+            "active": "#4f4f6f",
+            "selected": "#404060"
+        },
+        "toolbar": {
+            "background": "#151530",
+            "tab": "#2b51a1",
+            "selected": "#2f5faf",
+            "pressed": "#1b4191"
+        },
+        "text": {
+            "normal": "#fafaff"
+        }
+    }
+}
