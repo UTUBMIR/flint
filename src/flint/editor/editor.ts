@@ -214,8 +214,8 @@ export default class Editor {
     }
 
     public static async loadEngineFiles() {
-        const fileList = await fetch("/types/" + "files.json").then(r => r.json());
-        const fileBaseUrl = "/src/";
+        const fileList = await fetch(window.location.href.replace(/index\.html$/, "") + "/types/" + "files.json").then(r => r.json());
+        const fileBaseUrl = window.location.href.replace(/index\.html$/, "") + "/src/";
 
         const allFiles: string[] = [
             ...(fileList.types || []),

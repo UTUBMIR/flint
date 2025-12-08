@@ -206,7 +206,7 @@ export class Project {
             Editor.loadingDialogProgressBar.indeterminate = false;
             Editor.loadingDialog.show();
 
-            await Project.copyTypesToDirectory(folderHandle, window.location.origin + "/types/", (total, loaded) => {
+            await Project.copyTypesToDirectory(folderHandle, window.location.href.replace(/index\.html$/, "") + "/types/", (total, loaded) => {
                 Editor.loadingDialogProgressBar.value = (loaded / total) * 100;
             });
         }
