@@ -6,7 +6,7 @@ import Vector2D from "../../shared/vector2d";
 
 export default class Shape extends Component {
     @customRenderer("color")
-    private fillColor: ColorString = "#1b1f42";
+    private fillColor: ColorString = "#cfd2ee";
 
     @customRenderer("color")
     private lineColor: ColorString = "#2e69b6";

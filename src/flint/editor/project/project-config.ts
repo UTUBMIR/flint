@@ -1,7 +1,6 @@
 import { Project } from "./project";
 
 type ConfigType = {
-    index: string,
     components: {name: string, file: string}[]
     rootPath?: string
 }
@@ -9,6 +8,15 @@ type ConfigType = {
 export default class ProjectConfig {
     public static readonly configFileName = "project-config.json";
     public static config: ConfigType;
+    private static readonly index = `export * from "@flint/runtime/system";export { default as Input } from "@flint/shared/input";export { default as Metadata } from "@flint/shared/metadata";`;
+
+    public static get fullIndex(): string {
+        return ProjectConfig.index + ProjectConfig.config.components.map(c => `export * from "./${c.file}";`).join();
+    }
+
+    public static get userIndex(): string {
+        return ProjectConfig.config.components.map(c => `export * from "./${c.file}";`).join();
+    }
 
     public static tsConfig = `{
     "compilerOptions": {
@@ -24,7 +32,6 @@ export default class ProjectConfig {
 }`;
 
     private static defaultConfig: ConfigType = {
-        index: `export * from "@flint/runtime/system";export { default as Input } from "@flint/shared/input";export { default as Metadata } from "@flint/shared/metadata";`,
         components: []
     };
 

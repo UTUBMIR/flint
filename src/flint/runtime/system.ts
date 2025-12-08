@@ -148,7 +148,6 @@ export class System {
                 canvas.height = +(this.rootDiv.clientHeight);
             }, 0);
         });
-
         ro.observe(this.rootDiv);
     }
 

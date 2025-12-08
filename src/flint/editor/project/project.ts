@@ -299,8 +299,6 @@ export class ${name} extends Component {
             data: name
         });
 
-        ProjectConfig.config.index += `\nexport * from "./${relativeFilePath.replace(/\.ts$/, "")}";`;
-
         ProjectConfig.config.components.push({name, file: relativeFilePath});
 
         await ProjectConfig.save();
@@ -326,13 +324,6 @@ export class ${name} extends Component {
         } catch (e) {
             console.warn("File not found:", e);
         }
-
-        // Remove export from index
-        const exportLine = `export * from "./${relativeFilePath.replace(/\.ts$/, "")}";`;
-        ProjectConfig.config.index = ProjectConfig.config.index
-            .split("\n")
-            .filter(line => line.trim() !== exportLine)
-            .join("\n");
 
         ProjectConfig.config.components.splice(ProjectConfig.config.components.findIndex(c => c.name === name), 1);
 

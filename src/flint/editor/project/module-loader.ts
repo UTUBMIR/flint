@@ -6,12 +6,12 @@ import Metadata from "../../shared/metadata";
 export default class ModuleLoader {
     private constructor() { }
 
-    private static createTempURL(code: string, type = "text/javascript") {
+    public static createTempURL(code: string, type = "text/javascript") {
         const blob = new Blob([code], { type });
         return URL.createObjectURL(blob);
     }
 
-    private static deleteTempUrl(url: string) {
+    public static deleteTempUrl(url: string) {
         URL.revokeObjectURL(url);
     }
 
