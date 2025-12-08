@@ -42,7 +42,6 @@
     "flint/shared/vector2d.d.ts"
   ],
   "json": [
-    "flint/editor/config/betterVisuals.json",
     "flint/editor/config/visuals.json",
     "flint/runtime/config/play-config.json"
   ]
