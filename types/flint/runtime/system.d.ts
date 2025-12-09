@@ -34,6 +34,7 @@ export declare class System {
     private static addBasicComponents;
     static init(renderer: IRenderer): void;
     static pushLayer(layer: Layer): void;
+    static removeLayer(layer: Layer): void;
     static run(): void;
     static runRenderingOnly(): void;
     static stop(): void;

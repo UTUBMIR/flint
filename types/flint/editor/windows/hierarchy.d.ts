@@ -9,15 +9,18 @@ export default class Hierarchy {
     element: HTMLElement;
     layers: Map<number, Layer>;
     private selection;
+    private selectedElement;
     contextDropdownElement: DropdownType;
     contextMenuElement: HTMLElement;
     private cachedWidth;
     private cachedHeight;
+    private deleteButton;
     constructor(element: HTMLElement);
     private setupContextMenu;
     private positionDropdown;
     private onSelectionChange;
     createObject(): void;
+    deleteSelected(): void;
     onUpdate(): Promise<void>;
     addItem(text: string, id: string, parent: HTMLElement): HTMLElement;
 }

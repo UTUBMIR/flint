@@ -110,6 +110,11 @@ export class System {
         layer.onAttach();
     }
 
+    public static removeLayer(layer: Layer): void {
+        const index = System.layers.indexOf(layer);
+        if (index !== -1) System.layers.splice(index, 1);
+    }
+
     public static run() {
         requestAnimationFrame(System.mainTick.bind(System));
         System.lastFrame = performance.now();

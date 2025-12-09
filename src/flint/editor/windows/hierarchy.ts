@@ -27,10 +27,14 @@ export default class Hierarchy {
     public layers = new Map<number, Layer>();
 
     private selection: GameObject | Layer | undefined;
+    private selectedElement: HTMLElement | undefined;
+
     public contextDropdownElement: DropdownType;
     public contextMenuElement: HTMLElement;
     private cachedWidth = 0;
     private cachedHeight = 0;
+
+    private deleteButton: HTMLButtonElement;
 
     public constructor(element: HTMLElement) {
         this.element = element;
@@ -39,10 +43,13 @@ export default class Hierarchy {
 
         this.contextDropdownElement = this.element.parentElement!.querySelector("#hierarchy-context-dropdown") as DropdownType;
         this.contextMenuElement = this.contextDropdownElement.querySelector("#hierarchy-context-menu") as HTMLElement;
+
+        this.deleteButton = this.contextMenuElement.querySelector("#delete-button") as HTMLButtonElement;
+
         this.setupContextMenu();
     }
 
-    private setupContextMenu() {
+    private setupContextMenu(): void {
         this.contextDropdownElement.addEventListener("sl-after-show", () => {
             if (this.cachedWidth === 0) {
                 this.cachedWidth = this.contextMenuElement.clientWidth;
@@ -53,6 +60,13 @@ export default class Hierarchy {
         this.element.parentElement!.addEventListener("contextmenu", (e) => {
             e.preventDefault();
             this.contextDropdownElement.show();
+
+            if (e.target === this.element.parentElement || e.target === this.element || e.target !== this.selectedElement) {
+                this.deleteButton.style.display = "none";
+            }
+            else {
+                this.deleteButton.style.display = "block";
+            }
 
             if (this.cachedWidth === 0) {
                 this.positionDropdown(e);
@@ -75,9 +89,13 @@ export default class Hierarchy {
         this.contextMenuElement.querySelector("#new-gameobject-button")!.addEventListener("click", () => {
             this.createObject();
         });
+
+        this.contextMenuElement.querySelector("#delete-button")!.addEventListener("click", () => {
+            this.deleteSelected();
+        });
     }
 
-    private positionDropdown(e: MouseEvent) {
+    private positionDropdown(e: MouseEvent): void {
         const x = Math.min(document.body.clientWidth - this.cachedWidth, e.pageX);
         const y = Math.min(document.body.clientHeight - this.cachedHeight, e.pageY);
 
@@ -85,8 +103,9 @@ export default class Hierarchy {
         this.contextDropdownElement.reposition();
     }
 
-    private onSelectionChange(event: Event) {
+    private onSelectionChange(event: Event): void {
         const selection = (event as CustomEvent).detail.selection as HTMLElement[];
+        this.selectedElement = selection[0];
         const parsed = (selection[0]! as unknown as { hierarchyId: string }).hierarchyId
 
             .split("-")
@@ -106,7 +125,7 @@ export default class Hierarchy {
         }
     }
 
-    public createObject() {
+    public createObject(): void {
         if (this.selection) {
             if (this.selection instanceof Layer) {
                 this.selection.addObject(new GameObject());
@@ -127,6 +146,18 @@ export default class Hierarchy {
         this.onUpdate();
     }
 
+    public deleteSelected(): void {
+        if (this.selection) {
+            if (this.selection instanceof GameObject) {
+                this.selection.layer.removeObject(this.selection);
+            }
+            else {
+                System.removeLayer(this.selection);
+            }
+            Editor.hierarchyWindow.onUpdate();
+        }
+    }
+
     public async onUpdate() {//TODO: add partial update without need to recreate whole hierarchy
         this.layers.clear();
         this.element.innerHTML = "";
@@ -134,8 +165,8 @@ export default class Hierarchy {
         for (let layerIndex = System.layers.length - 1; layerIndex >= 0; layerIndex--) {
             const layer = System.layers[layerIndex]!;
             const layerName = Metadata.getClass(
-                    layer, "editor-name") ??
-                    `new Layer${layerIndex > 0 ? " " + layerIndex : ""}`;
+                layer, "editor-name") ??
+                `new Layer${layerIndex > 0 ? " " + layerIndex : ""}`;
 
             const layerItem = this.addItem(layerName, layerIndex.toString(), this.element);
 
