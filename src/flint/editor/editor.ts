@@ -198,18 +198,22 @@ export default class Editor {
         Editor.loadEngineFiles();
 
         Editor._defaultLayer = new Layer();
-        Editor._defaultLayer.addObject(new GameObject([
+        const rect = new GameObject([
             new Shape()
         ], new Transform(
             undefined,
             new Vector2D(100, 100)
-        )));
+        ));
+        editorName("Rect")(rect);
 
-        Editor._defaultLayer.addObject(new GameObject([
+        const camera = new GameObject([
             new Camera()
-        ]));
+        ]);
+        editorName("Camera")(camera);
 
-        editorName("New Layer")(Layer);
+        Editor._defaultLayer.addObjects([rect, camera]);
+
+        editorName("New Layer")(Layer); // Adding here because we don`t want this in game
         editorName("New GameObject")(GameObject);
     }
 

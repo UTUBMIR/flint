@@ -10,10 +10,30 @@
 
 #inspector-body sl-tree-item::part(label),
 #inspector-body sl-tree-item {
-  display: block !important;
-  width: 100%;
+    display: block !important;
+    width: 100%;
 }
 
+sl-menu-item::part(base) {
+    transition: background var(--sl-transition-x-fast) ease;
+    border-radius: var(--sl-border-radius-small);
+}
+
+sl-menu {
+    padding: var(--sl-spacing-x-small);
+}
+
+.danger-background::part(base):hover {
+    background-color: var(--sl-color-danger-50);
+}
+
+.danger-label::part(label) {
+    color: var(--sl-color-danger-600);
+}
+
+.danger-prefix::part(prefix) {
+    color: var(--sl-color-danger-600);
+}
 
 .inspector-field {
     display: flex;
