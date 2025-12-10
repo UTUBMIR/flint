@@ -142,8 +142,9 @@ ${Builder.compiled}
         if (await Builder.compile(emitErrorMessages)) {
             const module = await ModuleLoader.load(Builder.compiled);
 
-            for (const name of ProjectConfig.config.components.map(c => c.name)) {
+            for (const { name } of ProjectConfig.config.components) {
                 const value = module[name];
+                console.log(name);
 
                 const oldComponentType = System.components.get(name);
                 if (value as Component) {
@@ -151,12 +152,12 @@ ${Builder.compiled}
                 }
 
                 if (!oldComponentType || !oldComponentType.prototype) {
-                    return true;
+                    continue;
                 }
 
 
                 const component = System.components.get(name);
-                if (!component) return false;
+                if (!component) throw new Error("FLINT PANIC: CRITICAL SYSTEM FAILURE");
 
                 for (const layer of System.layers) {
                     for (const obj of layer.getObjects()) {
