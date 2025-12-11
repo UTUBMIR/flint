@@ -1,9 +1,9 @@
 import { customRenderer } from "../../editor/component-builder";
 import type { ColorString } from "../../shared/graphics";
 import type Vector2D from "../../shared/vector2d";
-import Component from "../component";
+import RendererComponent from "../renderer-component";
 
-export default class Camera extends Component  {
+export default class Camera extends RendererComponent  {
     public enabled: boolean = true;
 
     @customRenderer("color")
@@ -18,7 +18,7 @@ export default class Camera extends Component  {
     }
 
     //TODO: implement camera stuff
-    onAttach(): void {
-        this.parent.layer.cameras.push(this);
+    attach(): void {
+        this.gameObject.layer.cameras.push(this);
     }
 }

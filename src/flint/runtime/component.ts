@@ -1,37 +1,56 @@
 import type GameObject from "./game-object";
-import type { IRenderer } from "../shared/irenderer";
 import type Transform from "./transform";
 import { hideInInspector } from "../editor/component-builder";
 
 export default abstract class Component {
     /**
-     * GameObject which owns this component.
+     * The GameObject that owns this component.
      */
     @hideInInspector()
-    public parent!: GameObject;
+    public gameObject!: GameObject;
 
     /**
-     * Shortcut to the parent GameObject's transform.
+     * Shortcut to the parent GameObject's Transform component.
      */
     public get transform(): Transform {
-        return this.parent.transform;
+        return this.gameObject.transform;
     }
 
     /**
      * Called once when this component is attached to a GameObject.
      */
-    public onAttach(): void { }
+    public attach(): void { }
 
     /**
-     * Called every frame after {@link onAttach}.
+     * Called once when the game starts or when the component is added during the game.
+     * 
+     * If added after the game has started, this method will be called immediately after {@link attach}.
      */
-    public onUpdate(): void { }
+    public start(): void { }
 
     /**
-     * Called every frame after {@link onUpdate}.
-     * @param renderer - The renderer used to draw this component.
+     * Called every frame after {@link start}.
      */
-    public onRender(_renderer: IRenderer): void { }
+    public update(): void { }
+
+    /**
+     * Called when this component is detached from its GameObject.
+     * 
+     * Use this method to unregister from systems or temporarily stop updates/rendering.
+     */
+    public detach(): void { }
+
+    /**
+     * Called when this component is permanently removed from its GameObject.
+     * 
+     * Use this method to clean up internal state, unregister from systems, and release any resources.
+     * 
+     * After {@link destroy} is called, the component
+     * should not be reused or reattached.
+     */
+    public destroy(): void {
+        (this.gameObject as GameObject | undefined) = undefined;
+    }
 
     /**
      * Used for hot reload.

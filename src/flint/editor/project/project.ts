@@ -186,8 +186,7 @@ export class Project {
             const decoded = new TextDecoder().decode(decompressed);
             const projectData = ProjectLoader.deserialize(decoded);
 
-            System.layers.length = 0;
-            for (const layer of projectData.layers) System.pushLayer(layer);
+            ProjectLoader.load(projectData);
             return true;
         } catch (e) {
             console.log("could not load the project:", e);
@@ -201,11 +200,12 @@ export class Project {
 
         await Project.getAllTextFiles(Project.folderHandle);
 
-        if (wasCreated) {
+        try {
+            await folderHandle.getDirectoryHandle("flint");
+        } catch {
             Editor.loadingDialogProgressBar.value = 0;
             Editor.loadingDialogProgressBar.indeterminate = false;
             Editor.loadingDialog.show();
-
             await Project.copyTypesToDirectory(folderHandle, window.location.href.replace(/index\.html$/, "") + "/types/", (total, loaded) => {
                 Editor.loadingDialogProgressBar.value = (loaded / total) * 100;
             });
@@ -281,12 +281,12 @@ export class Project {
         const fileContent = `import Component from "@flint/runtime/component";
 
 export class ${name} extends Component {
-    onAttach() {
-        // Component initialization code
+    start() {
+        // Code that should run once on start
     }
 
-    onUpdate() {
-        // Code which should run every frame
+    update() {
+        // Code that should run every frame
     }
 }
 `;
