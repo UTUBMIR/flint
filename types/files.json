@@ -28,6 +28,7 @@
     "flint/runtime/game-object.d.ts",
     "flint/runtime/layer.d.ts",
     "flint/runtime/project-loader.d.ts",
+    "flint/runtime/renderer-component.d.ts",
     "flint/runtime/system-event.d.ts",
     "flint/runtime/system.d.ts",
     "flint/runtime/transform.d.ts",

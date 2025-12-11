@@ -1,8 +1,10 @@
-import Component from "../component";
 import type { IRenderer } from "../../shared/irenderer";
-export default class Shape extends Component {
+import RendererComponent from "../renderer-component";
+export default class Shape extends RendererComponent {
     private fillColor;
     private lineColor;
     private shadowColor;
-    onRender(renderer: IRenderer): void;
+    attach(): void;
+    detach(): void;
+    render(renderer: IRenderer): void;
 }

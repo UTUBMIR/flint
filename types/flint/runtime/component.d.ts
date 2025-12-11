@@ -1,28 +1,43 @@
 import type GameObject from "./game-object";
-import type { IRenderer } from "../shared/irenderer";
 import type Transform from "./transform";
 export default abstract class Component {
     /**
-     * GameObject which owns this component.
+     * The GameObject that owns this component.
      */
-    parent: GameObject;
+    gameObject: GameObject;
     /**
-     * Shortcut to the parent GameObject's transform.
+     * Shortcut to the parent GameObject's Transform component.
      */
     get transform(): Transform;
     /**
      * Called once when this component is attached to a GameObject.
      */
-    onAttach(): void;
+    attach(): void;
     /**
-     * Called every frame after {@link onAttach}.
+     * Called once when the game starts or when the component is added during the game.
+     *
+     * If added after the game has started, this method will be called immediately after {@link attach}.
      */
-    onUpdate(): void;
+    start(): void;
     /**
-     * Called every frame after {@link onUpdate}.
-     * @param renderer - The renderer used to draw this component.
+     * Called every frame after {@link start}.
      */
-    onRender(_renderer: IRenderer): void;
+    update(): void;
+    /**
+     * Called when this component is detached from its GameObject.
+     *
+     * Use this method to unregister from systems or temporarily stop updates/rendering.
+     */
+    detach(): void;
+    /**
+     * Called when this component is permanently removed from its GameObject.
+     *
+     * Use this method to clean up internal state, unregister from systems, and release any resources.
+     *
+     * After {@link destroy} is called, the component
+     * should not be reused or reattached.
+     */
+    destroy(): void;
     /**
      * Used for hot reload.
      */

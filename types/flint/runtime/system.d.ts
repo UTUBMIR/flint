@@ -2,6 +2,7 @@ import type { IRenderer } from "../shared/irenderer";
 import type Component from "./component";
 import type Layer from "./layer";
 import type GameObject from "./game-object";
+import type RendererComponent from "./renderer-component";
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 export type Canvas = {
     element: HTMLCanvasElement;
@@ -11,6 +12,12 @@ export declare enum RunningState {
     Stopped = 0,
     Running = 1,
     RunningRenderingOnly = 2
+}
+export declare class RenderSystem {
+    private components;
+    register(component: RendererComponent): void;
+    unregister(component: RendererComponent): void;
+    render(renderer: IRenderer): void;
 }
 export declare class System {
     static layers: Layer[];
@@ -24,7 +31,7 @@ export declare class System {
     private static _renderer;
     private static readonly eventEmitter;
     private static _runningState;
-    static get isRunning(): RunningState;
+    static get runningState(): RunningState;
     static get deltaTime(): number;
     static get fps(): number;
     static get renderer(): IRenderer;

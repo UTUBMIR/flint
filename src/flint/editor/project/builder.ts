@@ -144,7 +144,6 @@ ${Builder.compiled}
 
             for (const { name } of ProjectConfig.config.components) {
                 const value = module[name];
-                console.log(name);
 
                 const oldComponentType = System.components.get(name);
                 if (value as Component) {
@@ -166,9 +165,7 @@ ${Builder.compiled}
                             continue;
                         }
 
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        obj.addComponent(objComponent.swapClass((component as any)));
-                        obj.removeComponent(oldComponentType);
+                        Object.setPrototypeOf(objComponent, component.prototype);
                     }
                 }
 

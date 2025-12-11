@@ -11,6 +11,7 @@ import type Layer from "./layer";
 import Camera from "./components/camera";
 import Shape from "./components/shape";
 import type GameObject from "./game-object";
+import type RendererComponent from "./renderer-component";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -30,6 +31,26 @@ export enum RunningState {
     RunningRenderingOnly
 }
 
+export class RenderSystem {
+    private components: RendererComponent[] = [];
+
+    public register(component: RendererComponent) {
+        this.components.push(component);
+    }
+
+    public unregister(component: RendererComponent) {
+        const index = this.components.indexOf(component);
+        if (index !== -1) this.components.splice(index, 1);
+    }
+
+    public render(renderer: IRenderer) {
+        for (const rc of this.components) {
+            rc.render(renderer);
+        }
+    }
+}
+
+
 export class System {
     public static layers: Layer[] = [];
     public static components = new Map<string, typeof Component>();
@@ -48,7 +69,7 @@ export class System {
 
     private static _runningState: RunningState = RunningState.Stopped;
 
-    public static get isRunning(): RunningState {
+    public static get runningState(): RunningState {
         return System._runningState;
     }
 
@@ -107,7 +128,11 @@ export class System {
         this.eventEmitter.addEventListener(layer.onEvent.bind(layer));
 
         this.layers.push(layer);
-        layer.onAttach();
+        layer.attach();
+        
+        if (System.runningState === RunningState.Running) {
+            layer.start();
+        }
     }
 
     public static removeLayer(layer: Layer): void {
@@ -136,11 +161,11 @@ export class System {
         this.lastFrame = now;
 
         for (const layer of this.layers) {
-            layer.onUpdate();
+            layer.update();
         }
 
         for (const layer of this.layers) {
-            layer.onRender();
+            layer.render();
         }
 
         if (System._runningState === RunningState.Running) {
@@ -153,7 +178,7 @@ export class System {
         this.lastFrame = now;
 
         for (const layer of this.layers) {
-            layer.onRender();
+            layer.render();
         }
 
         if (System._runningState === RunningState.RunningRenderingOnly) {

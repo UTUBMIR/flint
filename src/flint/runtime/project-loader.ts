@@ -106,8 +106,8 @@ export class ProjectLoader {
                     const rawComp: { name: string, data: any } = { name: comp.constructor.name, data: {} };
 
                     for (const key of Object.keys(comp)) {
-                        if (key === "parent") continue; // to avoid circular reference
-                        rawComp.data[key] = (comp as any)[key];
+                        if (key === "gameObject") continue; // to avoid circular reference
+                        rawComp.data[key] = (comp as any)[key]; // TODO: Add an automated way to ignore fields (something like @noSerialize)
                     }
                     rawObject.components.push(rawComp);
                 }
@@ -119,6 +119,7 @@ export class ProjectLoader {
     }
 
     public static load(project: ProjectData): void {
+        System.layers.length = 0;
         for (const layer of project.layers) {
             System.pushLayer(layer);
         }
