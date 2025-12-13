@@ -4,7 +4,5 @@ export default class Shape extends RendererComponent {
     private fillColor;
     private lineColor;
     private shadowColor;
-    attach(): void;
-    detach(): void;
     render(renderer: IRenderer): void;
 }

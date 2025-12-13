@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import Metadata, { MetadataKeys } from "../shared/metadata";
 import type Component from "./component";
 import GameObject from "./game-object";
 import Layer from "./layer";
@@ -106,7 +107,7 @@ export class ProjectLoader {
                     const rawComp: { name: string, data: any } = { name: comp.constructor.name, data: {} };
 
                     for (const key of Object.keys(comp)) {
-                        if (key === "gameObject") continue; // to avoid circular reference
+                        if (Metadata.getField(comp, key, MetadataKeys.NonSerialized)) continue; // to avoid circular reference
                         rawComp.data[key] = (comp as any)[key]; // TODO: Add an automated way to ignore fields (something like @noSerialize)
                     }
                     rawObject.components.push(rawComp);

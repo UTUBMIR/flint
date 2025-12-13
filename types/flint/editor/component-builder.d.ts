@@ -5,11 +5,11 @@ import type { FieldRenderer } from "./fields/field-renderer";
  * Sets a custom renderer for a field
  * @param renderer - Renderer name
  */
-export declare function customRenderer(renderer: string): (target: any, key: string) => void;
+export declare function FieldRenderer(renderer: string): (target: any, key: string) => void;
 /**
  * Hides field from inspector
  */
-export declare function hideInInspector(): (target: any, key: string) => void;
+export declare function HideInInspector(): (target: any, key: string) => void;
 export declare class RendererRegistry {
     private static renderers;
     static register(renderer: FieldRenderer): void;

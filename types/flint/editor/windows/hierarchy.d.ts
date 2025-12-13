@@ -4,7 +4,7 @@ import { type DropdownType } from "../editor";
  * Sets a name for and object, exists only in the Editor.
  * @param name - Name to show in the Editor.
  */
-export declare function editorName(name: string): (target: any) => void;
+export declare function EditorName(name: string): (target: any) => void;
 export default class Hierarchy {
     element: HTMLElement;
     layers: Map<number, Layer>;

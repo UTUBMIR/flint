@@ -22,6 +22,7 @@
     "flint/editor/windows/assets.d.ts",
     "flint/editor/windows/hierarchy.d.ts",
     "flint/editor/windows/inspector.d.ts",
+    "flint/runtime/assets.d.ts",
     "flint/runtime/component.d.ts",
     "flint/runtime/components/camera.d.ts",
     "flint/runtime/components/shape.d.ts",

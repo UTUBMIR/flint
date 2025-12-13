@@ -4,7 +4,7 @@ import Vector2D from "../shared/vector2d";
 import Bundler from "./project/bundler";
 import { Project } from "./project/project";
 import Assets from "./windows/assets";
-import HierarchyWindow, { editorName } from "./windows/hierarchy";
+import HierarchyWindow, { EditorName as EditorName } from "./windows/hierarchy";
 import InspectorWindow from "./windows/inspector";
 
 import Camera from "../runtime/components/camera";
@@ -204,17 +204,17 @@ export default class Editor {
             undefined,
             new Vector2D(100, 100)
         ));
-        editorName("Rect")(rect);
+        EditorName("Rect")(rect);
 
         const camera = new GameObject([
             new Camera()
         ]);
-        editorName("Camera")(camera);
+        EditorName("Camera")(camera);
 
         Editor._defaultLayer.addObjects([rect, camera]);
 
-        editorName("New Layer")(Layer); // Adding here because we don`t want this in game
-        editorName("New GameObject")(GameObject);
+        EditorName("New Layer")(Layer); // Adding here because we don`t want this in game
+        EditorName("New GameObject")(GameObject);
     }
 
     public static async loadEngineFiles() {

@@ -7,26 +7,27 @@ import { WheelScrubBehavior } from "./fields/behaviours/wheel-scrub-behaviour";
 import { DragScrubBehavior } from "./fields/behaviours/drag-scrub-behaviour";
 import { ColorRenderer } from "./fields/renderers/color-renderer";
 import { StringRenderer } from "./fields/renderers/string-renderer";
-import Metadata from "../shared/metadata";
+import Metadata, { MetadataKeys } from "../shared/metadata";
 import { AngleRenderer } from "./fields/renderers/angle-renderer";
 import { BooleanRenderer } from "./fields/renderers/boolean-renderer";
+
 
 /**
  * Sets a custom renderer for a field
  * @param renderer - Renderer name
  */
-export function customRenderer(renderer: string) {
+export function FieldRenderer(renderer: string) {
     return (target: any, key: string) => {
-        Metadata.setField(target, key, "field-renderer", renderer);
+        Metadata.setField(target, key, MetadataKeys.FieldRenderer, renderer);
     };
 }
 
 /**
  * Hides field from inspector
  */
-export function hideInInspector() {
+export function HideInInspector() {
     return (target: any, key: string) => {
-        Metadata.setField(target, key, "hide-in-inspector", true);
+        Metadata.setField(target, key, MetadataKeys.HideInInspector, true);
     };
 }
 
@@ -150,7 +151,7 @@ export class ComponentBuilder {
             fieldParentPath = root;
         }
 
-        const meta = Metadata.getField(fieldParentPath, key, "field-renderer");
+        const meta = Metadata.getField(fieldParentPath, key, MetadataKeys.FieldRenderer);
 
         const render = (renderer: FieldRenderer) => {
             const wrapped = this.wrapField(this.lastKey(path),
@@ -195,7 +196,7 @@ export class ComponentBuilder {
         treeItem.textContent = this.lastKey(path) || "root";
 
         for (const key of Object.keys(obj)) {
-            if (Metadata.getField(obj, key, "hide-in-inspector")) continue;
+            if (Metadata.getField(obj, key, MetadataKeys.HideInInspector)) continue;
 
             const childPath = [...path, key];
             const child = this.field(root, childPath);
@@ -222,7 +223,7 @@ export class ComponentBuilder {
         const tree = document.createElement("sl-tree");
 
         for (const key of Object.keys(root)) {
-            if (Metadata.getField(root, key, "hide-in-inspector")) continue;
+            if (Metadata.getField(root, key, MetadataKeys.HideInInspector)) continue;
 
             const childPath = [key];
             const childField = this.field(root, childPath);

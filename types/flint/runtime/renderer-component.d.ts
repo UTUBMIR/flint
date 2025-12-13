@@ -6,4 +6,6 @@ export default class RendererComponent extends Component {
      * @param renderer - The renderer used to draw.
      */
     render(renderer: IRenderer): void;
+    attach(): void;
+    detach(): void;
 }
