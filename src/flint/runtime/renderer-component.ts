@@ -8,4 +8,12 @@ export default class RendererComponent extends Component {
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public render(renderer: IRenderer): void { }
+
+    public attach(): void {
+        this.gameObject.layer.renderSystem.register(this);
+    }
+
+    public detach(): void {
+        this.gameObject.layer.renderSystem.unregister(this);
+    }
 }

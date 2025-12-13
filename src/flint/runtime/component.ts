@@ -1,12 +1,14 @@
 import type GameObject from "./game-object";
 import type Transform from "./transform";
-import { hideInInspector } from "../editor/component-builder";
+import { HideInInspector } from "../editor/component-builder";
+import { NonSerialized } from "../shared/metadata";
 
 export default abstract class Component {
     /**
      * The GameObject that owns this component.
      */
-    @hideInInspector()
+    @NonSerialized()
+    @HideInInspector()
     public gameObject!: GameObject;
 
     /**

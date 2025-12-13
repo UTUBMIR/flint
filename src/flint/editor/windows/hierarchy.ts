@@ -1,7 +1,7 @@
 import GameObject from "../../runtime/game-object";
 import Layer from "../../runtime/layer";
 import { System } from "../../runtime/system";
-import Metadata from "../../shared/metadata";
+import Metadata, { MetadataKeys } from "../../shared/metadata";
 import Editor, { Notifier } from "../editor";
 import { type DropdownType } from "../editor";
 
@@ -10,13 +10,13 @@ import { type DropdownType } from "../editor";
  * Sets a name for and object, exists only in the Editor.
  * @param name - Name to show in the Editor.
  */
-export function editorName(name: string) {
+export function EditorName(name: string) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (target: any) => {
         if (typeof target === "function") {
-            Metadata.setClass(target.prototype, "editor-name", name);
+            Metadata.setClass(target.prototype, MetadataKeys.EditorName, name);
         } else {
-            Metadata.setClass(target, "editor-name", name);
+            Metadata.setClass(target, MetadataKeys.EditorName, name);
         }
     };
 }
@@ -165,7 +165,7 @@ export default class Hierarchy {
         for (let layerIndex = System.layers.length - 1; layerIndex >= 0; layerIndex--) {
             const layer = System.layers[layerIndex]!;
             const layerName = Metadata.getClass(
-                layer, "editor-name") ??
+                layer, MetadataKeys.EditorName) ??
                 `new Layer${layerIndex > 0 ? " " + layerIndex : ""}`;
 
             const layerItem = this.addItem(layerName, layerIndex.toString(), this.element);
@@ -173,7 +173,7 @@ export default class Hierarchy {
             const objects = layer.getObjects();
             for (let index = objects.length - 1; index >= 0; index--) {
                 const objectName = Metadata.getClass(
-                    objects[index]!, "editor-name") ??
+                    objects[index]!, MetadataKeys.EditorName) ??
                     `new GameObject${index > 0 ? " " + index : ""}`;
 
                 this.addItem(
@@ -230,9 +230,13 @@ export default class Hierarchy {
                         const layer = Editor.hierarchyWindow.layers.get(parsed[0] ?? 0);
                         const gameObject = layer?.getObjects()[parsed[1] ?? 0];
 
-                        Metadata.setClass(gameObject!, "inspector-name", textNode.textContent);
+                        Metadata.setClass(gameObject!, MetadataKeys.EditorName, textNode.textContent);
                     }
+                    try {
                     input.remove();
+                    }
+                    // eslint-disable-next-line no-empty
+                    catch {}
                 };
 
                 input.addEventListener("sl-blur", () => exitEdit(true));

@@ -1,4 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+export const MetadataKeys = {
+    NonSerialized: Symbol.for("shared.non-serialized"),
+    FieldRenderer: Symbol.for("editor.field-renderer"),
+    HideInInspector: Symbol.for("editor.hide-in-inspector"),
+    EditorName: Symbol.for("editor.editor-name")
+};
+
+/**
+ * Turns off serialization for field.
+ */
+export function NonSerialized() {
+    return (target: any, key: string) => {
+        Metadata.setField(target, key, MetadataKeys.NonSerialized, true);
+    };
+}
+
+
 // function deserializeMap(arr: any[]): Map<any, any> {
 //     return new Map(
 //         arr.map(([key, value]) => {
@@ -21,13 +39,13 @@
 
 
 export default class Metadata {
-    private static classMeta = new Map<object, Map<string, any>>();
-    private static fieldMeta = new Map<object, Map<string, Map<string, any>>>();
+    private static classMeta = new Map<object, Map<any, any>>();
+    private static fieldMeta = new Map<object, Map<string, Map<any, any>>>();
     public static enabled = true;
 
     private static folderHandle: FileSystemDirectoryHandle | undefined = undefined;
 
-    public static setClass(target: object, key: string, value: any) {
+    public static setClass(target: object, key: any, value: any) {
         if (!Metadata.enabled) throw new Error("Metadata is disabled");
         let map = this.classMeta.get(target);
         if (!map) {
@@ -38,7 +56,7 @@ export default class Metadata {
         this.changed();
     }
 
-    public static getClass(target: object, key: string) {
+    public static getClass(target: object, key: any) {
         let proto: any = target;
         while (proto) {
             const value = this.classMeta.get(proto)?.get(key);
@@ -48,7 +66,7 @@ export default class Metadata {
         return undefined;
     }
 
-    public static setField(target: object, field: string, key: string, value: any) {
+    public static setField(target: object, field: string, key: any, value: any) {
         if (!Metadata.enabled) throw new Error("Metadata is disabled");
         let fields = this.fieldMeta.get(target);
         if (!fields) {
@@ -64,7 +82,7 @@ export default class Metadata {
         this.changed();
     }
 
-    public static getField(target: object, field: string, key: string) {
+    public static getField(target: object, field: string, key: any) {
         let proto: any = target;
         while (proto) {
             const fields = this.fieldMeta.get(proto);
@@ -139,17 +157,22 @@ export default class Metadata {
     }
 
     public static async loadFromFile(_folderHandle: FileSystemDirectoryHandle) {
-        // const FileHandle = await folderHandle.getFileHandle("metadata.json").catch(() => null);
-        // if (!FileHandle) return;
+        // try {
+        //     const FileHandle = await folderHandle.getFileHandle("metadata.json").catch(() => null);
+        //     if (!FileHandle) return;
 
-        // const File = await FileHandle.getFile();
-        // const content = await File.text();
-        // const data = JSON.parse(content);
+        //     const File = await FileHandle.getFile();
+        //     const content = await File.text();
+        //     const data = JSON.parse(content);
 
-        // this.classMeta = deserializeMap(data.classMeta);
-        // this.fieldMeta = deserializeMap(data.fieldMeta);
+        //     this.classMeta = deserializeMap(data.classMeta);
+        //     this.fieldMeta = deserializeMap(data.fieldMeta);
 
-        // this.folderHandle = folderHandle;
+        //     this.folderHandle = folderHandle;
+        // }
+        // catch {
+        //     console.log("Failed to load metadata");
+        // }
     }
 
 }
