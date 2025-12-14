@@ -15,7 +15,7 @@ export default class Shape extends RendererComponent {
     @FieldRenderer("color")
     private shadowColor: ColorString = "#1c649b";
 
-    public render(renderer: IRenderer): void {
+    public override render(renderer: IRenderer): void {
         renderer.fillColor = this.fillColor;
         renderer.lineColor = this.lineColor;
         renderer.lineWidth = 5;

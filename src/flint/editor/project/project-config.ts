@@ -28,6 +28,7 @@ export default class ProjectConfig {
         },
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
+        "noImplicitOverride": true
     }
 }`;
 

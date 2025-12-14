@@ -9,7 +9,7 @@ export class NumberRenderer implements FieldRenderer {
 
     render(root: any, path: string[], get: GetType, set: SetType) {
         this.update = () => {
-            const newValue = roundUpTo(ctx.get(), 6).toString();
+            const newValue = (+ctx.get().toFixed(6)).toString();
             if (input.value !== newValue) {
                 input.value = newValue;
             }
@@ -30,11 +30,6 @@ export class NumberRenderer implements FieldRenderer {
             if (!Number.isNaN(v)) ctx.set(v);
             if (e.target.value === "") ctx.set(0);
         });
-
-        function roundUpTo(number: number, decimalPlaces: number) {
-            const factor = Math.pow(10, decimalPlaces);
-            return Math.round(number * factor) / factor;
-        }
 
         for (const b of BehaviorRegistry.getBehaviors("number")) {
             b.attach(input, ctx);

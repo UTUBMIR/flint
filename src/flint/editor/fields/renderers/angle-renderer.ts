@@ -10,7 +10,7 @@ export class AngleRenderer extends NumberRenderer {
         };
     }
 
-    render(root: any, path: string[], get: GetType, set: SetType) {
+    public override render(root: any, path: string[], get: GetType, set: SetType) {
         const newGet = (obj: any, path: string[]): number => {
             return (360 + (get(obj, path) * (180 / Math.PI))) % 360;
         };

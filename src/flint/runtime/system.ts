@@ -69,6 +69,8 @@ export class System {
 
     private static _runningState: RunningState = RunningState.Stopped;
 
+    public static readonly audioContext = new AudioContext();
+
     public static get runningState(): RunningState {
         return System._runningState;
     }

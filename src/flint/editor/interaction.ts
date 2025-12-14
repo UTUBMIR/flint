@@ -189,22 +189,22 @@ export class Button extends Click {
         this.text = text ?? "";
     }
 
-    public onHoverLeave() {
+    public override onHoverLeave() {
         this.color = visualsConfig.colors.toolbarTab as ColorString;
     };
 
-    public onHover() {
+    public override onHover() {
         this.color = visualsConfig.colors.toolbarTabSelected as ColorString;
     };
 
-    public onMouseUp = this.onHover;
+    public override onMouseUp = this.onHover;
 
-    public onMouseDown() {
+    public override onMouseDown() {
         this.color = visualsConfig.colors.toolbarTabPressed as ColorString;
         this.onClick();
     };
 
-    public onRender(r: IRenderer) {
+    public override onRender(r: IRenderer) {
         r.fillColor = this.color;
         r.fillRect(this.position, this.size);
 

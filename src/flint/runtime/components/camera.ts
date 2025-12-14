@@ -18,7 +18,7 @@ export default class Camera extends RendererComponent  {
     }
 
     //TODO: implement camera stuff
-    attach(): void {
+    public override attach(): void {
         this.gameObject.layer.cameras.push(this);
     }
 }
