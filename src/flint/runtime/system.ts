@@ -44,8 +44,8 @@ export class RenderSystem {
     }
 
     public render(renderer: IRenderer) {
-        for (const rc of this.components) {
-            rc.render(renderer);
+        for (let i = 0; i < this.components.length; ++i) {
+            this.components[i]!.render(renderer);
         }
     }
 }
@@ -95,8 +95,8 @@ export class System {
     private constructor() { }
 
     public static getGameObjectById(uuid: UUID): GameObject | undefined {
-        for (const layer of System.layers) {
-            const found = layer.getObjects().find(go => go.uuid === uuid);
+        for (let i = 0; i < System.layers.length; ++i) {
+            const found = System.layers[i]!.getObjects().find(go => go.uuid === uuid);
             if (found) {
                 return found;
             }
@@ -131,7 +131,7 @@ export class System {
 
         this.layers.push(layer);
         layer.attach();
-        
+
         if (System.runningState === RunningState.Running) {
             layer.start();
         }
@@ -143,13 +143,13 @@ export class System {
     }
 
     public static run() {
-        requestAnimationFrame(System.mainTick.bind(System));
+        requestAnimationFrame(System.mainTick);
         System.lastFrame = performance.now();
         System._runningState = RunningState.Running;
     }
 
     public static runRenderingOnly() {
-        requestAnimationFrame(System.renderOnlyTick.bind(System));
+        requestAnimationFrame(System.renderOnlyTick);
         System.lastFrame = performance.now();
         System._runningState = RunningState.RunningRenderingOnly;
     }
@@ -159,32 +159,32 @@ export class System {
     }
 
     private static mainTick(now: number) {
-        this._deltaTime = (now - this.lastFrame) / 1000;
-        this.lastFrame = now;
+        System._deltaTime = (now - System.lastFrame) / 1000;
+        System.lastFrame = now;
 
-        for (const layer of this.layers) {
-            layer.update();
+        for (let i = 0; i < System.layers.length; ++i) {
+            System.layers[i]!.update();
         }
 
-        for (const layer of this.layers) {
-            layer.render();
+        for (let i = 0; i < System.layers.length; ++i) {
+            System.layers[i]!.render();
         }
 
         if (System._runningState === RunningState.Running) {
-            requestAnimationFrame(System.mainTick.bind(System));
+            requestAnimationFrame(System.mainTick);
         }
     }
 
     private static renderOnlyTick(now: number) {
-        this._deltaTime = (now - this.lastFrame) / 1000;
-        this.lastFrame = now;
+        System._deltaTime = (now - System.lastFrame) / 1000;
+        System.lastFrame = now;
 
-        for (const layer of this.layers) {
-            layer.render();
+        for (let i = 0; i < System.layers.length; ++i) {
+            System.layers[i]!.render();
         }
 
         if (System._runningState === RunningState.RunningRenderingOnly) {
-            requestAnimationFrame(System.renderOnlyTick.bind(System));
+            requestAnimationFrame(System.renderOnlyTick);
         }
     }
 
