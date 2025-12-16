@@ -1,4 +1,4 @@
-import { Project } from "./project";
+import { System } from "../../runtime/system";
 
 type ConfigType = {
     components: {name: string, file: string}[]
@@ -37,22 +37,16 @@ export default class ProjectConfig {
     };
 
     public static async save() {
-        const fileHandle = await Project.folderHandle.getFileHandle(ProjectConfig.configFileName, { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(JSON.stringify(ProjectConfig.config, null, 4));
-        await writable.close();
+        await System.fileSystem.writeTextFile(ProjectConfig.configFileName, JSON.stringify(ProjectConfig.config, null, 4));
     }
 
     public static async load() {
         try {
-            const fileHandle = await Project.folderHandle.getFileHandle(ProjectConfig.configFileName);
-            const file = await fileHandle.getFile();
-            const content = await file.text();
+            const content = await System.fileSystem.readTextFile(ProjectConfig.configFileName);
+            
             this.config = JSON.parse(content);
 
-            const tsFileHandle = await Project.folderHandle.getFileHandle("tsconfig.json");
-            const tsFile = await tsFileHandle.getFile();
-            ProjectConfig.tsConfig = await tsFile.text();
+            ProjectConfig.tsConfig = await System.fileSystem.readTextFile("tsconfig.json");
 
             return true;
         } catch {
@@ -61,15 +55,8 @@ export default class ProjectConfig {
     }
 
     public static async create() {
-        const fileHandle = await Project.folderHandle.getFileHandle(ProjectConfig.configFileName, { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(JSON.stringify(ProjectConfig.defaultConfig, null, 4));
-        await writable.close();
-
-        const tsFileHandle = await Project.folderHandle.getFileHandle("tsconfig.json", { create: true });
-        const tsWritable = await tsFileHandle.createWritable();
-        await tsWritable.write(ProjectConfig.tsConfig);
-        await tsWritable.close();
+        await System.fileSystem.writeTextFile(ProjectConfig.configFileName, JSON.stringify(ProjectConfig.defaultConfig, null, 4));
+        await System.fileSystem.writeTextFile("tsconfig.json", ProjectConfig.tsConfig);
     }
 
     public static async ensureLoaded() {

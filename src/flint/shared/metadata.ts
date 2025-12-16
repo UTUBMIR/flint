@@ -43,8 +43,6 @@ export default class Metadata {
     private static fieldMeta = new Map<object, Map<string, Map<any, any>>>();
     public static enabled = true;
 
-    private static folderHandle: FileSystemDirectoryHandle | undefined = undefined;
-
     public static setClass(target: object, key: any, value: any) {
         if (!Metadata.enabled) throw new Error("Metadata is disabled");
         let map = this.classMeta.get(target);
@@ -138,12 +136,10 @@ export default class Metadata {
     }
 
     private static changed() {
-        if (this.folderHandle) {
-            this.saveToFile(this.folderHandle);
-        }
+        this.saveToFile();
     }
     //TODO: make saving and loading of metadata when uuid system is ready
-    public static async saveToFile(_folderHandle: FileSystemDirectoryHandle) {
+    public static async saveToFile() {
         // const FileHandle = await folderHandle.getFileHandle("metadata.json", { create: true });
         // const Writable = await FileHandle.createWritable();
 
@@ -156,7 +152,7 @@ export default class Metadata {
         // this.folderHandle = folderHandle;
     }
 
-    public static async loadFromFile(_folderHandle: FileSystemDirectoryHandle) {
+    public static async loadFromFile() {
         // try {
         //     const FileHandle = await folderHandle.getFileHandle("metadata.json").catch(() => null);
         //     if (!FileHandle) return;

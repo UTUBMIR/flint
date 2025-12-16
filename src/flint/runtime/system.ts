@@ -12,6 +12,7 @@ import Camera from "./components/camera";
 import Shape from "./components/shape";
 import type GameObject from "./game-object";
 import type RendererComponent from "./renderer-component";
+import { type AbstractFileSystem } from "../shared/file-system";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -70,6 +71,7 @@ export class System {
     private static _runningState: RunningState = RunningState.Stopped;
 
     public static readonly audioContext = new AudioContext();
+    public static fileSystem: AbstractFileSystem;
 
     public static get runningState(): RunningState {
         return System._runningState;
@@ -108,11 +110,12 @@ export class System {
         this.components.set("Shape", Shape);
     }
 
-    public static init(renderer: IRenderer): void {
+    public static init(renderer: IRenderer, fileSystem: AbstractFileSystem): void {
         this.initRootDiv();
         this._renderer = renderer;
         Input.init();
         this.loadPlayConfig(playConfig);
+        this.fileSystem = fileSystem;
 
         this.addBasicComponents();
 

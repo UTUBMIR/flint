@@ -5,6 +5,7 @@ import Bundler from "./bundler";
 import ModuleLoader from "./module-loader";
 import { Project } from "./project";
 import ProjectConfig from "./project-config";
+import { AbstractFileSystem } from "../../shared/file-system";
 
 export class Builder {
     private static tab: Window;
@@ -13,14 +14,13 @@ export class Builder {
     private constructor() { }
 
     public static async compile(emitErrorMessages: boolean = true, entryPoint?: string): Promise<boolean> {
-        const textFilesResult = await Project.getAllTextFiles(Project.folderHandle);
+        const textFilesResult = await Project.getAllTextFiles();
         const textFiles = textFilesResult.files;
         const textAssets = textFilesResult.assets;
 
 
-        for (const { fileHandle, path } of textFiles) {
-            const file = await fileHandle.getFile();
-            const text = await file.text();
+        for (const { path } of textFiles) {
+            const text = await System.fileSystem.readTextFile(path);
 
             Bundler.files.set(path, text);
         }
@@ -48,17 +48,21 @@ export class Builder {
     }
 
     public static async build(): Promise<boolean> {
-        if (!Project.folderHandle) {
+        if (!System.fileSystem.started) {
             Notifier.notify("Open project first.", "danger");
             return false;
         }
 
-        const buildFolder = await Project.folderHandle.getDirectoryHandle("build", { create: true });
+        const compressed = await System.fileSystem.readFile("project.gz");
 
-        const fileHandle = await Project.folderHandle.getFileHandle("project.gz");
-        const file = await fileHandle.getFile();
-        const ds = new DecompressionStream("gzip");
-        const decompressed = await new Response(file.stream().pipeThrough(ds)).arrayBuffer();
+        const buffer = AbstractFileSystem.toArrayBuffer(compressed);
+
+        const stream = new Blob([buffer])
+            .stream()
+            .pipeThrough(new DecompressionStream("gzip"));
+
+        const decompressed = await new Response(stream).arrayBuffer();
+
         const decodedLayers = new TextDecoder().decode(decompressed);
 
 
@@ -111,12 +115,10 @@ ${Builder.compiled}
 </script>
 </body>
 </html>`;
-            const fileHandle = await buildFolder.getFileHandle("index.html", { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(html);
-            await writable.close();
-            const file = await fileHandle.getFile();
-            const url = URL.createObjectURL(file);
+            await System.fileSystem.writeTextFile("index.html", html);
+
+            const blob = new Blob([html], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
 
             if (Builder.tab) {
                 Builder.tab.close();
@@ -131,7 +133,7 @@ ${Builder.compiled}
     }
 
     public static async buildForEditor(emitErrorMessages: boolean = true): Promise<boolean> {
-        if (!Project.folderHandle) {
+        if (!System.fileSystem.started) {
             Notifier.notify("Open project first.", "danger");
             return false;
         }

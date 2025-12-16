@@ -5,23 +5,22 @@ import { Builder } from "./builder";
 import { System, type UUID } from "../../runtime/system";
 import Metadata from "../../shared/metadata";
 import { ProjectLoader } from "../../runtime/project-loader";
+import { AbstractFileSystem as AbstractFileSystem } from "../../shared/file-system";
 
 export class FileTracker {
     private constructor() { }
 
-    static timestamps = new Map<string, number>();
+    static fileHashes = new Map<string, string>();
     static intervalId: number | null = null;
 
     private static debounceTimer: number | null = null;
     private static debounceDelay = 200; // auto adjustable
 
-    static async startWatchingDirectory(
-        dirHandle: FileSystemDirectoryHandle
-    ) {
+    static async startWatchingDirectory(path = "") {
         if (this.intervalId !== null) return;
 
         this.intervalId = setInterval(async () => {
-            const updated = await this.directoryWasUpdated(dirHandle);
+            const updated = await this.directoryWasUpdated(path);
             if (updated) {
                 this.scheduleRebuild();
             }
@@ -41,7 +40,6 @@ export class FileTracker {
     }
 
     private static scheduleRebuild() {
-        /* If timer already started -> stop it and start a new one */
         if (this.debounceTimer !== null) {
             clearTimeout(this.debounceTimer);
         }
@@ -53,52 +51,70 @@ export class FileTracker {
 
             FileTracker.debounceDelay = end - start;
             this.stopWatching();
-            this.startWatchingDirectory(Project.folderHandle);
+            await this.startWatchingDirectory("");
 
             this.debounceTimer = null;
         }, this.debounceDelay);
     }
 
-    private static async directoryWasUpdated(
-        dirHandle: FileSystemDirectoryHandle,
-        currentPath = ""
-    ) {
+    private static async directoryWasUpdated(currentPath: string): Promise<boolean> {
         let anyUpdated = false;
+        let entries: string[];
 
-        for await (const entry of dirHandle.values()) {
-            const fullPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+        try {
+            entries = await System.fileSystem.listDir(currentPath);
+        } catch {
+            // If FS desn`t support listDir
+            return false;
+        }
 
-            if (entry.kind === "file") {
-                if (fullPath.endsWith("metadata.json")) continue; // dont react on metadata updates
+        for (const name of entries) {
+            const fullPath = currentPath ? `${currentPath}/${name}` : name;
 
-                const fileUpdated = await this.wasUpdated(fullPath, entry);
-                if (fileUpdated) anyUpdated = true;
-            }
+            const isDir = await System.fileSystem.listDir(fullPath).then(() => true).catch(() => false);
 
-            if (entry.kind === "directory") {
-                const subUpdated = await this.directoryWasUpdated(entry, fullPath);
+            if (isDir) {
+                const subUpdated = await this.directoryWasUpdated(fullPath);
                 if (subUpdated) anyUpdated = true;
+
+                // Adding folder to tracker
+                continue;
             }
+
+            if (name === "metadata.json") continue;
+
+            const updated = await this.wasUpdated(fullPath);
+            if (updated) anyUpdated = true;
         }
 
         return anyUpdated;
     }
 
-    private static async wasUpdated(path: string, fileHandle: FileSystemFileHandle) {
-        const file = await fileHandle.getFile();
-        const newTimestamp = file.lastModified;
-        const prevTimestamp = this.timestamps.get(path);
+    private static async wasUpdated(path: string): Promise<boolean> {
+        try {
+            const data = await System.fileSystem.readFile(path);
+            const hash = await this.hashData(data);
+            const prevHash = this.fileHashes.get(path);
 
-        this.timestamps.set(path, newTimestamp);
+            this.fileHashes.set(path, hash);
 
-        return prevTimestamp !== undefined && prevTimestamp !== newTimestamp;
+            return prevHash !== undefined && prevHash !== hash;
+        } catch {
+            return false; // File doesn`t exist or couldn`t read it
+        }
+    }
+
+    private static async hashData(data: Uint8Array): Promise<string> {
+        const hashBuffer = await crypto.subtle.digest("SHA-1", AbstractFileSystem.toArrayBuffer(data));
+        return Array.from(new Uint8Array(hashBuffer))
+            .map(b => b.toString(16).padStart(2, "0"))
+            .join("");
     }
 }
 
 
-export class Project {
-    public static folderHandle: FileSystemDirectoryHandle;
 
+export class Project {
     private static createComponentDialog: HTMLElement & { show: () => void; hide: () => void };
     private static createComponentButton: HTMLButtonElement;
     private static createComponentInput: HTMLInputElement;
@@ -171,19 +187,28 @@ export class Project {
         const blob = new Blob([data], { type: "text/plain" });
         const cs = new CompressionStream("gzip");
         const compressed = new Response(blob.stream().pipeThrough(cs));
-        const fileHandle = await Project.folderHandle.getFileHandle("project.gz", { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(await compressed.arrayBuffer());
-        await writable.close();
+        const arrayBuffer = await compressed.arrayBuffer();
+
+        await System.fileSystem.writeFile(
+            "project.gz",
+            new Uint8Array(arrayBuffer)
+        );
     }
 
     private static async loadProject() {
         try {
-            const fileHandle = await Project.folderHandle.getFileHandle("project.gz");
-            const file = await fileHandle.getFile();
-            const ds = new DecompressionStream("gzip");
-            const decompressed = await new Response(file.stream().pipeThrough(ds)).arrayBuffer();
+            const compressed = await System.fileSystem.readFile("project.gz");
+
+            const buffer = AbstractFileSystem.toArrayBuffer(compressed);
+
+            const stream = new Blob([buffer])
+                .stream()
+                .pipeThrough(new DecompressionStream("gzip"));
+
+            const decompressed = await new Response(stream).arrayBuffer();
+
             const decoded = new TextDecoder().decode(decompressed);
+
             const projectData = ProjectLoader.deserialize(decoded);
 
             ProjectLoader.load(projectData);
@@ -194,63 +219,78 @@ export class Project {
         }
     }
 
-    private static async startupProject(folderHandle: FileSystemDirectoryHandle): Promise<boolean> {
-        Project.folderHandle = folderHandle;
+    private static async startupProject(handle: FileSystemDirectoryHandle): Promise<boolean> {
+        System.fileSystem.setRootHandle(handle);
         const wasCreated = await ProjectConfig.ensureLoaded();
 
-        await Project.getAllTextFiles(Project.folderHandle);
+        await Project.getAllTextFiles();
 
         try {
-            await folderHandle.getDirectoryHandle("flint");
+            await handle.getDirectoryHandle("flint");
         } catch {
             Editor.loadingDialogProgressBar.value = 0;
             Editor.loadingDialogProgressBar.indeterminate = false;
             Editor.loadingDialog.show();
-            await Project.copyTypesToDirectory(folderHandle, window.location.href.replace(/index\.html$/, "") + "/types/", (total, loaded) => {
+            await Project.copyTypesToDirectory(handle, window.location.href.replace(/index\.html$/, "") + "/types/", (total, loaded) => {
                 Editor.loadingDialogProgressBar.value = (loaded / total) * 100;
             });
         }
 
-        await Metadata.loadFromFile(Project.folderHandle);
-        await Metadata.saveToFile(Project.folderHandle);
+        await Metadata.loadFromFile();
+        await Metadata.saveToFile();
 
         await Builder.buildForEditor();
 
         Editor.loadingDialog.hide();
 
-        await FileTracker.startWatchingDirectory(Project.folderHandle);
+        await FileTracker.startWatchingDirectory();
         return wasCreated;
     }
 
-    public static async getAllTextFiles(dirHandle: FileSystemDirectoryHandle, path = "") {
-        const files: { fileHandle: FileSystemFileHandle, path: string }[] = [];
+    public static async getAllTextFiles(path = "") {
+        const files: { path: string }[] = [];
         const assets: { id: string, name: string, type: string, path: string }[] = [];
 
-        for await (const [name, handle] of dirHandle.entries()) {
-            if (handle.kind === "file" && (name.endsWith(".ts") || name.endsWith(".json"))) {
-                assets.push({
-                    id: crypto.randomUUID(),
-                    name,
-                    type: name.split(".").pop() === "ts" ? "component" : "json",
-                    path: "/" + path + name
-                });
+        async function traverse(currentPath: string) {
+            let entries: string[] = [];
+            try {
+                entries = await System.fileSystem.listDir(currentPath);
+            } catch {
+                // If FS doesn't support listDir, just returning
+                return;
+            }
 
-                files.push({ fileHandle: handle, path: path + name });
-            } else if (handle.kind === "directory") {
-                assets.push({
-                    id: crypto.randomUUID(),
-                    name,
-                    type: "folder",
-                    path: "/" + path + name
-                });
+            for (const name of entries) {
+                const fullPath = currentPath ? `${currentPath}/${name}` : name;
+                const isDir = await System.fileSystem.listDir(fullPath).then(() => true).catch(() => false);
 
-                const nestedFiles = (await Project.getAllTextFiles(handle, path + name + "/")).files;
-                files.push(...nestedFiles);
+                if (isDir) {
+                    // Adding folder
+                    assets.push({
+                        id: crypto.randomUUID(),
+                        name,
+                        type: "folder",
+                        path: "/" + fullPath
+                    });
+                    await traverse(fullPath);
+                } else if (name.endsWith(".ts") || name.endsWith(".json")) {
+                    // Adding file
+                    assets.push({
+                        id: crypto.randomUUID(),
+                        name,
+                        type: name.endsWith(".ts") ? "component" : "json",
+                        path: "/" + fullPath
+                    });
+                    files.push({ path: fullPath });
+                }
             }
         }
 
+        await traverse(path);
+
         return { files, assets };
     }
+
 
     public static async openInFileEditor(path: string) {
         if (!ProjectConfig.config.rootPath) {
@@ -272,7 +312,7 @@ export class Project {
     }
 
     public static async createComponent(name: string) {
-        name = ComponentBuilder.joinToPascalCase(name); // just ensure that name is correct
+        name = ComponentBuilder.joinToPascalCase(name);
         const fileBaseName = ComponentBuilder.splitPascalCase(name, "-");
 
         const assetPath = Editor.assetsWindow.currentPath.replace(/^\//, "");
@@ -291,16 +331,17 @@ export class ${name} extends Component {
 }
 `;
 
-        let folderHandle = Project.folderHandle;
         const parts = assetPath.split("/").filter(Boolean);
+        let currentPath = "";
         for (const part of parts) {
-            folderHandle = await folderHandle.getDirectoryHandle(part, { create: true });
+            currentPath = currentPath ? `${currentPath}/${part}` : part;
+            const exists = await System.fileSystem.exists(currentPath);
+            if (!exists) {
+                await System.fileSystem.createDir(currentPath);
+            }
         }
 
-        const fileHandle = await folderHandle.getFileHandle(fileBaseName + ".ts", { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(fileContent);
-        await writable.close();
+        await System.fileSystem.writeTextFile(relativeFilePath, fileContent);
 
         Editor.assetsWindow.addAsset({
             id: crypto.randomUUID(),
@@ -311,7 +352,6 @@ export class ${name} extends Component {
         });
 
         ProjectConfig.config.components.push({ name, file: relativeFilePath });
-
         await ProjectConfig.save();
 
         await Project.openInFileEditor("/" + relativeFilePath);
@@ -323,25 +363,28 @@ export class ${name} extends Component {
         const assetPath = Editor.assetsWindow.currentPath.replace(/^\//, "");
         const relativeFilePath = `${assetPath}/${fileBaseName}.ts`;
 
-        let folderHandle = Project.folderHandle;
-        const parts = assetPath.split("/").filter(Boolean);
-        for (const part of parts) {
-            folderHandle = await folderHandle.getDirectoryHandle(part, { create: false });
-            if (!folderHandle) return; // folder doesn't exist
-        }
-
         try {
-            await folderHandle.removeEntry(fileBaseName + ".ts");
+            const exists = await System.fileSystem.exists(relativeFilePath);
+            if (exists) {
+                await System.fileSystem.delete(relativeFilePath);
+            } else {
+                console.warn("File does not exist:", relativeFilePath);
+            }
         } catch (e) {
-            console.warn("File not found:", e);
+            console.error("Failed to delete file:", e);
         }
 
-        ProjectConfig.config.components.splice(ProjectConfig.config.components.findIndex(c => c.name === name), 1);
+        // Deleting component from config
+        const index = ProjectConfig.config.components.findIndex(c => c.name === name);
+        if (index !== -1) {
+            ProjectConfig.config.components.splice(index, 1);
+            await ProjectConfig.save();
+        }
 
-        await ProjectConfig.save();
-
+        // Updating UI
         Editor.assetsWindow.removeAsset(relativeFilePath);
     }
+
 
     private static async copyTypesToDirectory(
         dirHandle: FileSystemDirectoryHandle,
