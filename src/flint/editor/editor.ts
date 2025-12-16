@@ -83,7 +83,6 @@ class ToolBarActions {
         if (await Project.buildAndRun()) {
             Notifier.notify("Project builded successfully.", "success");
         }
-
     }
 
 

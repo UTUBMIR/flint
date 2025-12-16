@@ -7,111 +7,94 @@ import Metadata from "../../shared/metadata";
 import { ProjectLoader } from "../../runtime/project-loader";
 import { AbstractFileSystem as AbstractFileSystem } from "../../shared/file-system";
 
-export class FileTracker {
-    private constructor() { }
+// export class FileTracker {
+//     private constructor() { }
 
-    static fileHashes = new Map<string, string>();
-    static intervalId: number | null = null;
+//     static timestamps = new Map<string, number>();
+//     static intervalId: number | null = null;
 
-    private static debounceTimer: number | null = null;
-    private static debounceDelay = 200; // auto adjustable
+//     private static debounceTimer: number | null = null;
+//     private static debounceDelay = 200; // auto adjustable
 
-    static async startWatchingDirectory(path = "") {
-        if (this.intervalId !== null) return;
+//     static async startWatchingDirectory(
+//         dirHandle: FileSystemDirectoryHandle
+//     ) {
+//         if (this.intervalId !== null) return;
 
-        this.intervalId = setInterval(async () => {
-            const updated = await this.directoryWasUpdated(path);
-            if (updated) {
-                this.scheduleRebuild();
-            }
-        }, this.debounceDelay);
-    }
+//         this.intervalId = setInterval(async () => {
+//             const updated = await this.directoryWasUpdated(dirHandle);
+//             if (updated) {
+//                 this.scheduleRebuild();
+//             }
+//         }, this.debounceDelay);
+//     }
 
-    static stopWatching() {
-        if (this.intervalId !== null) {
-            clearInterval(this.intervalId);
-            this.intervalId = null;
-        }
+//     static stopWatching() {
+//         if (this.intervalId !== null) {
+//             clearInterval(this.intervalId);
+//             this.intervalId = null;
+//         }
 
-        if (this.debounceTimer !== null) {
-            clearTimeout(this.debounceTimer);
-            this.debounceTimer = null;
-        }
-    }
+//         if (this.debounceTimer !== null) {
+//             clearTimeout(this.debounceTimer);
+//             this.debounceTimer = null;
+//         }
+//     }
 
-    private static scheduleRebuild() {
-        if (this.debounceTimer !== null) {
-            clearTimeout(this.debounceTimer);
-        }
+//     private static scheduleRebuild() {
+//         /* If timer already started -> stop it and start a new one */
+//         if (this.debounceTimer !== null) {
+//             clearTimeout(this.debounceTimer);
+//         }
 
-        this.debounceTimer = setTimeout(async () => {
-            const start = performance.now();
-            await Builder.buildForEditor(false);
-            const end = performance.now();
+//         this.debounceTimer = setTimeout(async () => {
+//             const start = performance.now();
+//             await Builder.buildForEditor(false);
+//             const end = performance.now();
 
-            FileTracker.debounceDelay = end - start;
-            this.stopWatching();
-            await this.startWatchingDirectory("");
+//             FileTracker.debounceDelay = end - start;
+//             this.stopWatching();
+//             this.startWatchingDirectory(Project.folderHandle);
 
-            this.debounceTimer = null;
-        }, this.debounceDelay);
-    }
+//             this.debounceTimer = null;
+//         }, this.debounceDelay);
+//     }
 
-    private static async directoryWasUpdated(currentPath: string): Promise<boolean> {
-        let anyUpdated = false;
-        let entries: string[];
+//     private static async directoryWasUpdated(
+//         dirHandle: FileSystemDirectoryHandle,
+//         currentPath = ""
+//     ) {
+//         let anyUpdated = false;
 
-        try {
-            entries = await System.fileSystem.listDir(currentPath);
-        } catch {
-            // If FS desn`t support listDir
-            return false;
-        }
+//         for await (const entry of dirHandle.values()) {
+//             const fullPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
 
-        for (const name of entries) {
-            const fullPath = currentPath ? `${currentPath}/${name}` : name;
+//             if (entry.kind === "file") {
+//                 if (fullPath.endsWith("metadata.json")) continue; // dont react on metadata updates
 
-            const isDir = await System.fileSystem.listDir(fullPath).then(() => true).catch(() => false);
+//                 const fileUpdated = await this.wasUpdated(fullPath, entry);
+//                 if (fileUpdated) anyUpdated = true;
+//             }
 
-            if (isDir) {
-                const subUpdated = await this.directoryWasUpdated(fullPath);
-                if (subUpdated) anyUpdated = true;
+//             if (entry.kind === "directory") {
+//                 const subUpdated = await this.directoryWasUpdated(entry, fullPath);
+//                 if (subUpdated) anyUpdated = true;
+//             }
+//         }
 
-                // Adding folder to tracker
-                continue;
-            }
+//         return anyUpdated;
+//     }
 
-            if (name === "metadata.json") continue;
+//     private static async wasUpdated(path: string, fileHandle: FileSystemFileHandle) {
+//         const file = await fileHandle.getFile();
+//         const newTimestamp = file.lastModified;
+//         const prevTimestamp = this.timestamps.get(path);
 
-            const updated = await this.wasUpdated(fullPath);
-            if (updated) anyUpdated = true;
-        }
+//         this.timestamps.set(path, newTimestamp);
 
-        return anyUpdated;
-    }
-
-    private static async wasUpdated(path: string): Promise<boolean> {
-        try {
-            const data = await System.fileSystem.readFile(path);
-            const hash = await this.hashData(data);
-            const prevHash = this.fileHashes.get(path);
-
-            this.fileHashes.set(path, hash);
-
-            return prevHash !== undefined && prevHash !== hash;
-        } catch {
-            return false; // File doesn`t exist or couldn`t read it
-        }
-    }
-
-    private static async hashData(data: Uint8Array): Promise<string> {
-        const hashBuffer = await crypto.subtle.digest("SHA-1", AbstractFileSystem.toArrayBuffer(data));
-        return Array.from(new Uint8Array(hashBuffer))
-            .map(b => b.toString(16).padStart(2, "0"))
-            .join("");
-    }
-}
-
+//         return prevTimestamp !== undefined && prevTimestamp !== newTimestamp;
+//     }
+// }
 
 
 export class Project {
@@ -231,7 +214,7 @@ export class Project {
             Editor.loadingDialogProgressBar.value = 0;
             Editor.loadingDialogProgressBar.indeterminate = false;
             Editor.loadingDialog.show();
-            await Project.copyTypesToDirectory(handle, window.location.href.replace(/index\.html$/, "") + "/types/", (total, loaded) => {
+            await Project.copyTypesToProject(window.location.href.replace(/index\.html$/, "") + "/types/", (total, loaded) => {
                 Editor.loadingDialogProgressBar.value = (loaded / total) * 100;
             });
         }
@@ -243,7 +226,7 @@ export class Project {
 
         Editor.loadingDialog.hide();
 
-        await FileTracker.startWatchingDirectory();
+        // await FileTracker.startWatchingDirectory();
         return wasCreated;
     }
 
@@ -386,8 +369,7 @@ export class ${name} extends Component {
     }
 
 
-    private static async copyTypesToDirectory(
-        dirHandle: FileSystemDirectoryHandle,
+    private static async copyTypesToProject(
         typesBaseUrl: string,
         callback?: (total: number, loaded: number) => void
     ) {
@@ -398,39 +380,30 @@ export class ${name} extends Component {
             ...(fileList.json || [])
         ];
 
-        const tasks: Promise<void>[] = [];
         let loaded = 0;
 
-        for (const filePath of allFiles) {
-            tasks.push((async () => {
-                const url = typesBaseUrl + filePath;
+        const tasks = allFiles.map(async (filePath) => {
+            const url = filePath.endsWith("d.ts")
+                ? typesBaseUrl + filePath
+                : typesBaseUrl.replace("types/", "src/") + filePath;
 
-                let response: Response;
-                if (filePath.endsWith("d.ts")) {
-                    response = await fetch(url);
-                } else {
-                    response = await fetch(typesBaseUrl.replace("types/", "src/") + filePath);
-                }
+            const content = await fetch(url).then(r => r.text());
 
+            const pathParts = filePath.split("/");
+            const fileName = pathParts.pop()!;
+            const dirPath = [...pathParts].filter(Boolean).join("/");
 
-                const content = await response.text();
+            if (dirPath) {
+                await System.fileSystem.createDir(dirPath); // create intermediate directories
+            }
 
-                const pathParts = filePath.split("/");
-                const fileName = pathParts.pop()!;
-                let currentDir = dirHandle;
+            await System.fileSystem.writeTextFile(
+                dirPath ? `${dirPath}/${fileName}` : fileName,
+                content
+            );
 
-                for (const folder of pathParts) {
-                    currentDir = await currentDir.getDirectoryHandle(folder, { create: true });
-                }
-
-                const fileHandle = await currentDir.getFileHandle(fileName, { create: true });
-                const writable = await fileHandle.createWritable();
-                await writable.write(content);
-                await writable.close();
-
-                if (callback) callback(allFiles.length, ++loaded);
-            })());
-        }
+            if (callback) callback(allFiles.length, ++loaded);
+        });
 
         await Promise.all(tasks);
         console.log("All type/json files copied!");

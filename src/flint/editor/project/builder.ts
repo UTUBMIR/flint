@@ -115,7 +115,7 @@ ${Builder.compiled}
 </script>
 </body>
 </html>`;
-            await System.fileSystem.writeTextFile("index.html", html);
+            await System.fileSystem.writeTextFile("build/index.html", html);
 
             const blob = new Blob([html], { type: "text/html" });
             const url = URL.createObjectURL(blob);

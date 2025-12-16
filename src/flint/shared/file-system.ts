@@ -93,18 +93,19 @@ export class BrowserFileSystem extends AbstractFileSystem {
     }
 
     private async getFileHandle(path: string, create = false) {
-        const { dir, name } = this.splitPath(path);
-        const dirHandle = await this.getDirHandle(dir);
+        const { dir, name } = this.splitPath(path); // filename is `name`
+        const dirHandle = await this.getDirHandle(dir); // only directories
         return dirHandle.getFileHandle(name, { create });
     }
 
     private async getDirHandle(path: string) {
         let current = this.rootHandle;
         for (const part of path.split("/").filter(Boolean)) {
-            current = await current.getDirectoryHandle(part, { create: true });
+            current = await current.getDirectoryHandle(part, { create: true }); // only directories
         }
         return current;
     }
+
 
     private splitPath(path: string) {
         const parts = path.split("/");
@@ -126,7 +127,6 @@ export class VirtualFileSystem extends AbstractFileSystem {
     async deleteDir(path: string, recursive = false): Promise<void> {
         path = path.replace(/\/+$/, "");
         if (recursive) {
-            // видаляємо всі файли і підпапки
             for (const key of [...this.files.keys()]) {
                 if (key.startsWith(path + "/")) this.files.delete(key);
             }
