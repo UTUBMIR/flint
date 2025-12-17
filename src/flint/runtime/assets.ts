@@ -1,86 +1,128 @@
 import { System, type UUID } from "./system";
 
-export class Asset {
-    public data: unknown;
+export enum AssetType {
+    Image,
+    Audio,
+    Json
 }
 
-export class ImageAsset extends Asset {
-    public declare data: typeof Image;
+export interface AssetMeta {
+    id: UUID;
+    type: AssetType;
+    url: string;
 }
 
-export class AudioAsset extends Asset {
-    public declare data: typeof AudioBuffer;
+export class RuntimeAsset<T> {
+    constructor(
+        public readonly id: UUID,
+        public data: T
+    ) { }
 }
 
-export class JsonAsset extends Asset {
-    public declare data: typeof AudioBuffer;
+export class AssetHandle<T> {
+    constructor(public readonly id: UUID = crypto.randomUUID()) { }
+
+    public get() {
+        return AssetRegistry.getRuntime<T>(this.id);
+    }
+
+    public request() {
+        return AssetRequestSystem.request(this.id);
+    }
 }
+
 
 export class AssetRegistry {
+    static meta = new Map<UUID, AssetMeta>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private static assets = new Map<UUID, any>();
+    static runtime = new Map<UUID, RuntimeAsset<any>>();
 
-    private constructor() {}
+    private constructor() { }
 
-    public static has(id: UUID) {
-        return this.assets.has(id);
+    static register(meta: AssetMeta) {
+        this.meta.set(meta.id, meta);
     }
 
-    public static get<T>(id: UUID): T {
-        return this.assets.get(id);
+    static hasRuntime(id: UUID) {
+        return this.runtime.has(id);
     }
 
-    public static set(id: UUID, asset: unknown) {
-        this.assets.set(id, asset);
+    static getRuntime<T>(id: UUID): T | undefined {
+        return this.runtime.get(id)?.data;
+    }
+
+    static serialize(): AssetMeta[] {
+        return [...this.meta.values()];
+    }
+
+    static loadSerialized(data: AssetMeta[]) {
+        this.meta.clear();
+        this.runtime.clear();
+
+        for (const asset of data) {
+            this.meta.set(asset.id, asset);
+        }
     }
 }
 
 export class AssetLoader {
-    private constructor() {}
+    private constructor() { }
 
-    public static async loadImage(id: UUID, url: string) {
+    static async load(meta: AssetMeta) {
+        switch (meta.type) {
+            case AssetType.Image:
+                await this.loadImage(meta);
+                break;
+            case AssetType.Audio:
+                await this.loadAudio(meta);
+                break;
+            case AssetType.Json:
+                await this.loadJson(meta);
+                break;
+        }
+    }
+
+    private static async loadImage(meta: AssetMeta) {
         const img = new Image();
-        img.src = url;
+        img.src = meta.url;
         await img.decode();
-        AssetRegistry.set(id, img);
-        return img;
+
+        const bitmap = await createImageBitmap(img);
+        AssetRegistry.runtime.set(meta.id, new RuntimeAsset(meta.id, bitmap));
     }
 
-    public static async loadAudio(id: UUID, url: string, ctx: AudioContext) {
-        const response = await fetch(url);
-        const data = await response.arrayBuffer();
-        const buffer = await ctx.decodeAudioData(data);
-        AssetRegistry.set(id, buffer);
-        return buffer;
+    private static async loadAudio(meta: AssetMeta) {
+        const res = await fetch(meta.url);
+        const data = await res.arrayBuffer();
+        const buffer = await System.audioContext.decodeAudioData(data);
+
+        AssetRegistry.runtime.set(meta.id, new RuntimeAsset(meta.id, buffer));
     }
 
-    public static async loadJSON(id: UUID, url: string) {
-        const data = await fetch(url).then(r => r.json());
-        AssetRegistry.set(id, data);
-        return data;
+    private static async loadJson(meta: AssetMeta) {
+        const json = await fetch(meta.url).then(r => r.json());
+        AssetRegistry.runtime.set(meta.id, new RuntimeAsset(meta.id, json));
     }
 }
 
 export class AssetRequestSystem {
-    private static pending = new Set<string>();
+    private static pending = new Set<UUID>();
 
-    private constructor() {}
+    private constructor() { }
 
-    public static requestAsset(id: UUID, url: string, type: "image" | "audio" | "json") {
-        if (AssetRegistry.has(id)) return;
+    static request(id: UUID) {
+        if (AssetRegistry.hasRuntime(id)) return;
+        if (this.pending.has(id)) return;
 
-        if (!this.pending.has(id)) {
-            this.pending.add(id);
-            this.load(id, url, type);
+        const meta = AssetRegistry.meta.get(id);
+        if (!meta) {
+            throw new Error(`Asset meta not found: ${id}`);
         }
-    }
 
-    private static async load(id: UUID, url: string, type: string) {
-        if (type === "image") await AssetLoader.loadImage(id, url);
-        if (type === "audio") await AssetLoader.loadAudio(id, url, System.audioContext);
-        if (type === "json") await AssetLoader.loadJSON(id, url);
+        this.pending.add(id);
 
-        this.pending.delete(id);
-        console.log(`Asset loaded during game: ${id}`);
+        return AssetLoader.load(meta).finally(() => {
+            this.pending.delete(id);
+        });
     }
 }

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { AssetRegistry } from "../../runtime/assets";
 import { System } from "../../runtime/system";
 import Input from "../../shared/input";
 import Metadata from "../../shared/metadata";
@@ -36,6 +37,12 @@ export default class ModuleLoader {
             Metadata.importFrom(loadedModule.Metadata);
             for (const key of Object.keys(Metadata)) {
                 loadedModule.Metadata[key] = (Metadata as any)[key];
+            }
+        }
+
+        if (loadedModule.AssetRegistry) {
+            for (const key of Object.keys(AssetRegistry)) {
+                loadedModule.AssetRegistry[key] = (AssetRegistry as any)[key];
             }
         }
 

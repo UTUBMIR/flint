@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Metadata, { MetadataKeys } from "../shared/metadata";
+import { AssetRegistry, type AssetMeta } from "./assets";
 import type Component from "./component";
 import GameObject from "./game-object";
 import Layer from "./layer";
@@ -7,11 +8,13 @@ import { System, type UUID } from "./system";
 import Transform from "./transform";
 
 export type RawProjectData = {
-    layers: { objects: { uuid: UUID, components: { name: string, data: any }[] }[] }[];
+    layers: { objects: { uuid: UUID, components: { name: string, data: any }[] }[] }[],
+    assets: AssetMeta[]
 };
 
 export type ProjectData = {
     layers: Layer[];
+    assets: AssetMeta[]
 };
 
 function restorePrototypesDeep(loaded: any, template: any): void {
@@ -57,7 +60,7 @@ export class ProjectLoader {
 
     public static deserialize(data: string): ProjectData {
         const raw = JSON.parse(data) as RawProjectData;
-        const parsed: ProjectData = { layers: [] };
+        const parsed: ProjectData = { layers: [], assets: raw.assets };
 
         for (const layer of raw.layers) {
             const gameLayer = new Layer();
@@ -91,12 +94,13 @@ export class ProjectLoader {
             }
             parsed.layers.push(gameLayer);
         }
+
         return parsed;
     }
 
 
     public static serialize(data: ProjectData): string {
-        const raw: RawProjectData = { layers: [] };
+        const raw: RawProjectData = { layers: [], assets: data.assets };
 
         for (const layer of data.layers) {
             const rawLayer: { objects: { uuid: UUID, components: { name: string, data: any }[] }[] } = { objects: [] };
@@ -107,8 +111,9 @@ export class ProjectLoader {
                     const rawComp: { name: string, data: any } = { name: comp.constructor.name, data: {} };
 
                     for (const key of Object.keys(comp)) {
-                        if (Metadata.getField(comp, key, MetadataKeys.NonSerialized)) continue; // to avoid circular reference
-                        rawComp.data[key] = (comp as any)[key]; // TODO: Add an automated way to ignore fields (something like @noSerialize)
+                        if (Metadata.getField(comp, key, MetadataKeys.NonSerialized)) continue;
+
+                        rawComp.data[key] = (comp as any)[key];
                     }
                     rawObject.components.push(rawComp);
                 }
@@ -116,6 +121,7 @@ export class ProjectLoader {
             }
             raw.layers.push(rawLayer);
         }
+
         return JSON.stringify(raw);
     }
 
@@ -124,5 +130,7 @@ export class ProjectLoader {
         for (const layer of project.layers) {
             System.pushLayer(layer);
         }
+
+        AssetRegistry.loadSerialized(project.assets);
     }
 }

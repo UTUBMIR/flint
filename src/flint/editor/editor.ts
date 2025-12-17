@@ -97,8 +97,8 @@ class ToolBarActions {
             }
         }
         else {
+            System.runRenderingOnly();
             if (await Project.stop()) {
-                System.runRenderingOnly();
                 Notifier.notify("Project stopped.", "primary");
             }
         }

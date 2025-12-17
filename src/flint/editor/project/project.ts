@@ -6,6 +6,7 @@ import { System, type UUID } from "../../runtime/system";
 import Metadata from "../../shared/metadata";
 import { ProjectLoader } from "../../runtime/project-loader";
 import { AbstractFileSystem as AbstractFileSystem } from "../../shared/file-system";
+import { AssetRegistry } from "../../runtime/assets";
 
 // export class FileTracker {
 //     private constructor() { }
@@ -166,7 +167,7 @@ export class Project {
     }
 
     public static async saveProject() {
-        const data = ProjectLoader.serialize({ layers: System.layers });
+        const data = ProjectLoader.serialize({ layers: System.layers, assets: AssetRegistry.serialize() });
         const blob = new Blob([data], { type: "text/plain" });
         const cs = new CompressionStream("gzip");
         const compressed = new Response(blob.stream().pipeThrough(cs));

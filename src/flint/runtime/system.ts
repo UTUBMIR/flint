@@ -146,6 +146,7 @@ export class System {
     }
 
     public static run() {
+        System.sendStart();
         requestAnimationFrame(System.mainTick);
         System.lastFrame = performance.now();
         System._runningState = RunningState.Running;
@@ -188,6 +189,12 @@ export class System {
 
         if (System._runningState === RunningState.RunningRenderingOnly) {
             requestAnimationFrame(System.renderOnlyTick);
+        }
+    }
+
+    private static sendStart() {
+        for (let i = 0; i < System.layers.length; ++i) {
+            System.layers[i]!.start();
         }
     }
 
