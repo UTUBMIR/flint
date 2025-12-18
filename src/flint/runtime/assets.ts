@@ -10,6 +10,7 @@ export interface AssetMeta {
     id: UUID;
     type: AssetType;
     url: string;
+    preload: boolean;
 }
 
 export class RuntimeAsset<T> {
@@ -61,6 +62,9 @@ export class AssetRegistry {
 
         for (const asset of data) {
             this.meta.set(asset.id, asset);
+            if (asset.preload) {
+                AssetRequestSystem.request(asset.id);
+            }
         }
     }
 }
