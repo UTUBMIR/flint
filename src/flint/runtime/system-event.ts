@@ -63,7 +63,7 @@ export class SystemEventEmitter {
 
     public removeEventListener(listener: SystemEventListener): void {
         const index = this.listeners.indexOf(listener);
-        if (index != -1) {
+        if (index !== -1) {
             this.listeners.splice(index, 1);
         }
     }
