@@ -88,7 +88,6 @@ class ToolBarActions {
 
     public static async compile() {
         try {
-            await Project.saveProject();
             if (await Builder.buildForEditor(true)) {
                 Notifier.notify("Project compiled successfully.", "success");
             }
