@@ -36,6 +36,11 @@
                         </sl-menu-item>
 
                         <sl-menu-label>Export</sl-menu-label>
+                        <sl-menu-item id="compile-button" value="compile">
+                            <sl-icon slot="prefix" name="arrow-clockwise"></sl-icon>
+                            Compile
+                            <span slot="suffix" class="shortcut">Ctrl+Q</span>
+                        </sl-menu-item>
                         <sl-menu-item id="build-and-run-button" value="build-and-run">
                             <sl-icon slot="prefix" name="controller"></sl-icon>
                             Build & Run
@@ -103,7 +108,8 @@
                                         <sl-icon slot="prefix" name="box"></sl-icon>
                                         New GameObject
                                     </sl-menu-item>
-                                    <sl-menu-item class="danger-background danger-label danger-prefix" id="delete-button" value="delete">
+                                    <sl-menu-item class="danger-background danger-label danger-prefix"
+                                        id="delete-button" value="delete">
                                         <sl-icon slot="prefix" name="trash"></sl-icon>
                                         Delete
                                     </sl-menu-item>

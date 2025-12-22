@@ -11,6 +11,7 @@ import Camera from "../runtime/components/camera";
 import Shape from "../runtime/components/shape";
 import Transform from "../runtime/transform";
 import { System } from "../runtime/system";
+import { Builder } from "./project/builder";
 
 export type DropdownType = HTMLElement & {
     show: () => void;
@@ -85,6 +86,18 @@ class ToolBarActions {
         }
     }
 
+    public static async compile() {
+        try {
+            await Project.saveProject();
+            if (await Builder.buildForEditor(true)) {
+                Notifier.notify("Project compiled successfully.", "success");
+            }
+        }
+        catch (e: unknown) {
+            Notifier.notify("Could not save the project: " + e, "warning");
+        }
+
+    }
 
     public static async runProject() {
         const start = Editor.runButtonIcon.name === "play";
@@ -166,7 +179,6 @@ export default class Editor {
             document.addEventListener("keydown", async function (event) {
                 if (event.ctrlKey && event.code === "KeyS") {
                     event.preventDefault();
-                    event.stopImmediatePropagation();
                     await ToolBarActions.saveProject();
                 }
             }, true);
@@ -175,8 +187,15 @@ export default class Editor {
             document.addEventListener("keydown", async function (event) {
                 if (event.ctrlKey && event.code === "KeyB") {
                     event.preventDefault();
-                    event.stopImmediatePropagation();
                     await ToolBarActions.buildAndRun();
+                }
+            }, true);
+
+            document.getElementById("compile-button")!.addEventListener("click", ToolBarActions.compile);
+            document.addEventListener("keydown", async function (event) {
+                if (event.ctrlKey && event.code === "KeyQ") {
+                    event.preventDefault();
+                    await ToolBarActions.compile();
                 }
             }, true);
 
