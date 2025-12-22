@@ -23,7 +23,8 @@
         "noImplicitOverride": true
     },
     "include": [
-        "src"
+        "src",
+        "eslint.config.js"
     ],
     "exclude": [
         "dist",

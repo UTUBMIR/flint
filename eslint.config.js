@@ -17,7 +17,6 @@ export default defineConfig([
             ...tseslint.configs.recommended,
         ],
     },
-    tseslint.configs.recommended,
     {
         rules: {
             "semi": ["error", "always"],
