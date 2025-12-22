@@ -147,14 +147,14 @@ export class System {
 
     public static run() {
         System.sendStart();
-        requestAnimationFrame(System.mainTick);
         System.lastFrame = performance.now();
+        requestAnimationFrame(System.mainTick);
         System._runningState = RunningState.Running;
     }
 
     public static runRenderingOnly() {
-        requestAnimationFrame(System.renderOnlyTick);
         System.lastFrame = performance.now();
+        requestAnimationFrame(System.renderOnlyTick);
         System._runningState = RunningState.RunningRenderingOnly;
     }
 
