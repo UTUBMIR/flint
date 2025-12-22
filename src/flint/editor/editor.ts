@@ -94,7 +94,7 @@ class ToolBarActions {
             }
         }
         catch (e: unknown) {
-            Notifier.notify("Could not save the project: " + e, "warning");
+            Notifier.notify("Could not compile the project: " + e, "warning");
         }
 
     }
