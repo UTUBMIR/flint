@@ -128,7 +128,6 @@ export class ProjectLoader {
     public static load(project: ProjectData): void {
         for (const layer of System.layers) {
             System.removeLayer(layer);
-            layer.destroy();
         }
 
         for (const layer of project.layers) {

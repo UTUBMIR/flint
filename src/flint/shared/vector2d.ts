@@ -7,7 +7,7 @@ export default class Vector2D implements IVector {
     public y: number = 0;
 
     public constructor();
-    public constructor(x: number);
+    public constructor(z: number);
     public constructor(x: number, y: number);
     public constructor(x: number = 0, y?: number) {
         this.x = x;

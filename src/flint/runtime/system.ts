@@ -121,9 +121,14 @@ export class System {
 
         this.rootDiv.addEventListener('contextmenu', event => event.preventDefault());
 
-
         for (const event of ["mousedown", "mouseup", "mousemove", "touchstart", "touchmove", "touchend"]) {
             document.addEventListener(event, this.sendEventToLayers.bind(this));
+        }
+
+        if (!crypto.randomUUID) {
+            crypto.randomUUID = function () {
+                return Math.random().toString() + performance.now() as UUID;
+            };
         }
     }
 
@@ -143,7 +148,7 @@ export class System {
     public static removeLayer(layer: Layer): void {
         const index = System.layers.indexOf(layer);
         if (index !== -1) System.layers.splice(index, 1);
-        layer.detach();
+        layer.destroy();
     }
 
     public static run() {
