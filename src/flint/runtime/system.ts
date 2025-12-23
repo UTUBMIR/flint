@@ -143,6 +143,7 @@ export class System {
     public static removeLayer(layer: Layer): void {
         const index = System.layers.indexOf(layer);
         if (index !== -1) System.layers.splice(index, 1);
+        layer.detach();
     }
 
     public static run() {
@@ -232,12 +233,18 @@ export class System {
     }
 
     private static addResizing(canvas: HTMLCanvasElement) {
+        const resize = () => {
+            canvas.width = +(this.rootDiv.clientWidth);
+            canvas.height = +(this.rootDiv.clientHeight);
+        };
+
         const ro = new ResizeObserver(() => {
             setTimeout(() => {
-                canvas.width = +(this.rootDiv.clientWidth);
-                canvas.height = +(this.rootDiv.clientHeight);
+                resize();
             }, 0);
         });
+        resize();
+
         ro.observe(this.rootDiv);
     }
 

@@ -51,6 +51,7 @@ export default class Layer {
 
     public destroy(): void {
         for (const obj of this.objects) obj.destroy();
+        this.canvas.element.remove();
     }
 
     protected updateObjects(): void {
