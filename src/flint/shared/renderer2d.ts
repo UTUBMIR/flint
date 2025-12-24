@@ -1,6 +1,6 @@
 import { type IRenderer } from "./irenderer";
 import { type ColorString, type TextAlign, type TextBaseLine } from "./graphics";
-import type Vector2D from "./vector2d";
+import type Vector2 from "./vector2";
 
 export class Renderer2D implements IRenderer {
     public canvas!: HTMLCanvasElement;
@@ -64,7 +64,7 @@ export class Renderer2D implements IRenderer {
         this.ctx.resetTransform();
     }
 
-    translate(position: Vector2D): void {
+    translate(position: Vector2): void {
         this.ctx.translate(position.x, position.y);
     }
 
@@ -94,19 +94,19 @@ export class Renderer2D implements IRenderer {
         this.ctx.restore();
     }
 
-    public fillRect(position: Vector2D, size: Vector2D): void {
+    public fillRect(position: Vector2, size: Vector2): void {
         this.ctx.fillRect(position.x, position.y, size.x, size.y);
     }
 
-    public strokeRect(position: Vector2D, size: Vector2D): void {
+    public strokeRect(position: Vector2, size: Vector2): void {
         this.ctx.strokeRect(position.x - this.ctx.lineWidth / 2, position.y - this.ctx.lineWidth / 2, size.x + this.ctx.lineWidth, size.y + this.ctx.lineWidth);
     }
 
-    public fillText(position: Vector2D, text: string): void {
+    public fillText(position: Vector2, text: string): void {
         this.ctx.fillText(text, position.x, position.y);
     }
 
-    public strokeText(position: Vector2D, text: string): void {
+    public strokeText(position: Vector2, text: string): void {
         this.ctx.strokeText(text, position.x, position.y);
     }
 

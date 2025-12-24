@@ -2,14 +2,14 @@ import type { SystemEvent } from "../runtime/system-event";
 import type { ColorString } from "../shared/graphics";
 import type { IRenderer } from "../shared/irenderer";
 import { Rect } from "../shared/primitives";
-import Vector2D from "../shared/vector2d";
+import Vector2 from "../shared/vector2";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
 import { Button } from "./interaction";
 
 
 export class Toolbar {
     public static readonly height: number = 25;
-    public size: Vector2D = new Vector2D();
+    public size: Vector2 = new Vector2();
     public readonly tabs: ToolbarTab[] = [];
 
     public addTab(item: ToolbarTab) {
@@ -32,7 +32,7 @@ export class Toolbar {
 
     public onRender(r: IRenderer) {
         r.fillColor = visualsConfig.colors.toolbarColor as ColorString;
-        r.fillRect(Vector2D.zero, this.size);
+        r.fillRect(Vector2.zero, this.size);
 
         for (const item of this.tabs) {
             item.onRender(r);

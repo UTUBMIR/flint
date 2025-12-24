@@ -1,5 +1,5 @@
 import type { IRenderer } from "../shared/irenderer";
-import Vector2D from "../shared/vector2d";
+import Vector2 from "../shared/vector2";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
 import type { ColorString } from "../shared/graphics";
 import { Rect } from "../shared/primitives";
@@ -8,29 +8,29 @@ import type { SystemEvent } from "../runtime/system-event";
 
 export default abstract class Window {
     public rect: Rect;
-    public dragOffset: Vector2D = new Vector2D();
+    public dragOffset: Vector2 = new Vector2();
     public static readonly borderWidth = 5;
-    protected minSize = new Vector2D(100, 100);
+    protected minSize = new Vector2(100, 100);
     public static readonly titleBarHeight = 20;
 
-    public get position(): Vector2D {
+    public get position(): Vector2 {
         return this.rect.position;
     }
-    public set position(value: Vector2D) {
+    public set position(value: Vector2) {
         this.rect.position = value;
     }
 
-    public get size(): Vector2D {
+    public get size(): Vector2 {
         return this.rect.size;
     }
-    public set size(value: Vector2D) {
+    public set size(value: Vector2) {
         this.rect.size = value;
     }
 
     public readonly title: string;
 
-    public constructor(position?: Vector2D, size?: Vector2D, title: string = "new window") {
-        this.rect = new Rect(position ?? new Vector2D(), size ?? new Vector2D(100, 100));
+    public constructor(position?: Vector2, size?: Vector2, title: string = "new window") {
+        this.rect = new Rect(position ?? new Vector2(), size ?? new Vector2(100, 100));
         this.title = title;
     }
 
@@ -51,7 +51,7 @@ export default abstract class Window {
         r.fillRect(this.position, this.size);
 
         r.fillColor = visualsConfig.colors.titleColor as ColorString;
-        r.fillRect(this.position, new Vector2D(this.rect.width, Window.titleBarHeight));
+        r.fillRect(this.position, new Vector2(this.rect.width, Window.titleBarHeight));
 
 
 
@@ -65,7 +65,7 @@ export default abstract class Window {
         r.fontSize = 16;
 
 
-        r.fillText(this.position.add(new Vector2D(5, Window.titleBarHeight / 2)), this.title);
+        r.fillText(this.position.add(new Vector2(5, Window.titleBarHeight / 2)), this.title);
     }
 
     public onRender(r: IRenderer) {

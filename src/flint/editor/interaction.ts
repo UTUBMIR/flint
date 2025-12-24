@@ -2,7 +2,7 @@ import type { SystemEvent } from "../runtime/system-event";
 import Input from "../shared/input";
 import type { IRenderer } from "../shared/irenderer";
 import { Rect } from "../shared/primitives";
-import Vector2D from "../shared/vector2d";
+import Vector2 from "../shared/vector2";
 import Editor from "./editor";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
 import type { ColorString } from "../shared/graphics";
@@ -11,22 +11,22 @@ import { System } from "../runtime/system";
 
 export class Drag {
     public rect: Rect;
-    public dragOffset: Vector2D = new Vector2D();
+    public dragOffset: Vector2 = new Vector2();
 
     public hoveredCursor: string = "grab";
     public draggedCursor: string = "grabbing";
 
-    public get position(): Vector2D {
+    public get position(): Vector2 {
         return this.rect.position;
     }
-    public set position(value: Vector2D) {
+    public set position(value: Vector2) {
         this.rect.position = value;
     }
 
-    public get size(): Vector2D {
+    public get size(): Vector2 {
         return this.rect.size;
     }
-    public set size(value: Vector2D) {
+    public set size(value: Vector2) {
         this.rect.size = value;
     }
 
@@ -71,8 +71,8 @@ export class Drag {
 
             this.rect.clamp(
                 new Rect(
-                    new Vector2D(0, 0),
-                    new Vector2D(window.innerWidth, window.innerHeight)
+                    new Vector2(0, 0),
+                    new Vector2(window.innerWidth, window.innerHeight)
                 )
             );
             System.setCursor(this.draggedCursor);
@@ -107,17 +107,17 @@ export class Click {
     public pressed: boolean = false;
     public hovered: boolean = false;
 
-    public get position(): Vector2D {
+    public get position(): Vector2 {
         return this.rect.position;
     }
-    public set position(value: Vector2D) {
+    public set position(value: Vector2) {
         this.rect.position = value;
     }
 
-    public get size(): Vector2D {
+    public get size(): Vector2 {
         return this.rect.size;
     }
-    public set size(value: Vector2D) {
+    public set size(value: Vector2) {
         this.rect.size = value;
     }
 
@@ -265,7 +265,7 @@ export class Tree {
         this.button.onRender(r);
 
         r.fillColor = "#fff";
-        const c = this.rect.position.add(new Vector2D(this.rect.size.y / 2));
+        const c = this.rect.position.add(new Vector2(this.rect.size.y / 2));
 
         if (this.open) {
             r.fillPolygon([

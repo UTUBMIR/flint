@@ -2,7 +2,7 @@
 import type { IRenderer } from "../../shared/irenderer";
 import type { ColorString } from "../../shared/graphics";
 import { FieldRenderer } from "../../editor/component-builder";
-import Vector2D from "../../shared/vector2d";
+import Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
 
 export default class Shape extends RendererComponent {
@@ -24,7 +24,7 @@ export default class Shape extends RendererComponent {
 
         renderer.translate(this.transform.position);
         renderer.rotate(this.transform.angle);
-        renderer.translate(Vector2D.zero.subtract(this.transform.position));
+        renderer.translate(Vector2.zero.subtract(this.transform.position));
 
         renderer.shadowColor = this.shadowColor;
         renderer.shadowBlur = 20;
@@ -36,6 +36,6 @@ export default class Shape extends RendererComponent {
 
         renderer.translate(this.transform.position);
         renderer.rotate(-this.transform.angle);
-        renderer.translate(Vector2D.zero.subtract(this.transform.position));
+        renderer.translate(Vector2.zero.subtract(this.transform.position));
     }
 }

@@ -3,7 +3,7 @@ import { type IRenderer } from "../shared/irenderer";
 import { RenderSystem, RunningState, System, type Canvas } from "./system";
 import { SystemEventEmitter, SystemEvent } from "./system-event";
 import type Camera from "./components/camera";
-import Vector2D from "../shared/vector2d";
+import Vector2 from "../shared/vector2";
 
 export default class Layer {
     public canvas!: Canvas;
@@ -71,11 +71,11 @@ export default class Layer {
                 this.renderer.fillCanvas();
                 this.renderer.resetTransform();
 
-                const canvasHalf = new Vector2D(this.canvas.ctx.canvas.width, this.canvas.ctx.canvas.height).divide(2);
+                const canvasHalf = new Vector2(this.canvas.ctx.canvas.width, this.canvas.ctx.canvas.height).divide(2);
 
                 this.renderer.translate(canvasHalf);
                 this.renderer.rotate(camera.angle);
-                this.renderer.translate(Vector2D.zero.subtract(camera.position));
+                this.renderer.translate(Vector2.zero.subtract(camera.position));
 
                 this.renderSystem.render(this.renderer);
             }

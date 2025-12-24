@@ -1,5 +1,5 @@
 import { type ColorString, type TextAlign, type TextBaseLine } from "./graphics";
-import type Vector2D from "./vector2d";
+import type Vector2 from "./vector2";
 
 export interface IRenderer {
     canvas: HTMLCanvasElement;
@@ -25,17 +25,17 @@ export interface IRenderer {
 
     resetTransform(): void;
 
-    translate(position: Vector2D): void;
+    translate(position: Vector2): void;
     rotate(angle: number): void;
 
     clearCanvas(): void;
     fillCanvas(): void;
 
-    fillRect(position: Vector2D, size: Vector2D): void;
-    strokeRect(position: Vector2D, size: Vector2D): void;
+    fillRect(position: Vector2, size: Vector2): void;
+    strokeRect(position: Vector2, size: Vector2): void;
 
-    fillText(position: Vector2D, text: string): void;
-    strokeText(position: Vector2D, text: string): void;
+    fillText(position: Vector2, text: string): void;
+    strokeText(position: Vector2, text: string): void;
 
     fillPolygon(vertices: {x: number, y: number}[]): void;
     strokePolygon(vertices: {x: number, y: number}[]): void;

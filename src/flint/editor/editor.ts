@@ -1,6 +1,6 @@
 import GameObject from "../runtime/game-object";
 import Layer from "../runtime/layer";
-import Vector2D from "../shared/vector2d";
+import Vector2 from "../shared/vector2";
 import Bundler from "./project/bundler";
 import { Project } from "./project/project";
 import Assets from "./windows/assets";
@@ -219,7 +219,7 @@ export default class Editor {
             new Shape()
         ], new Transform(
             undefined,
-            new Vector2D(100, 100)
+            new Vector2(100, 100)
         ));
         EditorName("Rect")(rect);
 

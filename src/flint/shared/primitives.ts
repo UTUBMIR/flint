@@ -1,8 +1,8 @@
-import Vector2D from "./vector2d";
+import Vector2 from "./vector2";
 
 export class Rect {
-    public position: Vector2D;
-    public size: Vector2D;
+    public position: Vector2;
+    public size: Vector2;
 
     public get x() {
         return this.position.x;
@@ -34,15 +34,15 @@ export class Rect {
 
 
     constructor();
-    constructor(position: Vector2D, size: Vector2D);
+    constructor(position: Vector2, size: Vector2);
     constructor(x: number, y: number, width: number, height: number);
     constructor(
-        a?: Vector2D | number,
-        b?: Vector2D | number,
+        a?: Vector2 | number,
+        b?: Vector2 | number,
         c?: number,
         d?: number
     ) {
-        if (a instanceof Vector2D && b instanceof Vector2D) {
+        if (a instanceof Vector2 && b instanceof Vector2) {
             this.position = a;
             this.size = b;
         } else {
@@ -50,13 +50,13 @@ export class Rect {
             const y = typeof b === "number" ? b : 0;
             const w = typeof c === "number" ? c : 0;
             const h = typeof d === "number" ? d : 0;
-            this.position = new Vector2D(x, y);
-            this.size = new Vector2D(w, h);
+            this.position = new Vector2(x, y);
+            this.size = new Vector2(w, h);
         }
     }
 
 
-    public contains(point: Vector2D): boolean {
+    public contains(point: Vector2): boolean {
         return point.x >= this.x &&
             point.x <= this.x + this.width &&
             point.y >= this.y &&

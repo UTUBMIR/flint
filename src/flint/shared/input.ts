@@ -1,12 +1,12 @@
 import type InputAxis from "./input-axis";
-import Vector2D from "./vector2d";
+import Vector2 from "./vector2";
 
 export default class Input {
     public static pressedKeys = new Set<string>();
     public static pressedMouseButtons = new Set<number>();
 
     public static inputAxes: InputAxis[] = []; //TODO: make private
-    public static mousePosition: Vector2D = new Vector2D(window.innerWidth / 2, window.innerHeight / 2);
+    public static mousePosition: Vector2 = new Vector2(window.innerWidth / 2, window.innerHeight / 2);
 
     private constructor() { }
 

@@ -1,6 +1,6 @@
 import { FieldRenderer } from "../../editor/component-builder";
 import type { ColorString } from "../../shared/graphics";
-import type Vector2D from "../../shared/vector2d";
+import type Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
 
 export default class Camera extends RendererComponent  {
@@ -9,7 +9,7 @@ export default class Camera extends RendererComponent  {
     @FieldRenderer("color")
     public backgroundColor: ColorString = "#222" as ColorString;
 
-    public get position(): Vector2D {
+    public get position(): Vector2 {
         return this.transform.position;
     }
 

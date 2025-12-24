@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Vector2D from "../../shared/vector2d";
+import Vector2 from "../../shared/vector2";
 import type GameObject from "../../runtime/game-object";
 import Editor, { Notifier } from "../editor";
 import type Component from "../../runtime/component";
@@ -28,7 +28,7 @@ class InspectorComponent {
 
 
 export default class Inspector {
-    protected minSize: Vector2D = new Vector2D(250, 100);
+    protected minSize: Vector2 = new Vector2(250, 100);
     // private tree: Tree = new Tree(this.rect);
     public currentObject: GameObject | undefined;
     private components: InspectorComponent[] = [];
