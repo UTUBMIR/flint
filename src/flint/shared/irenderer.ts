@@ -1,6 +1,8 @@
 import { type ColorString, type TextAlign, type TextBaseLine } from "./graphics";
 import type Vector2 from "./vector2";
 
+export type DrawableImage = HTMLCanvasElement | HTMLOrSVGImageElement | HTMLVideoElement | ImageBitmap | OffscreenCanvas | VideoFrame;
+
 export interface IRenderer {
     canvas: HTMLCanvasElement;
     ctx: RenderingContext;
@@ -39,4 +41,6 @@ export interface IRenderer {
 
     fillPolygon(vertices: {x: number, y: number}[]): void;
     strokePolygon(vertices: {x: number, y: number}[]): void;
+
+    drawImage(image: DrawableImage, dx: number, dy: number): void;
 }

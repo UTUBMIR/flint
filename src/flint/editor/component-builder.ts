@@ -23,7 +23,7 @@ export function FieldRenderer(renderer: string) {
 }
 
 /**
- * Hides field from inspector
+ * Explicitly hides field from inspector
  */
 export function HideInInspector() {
     return (target: any, key: string) => {
@@ -31,6 +31,14 @@ export function HideInInspector() {
     };
 }
 
+/**
+ * Explicitly shows field to inspector
+ */
+export function ShowInInspector() {
+    return (target: any, key: string) => {
+        Metadata.setField(target, key, MetadataKeys.HideInInspector, false);
+    };
+}
 
 export class RendererRegistry {
     private static renderers: FieldRenderer[] = [];
@@ -196,7 +204,8 @@ export class ComponentBuilder {
         treeItem.textContent = this.lastKey(path) || "root";
 
         for (const key of Object.keys(obj)) {
-            if (Metadata.getField(obj, key, MetadataKeys.HideInInspector)) continue;
+            if (Metadata.getField(root, key, MetadataKeys.HideInInspector) ??
+                Metadata.getField(root, key, MetadataKeys.NonSerialized)) continue;
 
             const childPath = [...path, key];
             const child = this.field(root, childPath);
@@ -223,7 +232,8 @@ export class ComponentBuilder {
         const tree = document.createElement("sl-tree");
 
         for (const key of Object.keys(root)) {
-            if (Metadata.getField(root, key, MetadataKeys.HideInInspector)) continue;
+            if (Metadata.getField(root, key, MetadataKeys.HideInInspector) ??
+                Metadata.getField(root, key, MetadataKeys.NonSerialized)) continue;
 
             const childPath = [key];
             const childField = this.field(root, childPath);

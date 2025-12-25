@@ -130,7 +130,7 @@ export class Project {
 
     public static async stop() {
         const success = await Project.loadProject();
-        Editor.hierarchyWindow.onUpdate();
+        Editor.hierarchyWindow.update();
 
         if (Editor.inspectorWindow.currentObject) {
             Editor.inspectorWindow.currentObject = System.getGameObjectById(Editor.inspectorWindow.currentObject.uuid);
@@ -141,25 +141,25 @@ export class Project {
     public static async openProject(folderHandle: FileSystemDirectoryHandle) {
         await Project.startupProject(folderHandle);
         await Project.loadProject();
-        Editor.hierarchyWindow.onUpdate();
+        Editor.hierarchyWindow.update();
 
-        setInterval(async () => {
-            await Project.saveProject();
-        }, 60000); // FIXME: implement autosave in a better way
+        // setInterval(async () => {
+        //     await Project.saveProject();
+        // }, 60000); // FIXME: implement autosave in a better way
     }
 
     public static async newProject(folderHandle: FileSystemDirectoryHandle) {
         if (await Project.startupProject(folderHandle) || !await Project.loadProject()) {
             System.pushLayer(Editor.defaultLayer);
-            Editor.hierarchyWindow.onUpdate();
+            Editor.hierarchyWindow.update();
         }
 
         await Project.saveProject();
-        Editor.hierarchyWindow.onUpdate();
+        Editor.hierarchyWindow.update();
 
-        setInterval(async () => {
-            await Project.saveProject();
-        }, 60000); // FIXME: implement autosave in a better way
+        // setInterval(async () => {
+        //     await Project.saveProject();
+        // }, 60000); // FIXME: implement autosave in a better way
     }
 
     public static async buildAndRun() {
@@ -195,7 +195,7 @@ export class Project {
 
             const projectData = ProjectLoader.deserialize(decoded);
 
-            ProjectLoader.load(projectData);
+            await ProjectLoader.load(projectData);
             return true;
         } catch (e) {
             console.log("could not load the project:", e);

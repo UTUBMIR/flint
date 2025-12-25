@@ -13,6 +13,8 @@ import Shape from "./components/shape";
 import type GameObject from "./game-object";
 import type RendererComponent from "./renderer-component";
 import { type AbstractFileSystem } from "../shared/file-system";
+import Image from "./components/image";
+import { TimerSystem } from "./timers";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -29,6 +31,7 @@ type PlayConfig = {
 export enum RunningState {
     Stopped,
     Running,
+    RunningPaused,
     RunningRenderingOnly
 }
 
@@ -108,6 +111,7 @@ export class System {
     private static addBasicComponents() {
         this.components.set("Camera", Camera);
         this.components.set("Shape", Shape);
+        this.components.set("Image", Image);
     }
 
     public static init(renderer: IRenderer, fileSystem: AbstractFileSystem): void {
@@ -130,6 +134,22 @@ export class System {
                 return Math.random().toString() + performance.now() as UUID;
             };
         }
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                TimerSystem.pause();
+                if (System._runningState === RunningState.Running) {
+                    System._runningState = RunningState.RunningPaused;
+                }
+            }
+            else {
+                TimerSystem.resume();
+                if (System._runningState === RunningState.RunningPaused) {
+                    System.run(false);
+                }
+            }
+        });
+
     }
 
     public static pushLayer(layer: Layer): void {
@@ -151,8 +171,10 @@ export class System {
         layer.destroy();
     }
 
-    public static run() {
-        System.sendStart();
+    public static run(sendStart = true) {
+        if (sendStart) {
+            System.sendStart();
+        }
         System.lastFrame = performance.now();
         requestAnimationFrame(System.mainTick);
         System._runningState = RunningState.Running;
@@ -179,6 +201,8 @@ export class System {
         for (let i = 0; i < System.layers.length; ++i) {
             System.layers[i]!.render();
         }
+
+        TimerSystem.update(System._deltaTime);
 
         if (System._runningState === RunningState.Running) {
             requestAnimationFrame(System.mainTick);

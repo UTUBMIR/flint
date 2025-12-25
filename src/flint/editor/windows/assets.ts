@@ -34,7 +34,21 @@ export default class Assets {
 
         this.setupButtons();
         this.setupContextMenu();
+        this.setupToolbar();
         this.renderCurrentFolder();
+    }
+
+    private setupToolbar() {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const createAssetDialog: any = document.getElementById("create-asset-dialog")!;
+        const createButton = createAssetDialog!.querySelector("sl-button");
+        const createInput = createAssetDialog!.querySelector("sl-input");
+
+        document.getElementById("new-asset-button")!.addEventListener("click", function () {
+            createButton.disabled = true;
+            createInput.value = "";
+            createAssetDialog.show();
+        });
     }
 
     private setupButtons() {

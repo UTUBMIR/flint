@@ -1,4 +1,4 @@
-import { type IRenderer } from "./irenderer";
+import { type DrawableImage, type IRenderer } from "./irenderer";
 import { type ColorString, type TextAlign, type TextBaseLine } from "./graphics";
 import type Vector2 from "./vector2";
 
@@ -136,5 +136,9 @@ export class Renderer2D implements IRenderer {
     public strokePolygon(vertices: { x: number, y: number }[]): void {
         this.makePath(vertices);
         this.ctx.stroke();
+    }
+
+    public drawImage(image: DrawableImage, dx: number = 0, dy: number = 0) {
+        this.ctx.drawImage(image, dx, dy);
     }
 }

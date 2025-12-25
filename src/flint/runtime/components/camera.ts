@@ -14,7 +14,7 @@ export default class Camera extends RendererComponent  {
     }
 
     public get angle(): number {
-        return this.transform.angle;
+        return this.transform.rotation;
     }
 
     //TODO: implement camera stuff

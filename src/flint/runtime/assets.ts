@@ -23,8 +23,16 @@ export class RuntimeAsset<T> {
 export class AssetHandle<T> {
     constructor(public readonly id: UUID = crypto.randomUUID()) { }
 
-    public get() {
+    public get value() {
         return AssetRegistry.getRuntime<T>(this.id);
+    }
+
+    public get() {
+        const asset = AssetRegistry.getRuntime<T>(this.id);
+        if (!asset) {
+            throw new Error(`Asset not loaded: ${this.id}`);
+        }
+        return asset;
     }
 
     public request() {
@@ -62,6 +70,7 @@ export class AssetRegistry {
 
         for (const asset of data) {
             this.meta.set(asset.id, asset);
+            AssetRegistry.register(asset);
             if (asset.preload) {
                 AssetRequestSystem.request(asset.id);
             }
@@ -110,11 +119,11 @@ export class AssetLoader {
 }
 
 export class AssetRequestSystem {
-    private static pending = new Set<UUID>();
+    private static pending = new Map<UUID, Promise<void>>();
 
     private constructor() { }
 
-    static request(id: UUID) {
+    public static request(id: UUID) {
         if (AssetRegistry.hasRuntime(id)) return;
         if (this.pending.has(id)) return;
 
@@ -123,10 +132,16 @@ export class AssetRequestSystem {
             throw new Error(`Asset meta not found: ${id}`);
         }
 
-        this.pending.add(id);
-
-        return AssetLoader.load(meta).finally(() => {
+        const promise = AssetLoader.load(meta).finally(() => {
             this.pending.delete(id);
         });
+
+        this.pending.set(id, promise);
+        return promise;
+    }
+
+    public static async waitAll() {
+        const current = Array.from(this.pending.values());
+        await Promise.all(current);
     }
 }

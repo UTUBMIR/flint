@@ -48,7 +48,20 @@
                         </sl-menu-item>
                     </sl-menu>
                 </sl-dropdown>
-                <sl-button size="small">View</sl-button>
+                <sl-dropdown>
+                    <sl-button size="small" slot="trigger">Assets</sl-button>
+                    <sl-menu>
+                        <sl-menu-label>Registry</sl-menu-label>
+                        <sl-menu-item id="new-asset-button" value="create-asset">
+                            <sl-icon slot="prefix" name="plus-lg"></sl-icon>
+                            New Asset...
+                        </sl-menu-item>
+                        <sl-menu-item id="open-asset-button" value="open-asset">
+                            <sl-icon slot="prefix" name="boxes"></sl-icon>
+                            Open Asset...
+                        </sl-menu-item>
+                    </sl-menu>
+                </sl-dropdown>
                 <sl-button size="small">Window</sl-button>
                 <sl-button size="small">Help</sl-button>
             </sl-button-group>
@@ -152,7 +165,7 @@
                         </div>
                     </div>
                     <sl-dialog id="create-component-dialog" label="Create component">
-                        <sl-input autofocus></sl-input>
+                        <sl-input autofocus placeholder="Component name"></sl-input>
                         <sl-button slot="footer" disabled>Create component</sl-button>
                     </sl-dialog>
                 </div>
@@ -178,11 +191,15 @@
         </div>
     </sl-split-panel>
 
+    <sl-dialog id="create-asset-dialog" label="Create asset">
+        <sl-input autofocus placeholder="Asset url"></sl-input>
+        <sl-button slot="footer" disabled>Create asset</sl-button>
+    </sl-dialog>
 
-    <script type="module"
-        src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
-    <script type="module" src="./dist/main.js"></script>
+    <!-- <script type="module"
+        src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script> -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace.js"></script>
+    <script type="module" src="./dist/main.js"></script>
 </body>
 
 </html>

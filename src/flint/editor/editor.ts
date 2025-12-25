@@ -210,7 +210,7 @@ export default class Editor {
             console.error(`Error: Failed to initialize UI: ${error}`);
         }
 
-        Editor.hierarchyWindow.onUpdate(); //FIXME: why is this even needed?
+        Editor.hierarchyWindow.update(); //FIXME: why is this even needed?
         Editor.updateInspectorFields();
         Editor.loadEngineFiles();
 

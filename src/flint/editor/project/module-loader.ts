@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { AssetRegistry } from "../../runtime/assets";
 import { System } from "../../runtime/system";
+import { TimerSystem } from "../../runtime/timers";
 import Input from "../../shared/input";
 import Metadata from "../../shared/metadata";
 
@@ -43,6 +44,12 @@ export default class ModuleLoader {
         if (loadedModule.AssetRegistry) {
             for (const key of Object.keys(AssetRegistry)) {
                 loadedModule.AssetRegistry[key] = (AssetRegistry as any)[key];
+            }
+        }
+
+        if (loadedModule.TimerSystem) {
+            for (const key of Object.keys(TimerSystem)) {
+                loadedModule.TimerSystem[key] = (TimerSystem as any)[key];
             }
         }
 

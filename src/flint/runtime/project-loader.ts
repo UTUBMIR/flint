@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Metadata, { MetadataKeys } from "../shared/metadata";
-import { AssetRegistry, type AssetMeta } from "./assets";
+import { AssetRegistry, AssetRequestSystem, type AssetMeta } from "./assets";
 import type Component from "./component";
 import GameObject from "./game-object";
 import Layer from "./layer";
@@ -125,15 +125,16 @@ export class ProjectLoader {
         return JSON.stringify(raw);
     }
 
-    public static load(project: ProjectData): void {
+    public static async load(project: ProjectData) {
         for (const layer of System.layers) {
             System.removeLayer(layer);
         }
 
+        AssetRegistry.loadSerialized(project.assets);
+        await AssetRequestSystem.waitAll();
+
         for (const layer of project.layers) {
             System.pushLayer(layer);
         }
-
-        AssetRegistry.loadSerialized(project.assets);
     }
 }

@@ -81,10 +81,11 @@ for (const [name, _] of Object.entries(index)) {
     System.components.set(name, value as any);
 }
 const projectData = ProjectLoader.deserialize(\`${decodedLayers}\`);
+(async function() {
+    await ProjectLoader.load(projectData);
 
-for (const layer of projectData.layers) System.pushLayer(layer);
-
-System.run();
+    System.run();
+})();
 `);
 
         if (await Builder.compile(true, "/main.ts")) {
@@ -103,6 +104,7 @@ body {
     width: 100%;
     height: 100%;
     overflow: hidden;
+    background-color: #222;
 }
 canvas {
     position: absolute;

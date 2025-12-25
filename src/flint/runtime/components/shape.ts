@@ -23,7 +23,7 @@ export default class Shape extends RendererComponent {
 
 
         renderer.translate(this.transform.position);
-        renderer.rotate(this.transform.angle);
+        renderer.rotate(this.transform.rotation);
         renderer.translate(Vector2.zero.subtract(this.transform.position));
 
         renderer.shadowColor = this.shadowColor;
@@ -35,7 +35,7 @@ export default class Shape extends RendererComponent {
 
 
         renderer.translate(this.transform.position);
-        renderer.rotate(-this.transform.angle);
+        renderer.rotate(-this.transform.rotation);
         renderer.translate(Vector2.zero.subtract(this.transform.position));
     }
 }

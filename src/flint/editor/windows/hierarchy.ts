@@ -83,7 +83,7 @@ export default class Hierarchy {
         this.contextMenuElement.querySelector("#new-layer-button")!.addEventListener("click", () => {
             const layer = new Layer();
             System.pushLayer(layer);
-            this.onUpdate();
+            this.update();
         });
 
         this.contextMenuElement.querySelector("#new-gameobject-button")!.addEventListener("click", () => {
@@ -143,7 +143,7 @@ export default class Hierarchy {
             const layer = System.layers[0]!;
             layer.addObject(new GameObject());
         }
-        this.onUpdate();
+        this.update();
     }
 
     public deleteSelected(): void {
@@ -154,11 +154,11 @@ export default class Hierarchy {
             else {
                 System.removeLayer(this.selection);
             }
-            Editor.hierarchyWindow.onUpdate();
+            Editor.hierarchyWindow.update();
         }
     }
 
-    public async onUpdate() {//TODO: add partial update without need to recreate whole hierarchy
+    public async update() {//TODO: add partial update without need to recreate whole hierarchy
         this.layers.clear();
         this.element.innerHTML = "";
 
