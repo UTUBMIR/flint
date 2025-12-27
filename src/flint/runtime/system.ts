@@ -72,6 +72,7 @@ export class System {
     private static readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(false, true);
 
     private static _runningState: RunningState = RunningState.Stopped;
+    private static _rafId: number | null = null;
 
     public static readonly audioContext = new AudioContext();
     public static fileSystem: AbstractFileSystem;
@@ -138,18 +139,21 @@ export class System {
         document.addEventListener("visibilitychange", () => {
             if (document.hidden) {
                 TimerSystem.pause();
+                System.cancelMainTick();
+
                 if (System._runningState === RunningState.Running) {
                     System._runningState = RunningState.RunningPaused;
                 }
-            }
-            else {
+            } else {
                 TimerSystem.resume();
+
                 if (System._runningState === RunningState.RunningPaused) {
-                    System.run(false);
+                    System._runningState = RunningState.Running;
+                    System.lastFrame = performance.now();
+                    System.scheduleMainTick();
                 }
             }
         });
-
     }
 
     public static pushLayer(layer: Layer): void {
@@ -172,12 +176,20 @@ export class System {
     }
 
     public static run(sendStart = true) {
+        if (System._runningState === RunningState.Running) return;
+
         if (sendStart) {
             System.sendStart();
         }
+
         System.lastFrame = performance.now();
-        requestAnimationFrame(System.mainTick);
         System._runningState = RunningState.Running;
+        System.scheduleMainTick();
+    }
+
+    public static stop() {
+        System._runningState = RunningState.Stopped;
+        System.cancelMainTick();
     }
 
     public static runRenderingOnly() {
@@ -186,11 +198,27 @@ export class System {
         System._runningState = RunningState.RunningRenderingOnly;
     }
 
-    public static stop() {
-        System._runningState = RunningState.Stopped;
+
+    private static scheduleMainTick() {
+        if (System._rafId !== null) return;
+        System._rafId = requestAnimationFrame(System.mainTick);
+    }
+
+
+    private static cancelMainTick() {
+        if (System._rafId !== null) {
+            cancelAnimationFrame(System._rafId);
+            System._rafId = null;
+        }
     }
 
     private static mainTick(now: number) {
+        System._rafId = null;
+
+        if (System._runningState !== RunningState.Running) {
+            return;
+        }
+
         System._deltaTime = (now - System.lastFrame) / 1000;
         System.lastFrame = now;
 
@@ -204,9 +232,7 @@ export class System {
 
         TimerSystem.update(System._deltaTime);
 
-        if (System._runningState === RunningState.Running) {
-            requestAnimationFrame(System.mainTick);
-        }
+        System.scheduleMainTick();
     }
 
     private static renderOnlyTick(now: number) {
