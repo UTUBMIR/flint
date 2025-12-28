@@ -75,6 +75,10 @@
                             <sl-icon slot="prefix" name="boxes"></sl-icon>
                             Open Asset...
                         </sl-menu-item>
+                        <sl-menu-item id="view-assets-button" value="view-assets">
+                            <sl-icon slot="prefix" name="list-ul"></sl-icon>
+                            View Assets...
+                        </sl-menu-item>
                     </sl-menu>
                 </sl-dropdown>
                 <sl-button size="small">Window</sl-button>
@@ -210,6 +214,22 @@
         <sl-input autofocus placeholder="Asset url"></sl-input>
         <sl-checkbox checked>Preload asset</sl-checkbox>
         <sl-button slot="footer" disabled>Create asset</sl-button>
+    </sl-dialog>
+
+    <sl-dialog id="view-assets-dialog" label="View assets" style="--width: 800px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>URL</th>
+                    <th>UUID</th>
+                    <th>Type</th>
+                    <th>Preloaded</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Asset rows will be dynamically added here -->
+            </tbody>
+        </table>
     </sl-dialog>
 
     <!-- <script type="module"

@@ -302,3 +302,31 @@ sl-menu-label::part(base) {
     display: block;
     border-radius: var(--sl-border-radius-medium);
 }
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+table sl-checkbox {
+    display: flex;
+    justify-self: center;
+}
+
+th, td {
+    border: 1px solid var(--sl-color-neutral-500);
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    background-color: var(--sl-color-neutral-300);
+}
+
+tr:nth-child(even) {
+    background-color: var(--sl-color-neutral-100);
+}
+
+tr:hover {
+    background-color: var(--sl-color-neutral-200);
+}

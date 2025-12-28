@@ -40,26 +40,59 @@ export default class Assets {
     }
 
     private setupToolbar() {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const createAssetDialog: any = document.getElementById("create-asset-dialog")!;
-        const createButton = createAssetDialog!.querySelector("sl-button");
-        const createCheckbox = createAssetDialog!.querySelector("sl-checkbox");
-        const createInput = createAssetDialog!.querySelector("sl-input");
+        {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const createAssetDialog: any = document.getElementById("create-asset-dialog")!;
+            const createButton = createAssetDialog!.querySelector("sl-button");
+            const createCheckbox = createAssetDialog!.querySelector("sl-checkbox");
+            const createInput = createAssetDialog!.querySelector("sl-input");
 
-        document.getElementById("new-asset-button")!.addEventListener("click", function () {
-            createButton.disabled = true;
-            createInput.value = "";
-            createAssetDialog.show();
-        });
+            document.getElementById("new-asset-button")!.addEventListener("click", function () {
+                createButton.disabled = true;
+                createInput.value = "";
+                createAssetDialog.show();
+            });
 
-        createInput.addEventListener("sl-input", () => {
-            createButton.disabled = createInput.value.trim() === "";
-        });
+            createInput.addEventListener("sl-input", () => {
+                createButton.disabled = createInput.value.trim() === "";
+            });
 
-        createButton.addEventListener("click", () => {
-            createAssetDialog.hide();
-            AssetRegistry.register({id: crypto.randomUUID(), url: createInput.value.trim(), type: AssetType.Image, preload: createCheckbox.checked});
-        });
+            createButton.addEventListener("click", () => {
+                createAssetDialog.hide();
+                AssetRegistry.register({ id: crypto.randomUUID(), url: createInput.value.trim(), type: AssetType.Image, preload: createCheckbox.checked });
+            });
+        }
+        {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const viewAssetsDialog: any = document.getElementById("view-assets-dialog")!;
+            const assetsTable = viewAssetsDialog.querySelector("table")! as HTMLTableElement;
+
+            document.getElementById("view-assets-button")!.addEventListener("click", () => {
+                this.fillAssetTable(assetsTable);
+                viewAssetsDialog.show();
+            });
+        }
+    }
+
+    private fillAssetTable(table: HTMLTableElement) {
+        const body = table.tBodies[0];
+        if (!body) throw new Error("Assets table must have a body!");
+
+        body.innerHTML = "";
+
+        for (const asset of AssetRegistry.meta.values()) {
+            const row = body.insertRow();
+
+            row.insertCell().innerText = asset.url;
+            row.insertCell().innerText = asset.id;
+            row.insertCell().innerText = AssetType[asset.type];
+            row.insertCell().append(
+                Object.assign(document.createElement("sl-checkbox"), {
+                    checked: asset.preload,
+                    disabled: true
+                })
+            );
+        }
     }
 
     private setupButtons() {
