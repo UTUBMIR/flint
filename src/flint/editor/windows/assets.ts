@@ -84,7 +84,17 @@ export default class Assets {
             const row = body.insertRow();
 
             row.insertCell().innerText = asset.url;
-            row.insertCell().innerText = asset.id;
+
+            const idCell = row.insertCell();
+            idCell.style.display = "flex";
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const idCopyButton = document.createElement("sl-copy-button") as any;
+            idCopyButton.value = asset.id;
+            idCopyButton.style.marginLeft = "auto";
+
+            idCell.append(document.createTextNode(asset.id), idCopyButton);
+
             row.insertCell().innerText = AssetType[asset.type];
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
