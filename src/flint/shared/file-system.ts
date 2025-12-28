@@ -28,7 +28,8 @@ export abstract class AbstractFileSystem {
 
     public abstract readFile(path: string): Promise<Uint8Array>;
     public abstract writeFile(path: string, data: Uint8Array): Promise<void>;
-    public abstract exists(path: string): Promise<boolean>;
+    public abstract fileExists(path: string): Promise<boolean>;
+    public abstract dirExists(path: string): Promise<boolean>;
     public abstract delete(path: string): Promise<void>;
     public abstract listDir(path: string): Promise<string[]>;
 
@@ -68,9 +69,18 @@ export class BrowserFileSystem extends AbstractFileSystem {
     }
 
 
-    public async exists(path: string): Promise<boolean> {
+    public async fileExists(path: string): Promise<boolean> {
         try {
             await this.getFileHandle(path);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    public async dirExists(path: string): Promise<boolean> {
+        try {
+            await this.getDirHandle(path, false);
             return true;
         } catch {
             return false;
@@ -98,10 +108,10 @@ export class BrowserFileSystem extends AbstractFileSystem {
         return dirHandle.getFileHandle(name, { create });
     }
 
-    private async getDirHandle(path: string) {
+    private async getDirHandle(path: string, create = true) {
         let current = this.rootHandle;
         for (const part of path.split("/").filter(Boolean)) {
-            current = await current.getDirectoryHandle(part, { create: true }); // only directories
+            current = await current.getDirectoryHandle(part, { create }); // only directories
         }
         return current;
     }
@@ -158,8 +168,12 @@ export class VirtualFileSystem extends AbstractFileSystem {
         this.files.set(path, data);
     }
 
-    async exists(path: string): Promise<boolean> {
+    async fileExists(path: string): Promise<boolean> {
         return this.files.has(path);
+    }
+
+    async dirExists(path: string): Promise<boolean> {
+        return this.folders.has(path);
     }
 
     async delete(path: string): Promise<void> {

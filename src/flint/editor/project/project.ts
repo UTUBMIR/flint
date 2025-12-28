@@ -163,7 +163,7 @@ export class Project {
     }
 
     public static async buildAndRun() {
-        return await Builder.build();
+        return !!(+await Builder.build() & +await Builder.preview());
     }
 
     public static async saveProject() {
@@ -193,7 +193,7 @@ export class Project {
 
             const decoded = new TextDecoder().decode(decompressed);
 
-            const projectData = ProjectLoader.deserialize(decoded);
+            const projectData = ProjectLoader.deserialize(JSON.parse(decoded));
 
             await ProjectLoader.load(projectData);
             return true;
@@ -209,9 +209,7 @@ export class Project {
 
         await Project.getAllTextFiles();
 
-        try {
-            await handle.getDirectoryHandle("flint");
-        } catch {
+        if (!await System.fileSystem.dirExists("flint")) {
             Editor.loadingDialogProgressBar.value = 0;
             Editor.loadingDialogProgressBar.indeterminate = false;
             Editor.loadingDialog.show();
@@ -219,6 +217,7 @@ export class Project {
                 Editor.loadingDialogProgressBar.value = (loaded / total) * 100;
             });
         }
+        await System.fileSystem.createDir("assets");
 
         await Metadata.loadFromFile();
         await Metadata.saveToFile();
@@ -259,6 +258,7 @@ export class Project {
                     await traverse(fullPath);
                 } else if (name.endsWith(".ts") || name.endsWith(".json")) {
                     // Adding file
+                    // console.log(fullPath);
                     assets.push({
                         id: crypto.randomUUID(),
                         name,
@@ -319,7 +319,7 @@ export class ${name} extends Component {
         let currentPath = "";
         for (const part of parts) {
             currentPath = currentPath ? `${currentPath}/${part}` : part;
-            const exists = await System.fileSystem.exists(currentPath);
+            const exists = await System.fileSystem.fileExists(currentPath);
             if (!exists) {
                 await System.fileSystem.createDir(currentPath);
             }
@@ -348,7 +348,7 @@ export class ${name} extends Component {
         const relativeFilePath = `${assetPath}/${fileBaseName}.ts`;
 
         try {
-            const exists = await System.fileSystem.exists(relativeFilePath);
+            const exists = await System.fileSystem.fileExists(relativeFilePath);
             if (exists) {
                 await System.fileSystem.delete(relativeFilePath);
             } else {

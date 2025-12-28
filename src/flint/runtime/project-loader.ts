@@ -58,11 +58,10 @@ function restorePrototypesDeep(loaded: any, template: any): void {
 export class ProjectLoader {
     private constructor() { }
 
-    public static deserialize(data: string): ProjectData {
-        const raw = JSON.parse(data) as RawProjectData;
-        const parsed: ProjectData = { layers: [], assets: raw.assets };
+    public static deserialize(rawData: RawProjectData): ProjectData {
+        const parsed: ProjectData = { layers: [], assets: rawData.assets };
 
-        for (const layer of raw.layers) {
+        for (const layer of rawData.layers) {
             const gameLayer = new Layer();
 
             for (const obj of layer.objects) {

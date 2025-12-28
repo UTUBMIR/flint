@@ -1,3 +1,4 @@
+import { AbstractFileSystem } from "../shared/file-system";
 import { System, type UUID } from "./system";
 
 export enum AssetType {
@@ -42,29 +43,29 @@ export class AssetHandle<T> {
 
 
 export class AssetRegistry {
-    static meta = new Map<UUID, AssetMeta>();
+    public static meta = new Map<UUID, AssetMeta>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    static runtime = new Map<UUID, RuntimeAsset<any>>();
+    public static runtime = new Map<UUID, RuntimeAsset<any>>();
 
     private constructor() { }
 
-    static register(meta: AssetMeta) {
+    public static register(meta: AssetMeta) {
         this.meta.set(meta.id, meta);
     }
 
-    static hasRuntime(id: UUID) {
+    public static hasRuntime(id: UUID) {
         return this.runtime.has(id);
     }
 
-    static getRuntime<T>(id: UUID): T | undefined {
+    public static getRuntime<T>(id: UUID): T | undefined {
         return this.runtime.get(id)?.data;
     }
 
-    static serialize(): AssetMeta[] {
+    public static serialize(): AssetMeta[] {
         return [...this.meta.values()];
     }
 
-    static loadSerialized(data: AssetMeta[]) {
+    public static loadSerialized(data: AssetMeta[]) {
         this.meta.clear();
         this.runtime.clear();
 
@@ -95,9 +96,25 @@ export class AssetLoader {
         }
     }
 
+    private static async prepareUrl(url: string) {
+        function isAbsolute(url: string): boolean {
+            return url.indexOf('://') > 0 || url.indexOf('//') === 0;
+        }
+
+        if (!System.fileSystem || isAbsolute(url)) {
+            return url;
+        }
+        else {
+            const data = await System.fileSystem.readFile("build/" + url);
+            const blob = new Blob([AbstractFileSystem.toArrayBuffer(data)]);
+            // create object url from blob
+            return URL.createObjectURL(blob);
+        }
+    }
+
     private static async loadImage(meta: AssetMeta) {
         const img = new Image();
-        img.src = meta.url;
+        img.src = await this.prepareUrl(meta.url);
         await img.decode();
 
         const bitmap = await createImageBitmap(img);
@@ -105,7 +122,7 @@ export class AssetLoader {
     }
 
     private static async loadAudio(meta: AssetMeta) {
-        const res = await fetch(meta.url);
+        const res = await fetch(await this.prepareUrl(meta.url));
         const data = await res.arrayBuffer();
         const buffer = await System.audioContext.decodeAudioData(data);
 
@@ -113,7 +130,7 @@ export class AssetLoader {
     }
 
     private static async loadJson(meta: AssetMeta) {
-        const json = await fetch(meta.url).then(r => r.json());
+        const json = await fetch(await this.prepareUrl(meta.url)).then(r => r.json());
         AssetRegistry.runtime.set(meta.id, new RuntimeAsset(meta.id, json));
     }
 }

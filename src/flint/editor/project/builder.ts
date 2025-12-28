@@ -6,12 +6,47 @@ import ModuleLoader from "./module-loader";
 import { Project } from "./project";
 import ProjectConfig from "./project-config";
 import { AbstractFileSystem } from "../../shared/file-system";
+import type { AssetData } from "../windows/assets";
+import { AssetRegistry } from "../../runtime/assets";
 
 export class Builder {
     private static tab: Window;
     private static compiled: string;
 
     private constructor() { }
+
+    static {
+        window.addEventListener("message", async (e: MessageEvent) => {
+            if (e.data === "FLINT_PREVIEW_READY") {
+                console.log("Preview is ready! Sending assets...");
+
+                async function prepareUrl(url: string): Promise<string> {
+                    function isAbsolute(url: string): boolean {
+                        return url.indexOf('://') > 0 || url.indexOf('//') === 0;
+                    }
+
+                    if (isAbsolute(url)) {
+                        return url;
+                    }
+                    else {
+                        // fetch the data from the url
+                        const data = await System.fileSystem.readFile("build/" + url);
+                        const blob = new Blob([AbstractFileSystem.toArrayBuffer(data)]);
+                        // create object url from blob
+                        return URL.createObjectURL(blob);
+                    }
+                }
+
+                Builder.tab.postMessage({
+                    type: "FLINT_ASSET_LIST",
+                    assets: await Promise.all(
+                        AssetRegistry.meta.values()
+                            .map(async v => ({ id: v.id, url: await prepareUrl(v.url) }))
+                    )
+                }, "*");
+            }
+        });
+    }
 
     public static async compile(emitErrorMessages: boolean = true, entryPoint?: string): Promise<boolean> {
         const textFilesResult = await Project.getAllTextFiles();
@@ -33,8 +68,7 @@ export class Builder {
 
             Editor.assetsWindow.clearAssets();
             for (const asset of textAssets) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                Editor.assetsWindow.addAsset(asset as any);//FIXME: WTF?!?
+                Editor.assetsWindow.addAsset(asset as AssetData);//FIXME: WTF?!?
             }
 
             return true;
@@ -47,50 +81,85 @@ export class Builder {
         }
     }
 
-    public static async build(): Promise<boolean> {
-        if (!System.fileSystem.started) {
-            Notifier.notify("Open project first.", "danger");
-            return false;
-        }
-
+    private static async loadProject(): Promise<string> {
         const compressed = await System.fileSystem.readFile("project.gz");
-
         const buffer = AbstractFileSystem.toArrayBuffer(compressed);
-
-        const stream = new Blob([buffer])
-            .stream()
-            .pipeThrough(new DecompressionStream("gzip"));
-
+        const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream("gzip"));
         const decompressed = await new Response(stream).arrayBuffer();
-
         const decodedLayers = new TextDecoder().decode(decompressed);
 
+        return decodedLayers;
+    }
+
+    public static async build(): Promise<boolean> {
+        if (!System.fileSystem.started) return false;
+
+        const projectData = await this.loadProject();
 
         Bundler.files.clear();
         Bundler.files.set("index.ts", ProjectConfig.userIndex);
-        Bundler.files.set("main.ts",
-            `import * as index from "./index";
+        Bundler.files.set("main.ts", this.makeMainTs(projectData, false));
+
+        if (!await Builder.compile(true, "/main.ts")) return false;
+
+        await System.fileSystem.writeTextFile(
+            "build/index.html",
+            this.makeHtml(Builder.compiled, false)
+        );
+
+        return true;
+    }
+
+    public static async preview(): Promise<boolean> {
+        const projectData = await this.loadProject();
+
+        Bundler.files.clear();
+        Bundler.files.set("index.ts", ProjectConfig.userIndex);
+        Bundler.files.set("main.ts", this.makeMainTs(projectData, true));
+
+        if (!await Builder.compile(true, "/main.ts")) return false;
+
+        const html = this.makeHtml(Builder.compiled, true);
+
+        const blob = new Blob([html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+
+        Builder.tab?.close();
+        Builder.tab = window.open(url, "flint_preview")!;
+
+        return true;
+    }
+
+    private static makeMainTs(data: string, preview: boolean) {
+        return `import * as index from "./index";
 import { Renderer2D } from "@flint/shared/renderer2d";
 import { System } from "@flint/runtime/system";
 import { ProjectLoader } from "@flint/runtime/project-loader";
+${preview ? `import { EditorBridge } from "@flint/editor/bridge";` : ""}
 
 System.init(new Renderer2D());
 
-for (const [name, _] of Object.entries(index)) {
-    const value = index[name];
+for (const [name, value] of Object.entries(index)) {
     System.components.set(name, value as any);
 }
-const projectData = ProjectLoader.deserialize(\`${decodedLayers}\`);
-(async function() {
+
+const projectData = ProjectLoader.deserialize(${data});
+
+(async () => {
+    ${preview ? `if (window.__FLINT_PREVIEW__) {
+        console.warn("Launched in preview mode.");
+        await EditorBridge.attach(projectData);
+    }` : ""}
+    
+
     await ProjectLoader.load(projectData);
 
     System.run();
-})();
-`);
-
-        if (await Builder.compile(true, "/main.ts")) {
-            const html =
-                `<!DOCTYPE html>
+})();`;
+    }
+    private static makeHtml(js: string, preview: boolean) {
+        return `
+<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><title>Build</title></head>
 <style>
@@ -117,26 +186,14 @@ canvas {
 <body>
 <div id="root"></div>
 <script>
-${Builder.compiled}
+${preview ? "window.__FLINT_PREVIEW__ = true;" : ""}
+${js}
 </script>
 </body>
 </html>`;
-            await System.fileSystem.writeTextFile("build/index.html", html);
-
-            const blob = new Blob([html], { type: "text/html" });
-            const url = URL.createObjectURL(blob);
-
-            if (Builder.tab) {
-                Builder.tab.close();
-            }
-            Builder.tab = window.open(url, "build")!;
-        }
-        else {
-            return false;
-        }
-
-        return true;
     }
+
+
 
     public static async buildForEditor(emitErrorMessages: boolean = true): Promise<boolean> {
         if (!System.fileSystem.started) {

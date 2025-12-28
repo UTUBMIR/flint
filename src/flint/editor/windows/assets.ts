@@ -1,6 +1,7 @@
 import { Project } from "../project/project";
 import { type DropdownType } from "../editor";
 import ProjectConfig from "../project/project-config";
+import { AssetRegistry, AssetType } from "../../runtime/assets";
 
 export type AssetData = {
     id: string;
@@ -19,7 +20,7 @@ export default class Assets {
     private cachedWidth = 0;
     private cachedHeight = 0;
     private allAssets: AssetData[] = [];
-    public currentPath = "/"; // tracks which folder we are currently in
+    public currentPath = "/assets"; // tracks which folder we are currently in
     private backButton: HTMLButtonElement;
 
     constructor(element: HTMLDivElement, gridElement: HTMLDivElement) {
@@ -42,12 +43,22 @@ export default class Assets {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const createAssetDialog: any = document.getElementById("create-asset-dialog")!;
         const createButton = createAssetDialog!.querySelector("sl-button");
+        const createCheckbox = createAssetDialog!.querySelector("sl-checkbox");
         const createInput = createAssetDialog!.querySelector("sl-input");
 
         document.getElementById("new-asset-button")!.addEventListener("click", function () {
             createButton.disabled = true;
             createInput.value = "";
             createAssetDialog.show();
+        });
+
+        createInput.addEventListener("sl-input", () => {
+            createButton.disabled = createInput.value.trim() === "";
+        });
+
+        createButton.addEventListener("click", () => {
+            createAssetDialog.hide();
+            AssetRegistry.register({id: crypto.randomUUID(), url: createInput.value.trim(), type: AssetType.Image, preload: createCheckbox.checked});
         });
     }
 
@@ -204,7 +215,7 @@ export default class Assets {
         if (asset.type !== "folder") {
             if (asset.type === "component" && asset.data === undefined) {
                 const found = ProjectConfig.config.components.find(c => c.file === asset.path)?.name;
-                if (found) asset.data = found;
+                asset.data = found!; // its already undefined so it doesn`t matter
             }
             function dragstartHandler(ev: DragEvent) {
                 ev.dataTransfer!.items.add(asset.data, "text/plain");
