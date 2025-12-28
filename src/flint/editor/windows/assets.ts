@@ -86,12 +86,16 @@ export default class Assets {
             row.insertCell().innerText = asset.url;
             row.insertCell().innerText = asset.id;
             row.insertCell().innerText = AssetType[asset.type];
-            row.insertCell().append(
-                Object.assign(document.createElement("sl-checkbox"), {
-                    checked: asset.preload,
-                    disabled: true
-                })
-            );
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const checkbox = document.createElement("sl-checkbox") as any;
+            checkbox.checked = asset.preload;
+
+            checkbox.addEventListener("sl-change", () => {
+                asset.preload = checkbox.checked;
+            });
+
+            row.insertCell().append(checkbox);
         }
     }
 
