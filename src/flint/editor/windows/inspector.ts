@@ -116,9 +116,15 @@ export default class Inspector {
     }
 
     public onEvent(event: Event) {
+        if (!(event as CustomEvent).detail) {
+            this.currentObject = undefined;
+            this.element.innerHTML = "";
+            this.addComponentButton.style.display = "none";
+            return;
+        }
+
         const selection = (event as CustomEvent).detail.selection as HTMLElement[];
         const parsed = (selection[0]! as unknown as { hierarchyId: string }).hierarchyId
-
             .split("-")
             .map(i => Number.parseInt(i));
 

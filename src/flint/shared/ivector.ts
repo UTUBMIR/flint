@@ -1,5 +1,7 @@
 export interface IVector {
     set(x: number, y: number): IVector;
+    assign(other: IVector): IVector;
+
     copy(): IVector;
 
     add(other: IVector): IVector;
@@ -15,4 +17,6 @@ export interface IVector {
     normalize(length: number): IVector
 
     clamp(min: IVector, max: IVector): IVector;
+
+    round(): IVector;
 };

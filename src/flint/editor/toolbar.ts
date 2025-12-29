@@ -75,7 +75,7 @@ export class ToolbarTab {
     }
 
     public onRender(r: IRenderer) {
-        this.button.onRender(r);
+        this.button.render(r);
         if (!this.open) return;
 
         for (const tab of this.menu) {

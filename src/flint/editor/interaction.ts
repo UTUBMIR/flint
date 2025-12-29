@@ -38,7 +38,7 @@ export class Drag {
         this.rect = rect ?? new Rect();
     }
 
-    public onRender(r: IRenderer) {
+    public render(r: IRenderer) {
         r.fillColor = "#f88";
         r.fillRect(this.position, this.size);
     }
@@ -48,8 +48,10 @@ export class Drag {
         const isMove = event.type === "mousemove" || event.type === "touchmove";
         const isUp = event.type === "mouseup" || event.type === "touchend";
 
-        if (isDown && Input.isMouseButtonPressed(0) && this.rect.contains(Input.mousePosition)) {
-            this.dragOffset = this.position.subtract(Input.mousePosition);
+        const fixedMouse = Input.mousePosition.copy().add(new Vector2(this.size.x/2, this.size.y/2));
+
+        if (isDown && Input.isMouseButtonPressed(0) && this.rect.contains(fixedMouse)) {
+            this.dragOffset.assign(this.position.copy().subtract(Input.mousePosition));
 
             Editor.draggedItem = this;
             System.setCursor(this.draggedCursor);
@@ -59,7 +61,7 @@ export class Drag {
             return;
         }
 
-        if (isMove && !this.isDragged() && this.rect.contains(Input.mousePosition)) {
+        if (isMove && !this.isDragged() && this.rect.contains(fixedMouse)) {
             System.setCursor(this.hoveredCursor);
 
             event.stopImmediatePropagation();
@@ -67,14 +69,14 @@ export class Drag {
         }
 
         if (isMove && this.isDragged()) {
-            this.position = Input.mousePosition.add(this.dragOffset);
+            this.position.assign(Input.mousePosition.copy().add(this.dragOffset));
 
-            this.rect.clamp(
-                new Rect(
-                    new Vector2(0, 0),
-                    new Vector2(window.innerWidth, window.innerHeight)
-                )
-            );
+            // this.rect.clamp(
+            //     new Rect(
+            //         new Vector2(0, 0),
+            //         new Vector2(window.innerWidth, window.innerHeight)
+            //     )
+            // );
             System.setCursor(this.draggedCursor);
             this.onGrabbing();
 
@@ -126,7 +128,7 @@ export class Click {
         this.rect = rect ?? new Rect();
     }
 
-    public onRender(r: IRenderer) {
+    public render(r: IRenderer) {
         r.fillColor = "#8f8";
         r.fillRect(this.position, this.size);
     }
@@ -204,7 +206,7 @@ export class Button extends Click {
         this.onClick();
     };
 
-    public override onRender(r: IRenderer) {
+    public override render(r: IRenderer) {
         r.fillColor = this.color;
         r.fillRect(this.position, this.size);
 
@@ -223,7 +225,7 @@ export class Button extends Click {
 
 export class Tree {
     public readonly button: Button;
-    public items: (Click | Drag | Tree | {rect: Rect, onRender: (r: IRenderer) => void, onEvent: (e: SystemEvent) => void})[] = [];
+    public items: (Click | Drag | Tree | {rect: Rect, render: (r: IRenderer) => void, onEvent: (e: SystemEvent) => void})[] = [];
 
     private _contentHeight: number = 0;
     public open: boolean = false;
@@ -256,13 +258,13 @@ export class Tree {
         this.locked = true;
     }
 
-    public onRender(r: IRenderer) {
+    public render(r: IRenderer) {
         this.onRenderInternal(r);
         this.onRenderContent(r);
     }
 
     public onRenderInternal(r: IRenderer) {
-        this.button.onRender(r);
+        this.button.render(r);
 
         r.fillColor = "#fff";
         const c = this.rect.position.add(new Vector2(this.rect.size.y / 2));
@@ -295,7 +297,7 @@ export class Tree {
             item.rect.width = this.rect.width - this.nestedSpacing;
             this._contentHeight += ((item as Tree).contentHeight || item.rect.height);
 
-            item.onRender(r);
+            item.render(r);
         }
     }
 

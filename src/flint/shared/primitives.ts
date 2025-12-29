@@ -75,10 +75,11 @@ export class Rect {
     public clamp(bounds: Rect) {
         const min = bounds.position;
         const max = bounds.position
+            .copy()
             .add(bounds.size)
             .subtract(this.size);
 
-        this.position = this.position.clamp(min, max);
+        this.position.clamp(min, max);
     }
 
 

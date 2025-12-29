@@ -4,6 +4,7 @@ import { System } from "../../runtime/system";
 import Metadata, { MetadataKeys } from "../../shared/metadata";
 import Editor, { Notifier } from "../editor";
 import { type DropdownType } from "../editor";
+import { EditorLayer } from "../editor-layer";
 
 
 /**
@@ -45,6 +46,10 @@ export default class Hierarchy {
         this.contextMenuElement = this.contextDropdownElement.querySelector("#hierarchy-context-menu") as HTMLElement;
 
         this.deleteButton = this.contextMenuElement.querySelector("#delete-button") as HTMLButtonElement;
+
+        this.element.parentElement!.addEventListener("click", () => {
+            this.element.dispatchEvent(new Event("sl-selection-change"));
+        }, true);
 
         this.setupContextMenu();
     }
@@ -104,10 +109,14 @@ export default class Hierarchy {
     }
 
     private onSelectionChange(event: Event): void {
+        if (!(event as CustomEvent).detail) {
+            this.selectedElement?.removeAttribute("selected");
+            return;
+        }
+
         const selection = (event as CustomEvent).detail.selection as HTMLElement[];
         this.selectedElement = selection[0];
         const parsed = (selection[0]! as unknown as { hierarchyId: string }).hierarchyId
-
             .split("-")
             .map(i => Number.parseInt(i));
 
@@ -123,6 +132,7 @@ export default class Hierarchy {
         if (!this.selection) {
             throw new Error("Failed to get 'selection'");
         }
+        event.stopPropagation();
     }
 
     public createObject(): void {
@@ -164,6 +174,10 @@ export default class Hierarchy {
 
         for (let layerIndex = System.layers.length - 1; layerIndex >= 0; layerIndex--) {
             const layer = System.layers[layerIndex]!;
+            if (layer instanceof EditorLayer) {
+                continue;
+            }
+
             const layerName = Metadata.getClass(
                 layer, MetadataKeys.EditorName) ??
                 `new Layer${layerIndex > 0 ? " " + layerIndex : ""}`;
@@ -233,10 +247,10 @@ export default class Hierarchy {
                         Metadata.setClass(gameObject!, MetadataKeys.EditorName, textNode.textContent);
                     }
                     try {
-                    input.remove();
+                        input.remove();
                     }
                     // eslint-disable-next-line no-empty
-                    catch {}
+                    catch { }
                 };
 
                 input.addEventListener("sl-blur", () => exitEdit(true));

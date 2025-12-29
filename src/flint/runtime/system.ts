@@ -15,6 +15,7 @@ import type RendererComponent from "./renderer-component";
 import { type AbstractFileSystem } from "../shared/file-system";
 import Image from "./components/image";
 import { TimerSystem } from "./timers";
+import Vector2 from "../shared/vector2";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -67,9 +68,13 @@ export class System {
 
     private static rootDiv: HTMLDivElement;
 
+    public static get rootSize(): Vector2 {
+        return new Vector2(this.rootDiv.clientWidth, this.rootDiv.clientHeight);
+    }
+
     private static readonly renderingContext = CanvasRenderingContext2D; //TODO: move this to a config file
     private static _renderer: IRenderer;
-    private static readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(false, true);
+    public static readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(false, true);
 
     private static _runningState: RunningState = RunningState.Stopped;
     private static _rafId: number | null = null;
@@ -118,7 +123,8 @@ export class System {
     public static init(renderer: IRenderer, fileSystem: AbstractFileSystem): void {
         this.initRootDiv();
         this._renderer = renderer;
-        Input.init();
+        Input.init(System.rootDiv);
+
         this.loadPlayConfig(playConfig);
         this.fileSystem = fileSystem;
 
@@ -263,11 +269,7 @@ export class System {
             throw new Error(`Rendering context ${ctxName} was not found!`);
         }
 
-        this.addResizing(canvas);
-
-        if (ctx instanceof CanvasRenderingContext2D) {
-            ctx.scale(System.dpr, System.dpr);
-        }
+        this.addResizing(canvas, ctx);
 
         this.rootDiv.appendChild(canvas);
 
@@ -287,10 +289,14 @@ export class System {
         }
     }
 
-    private static addResizing(canvas: HTMLCanvasElement) {
+    private static addResizing(canvas: HTMLCanvasElement, ctx: RenderingContext) {
         const resize = () => {
-            canvas.width = +(this.rootDiv.clientWidth);
-            canvas.height = +(this.rootDiv.clientHeight);
+            canvas.width = Math.floor(+(this.rootDiv.clientWidth) * System.dpr);
+            canvas.height = Math.floor(+(this.rootDiv.clientHeight) * System.dpr);
+
+            if (ctx instanceof CanvasRenderingContext2D) {
+                ctx.scale(System.dpr, System.dpr);
+            }
         };
 
         const ro = new ResizeObserver(() => {
@@ -313,6 +319,10 @@ export class System {
     }
 
     private static sendEventToLayers(event: Event): void {
+        if (event.type === "mousemove" || event.type === "touchmove") {
+            System.setCursor("initial");
+        }
+        
         this.eventEmitter.dispatchEvent(new SystemEvent(event.type));
     }
 

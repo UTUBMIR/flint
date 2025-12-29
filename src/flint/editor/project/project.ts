@@ -7,6 +7,7 @@ import Metadata from "../../shared/metadata";
 import { ProjectLoader } from "../../runtime/project-loader";
 import { AbstractFileSystem as AbstractFileSystem } from "../../shared/file-system";
 import { AssetRegistry } from "../../runtime/assets";
+import { EditorLayer as EditorLayer } from "../editor-layer";
 
 // export class FileTracker {
 //     private constructor() { }
@@ -167,7 +168,7 @@ export class Project {
     }
 
     public static async saveProject() {
-        const data = ProjectLoader.serialize({ layers: System.layers, assets: AssetRegistry.serialize() });
+        const data = ProjectLoader.serialize({ layers: System.layers.filter(l => !(l instanceof EditorLayer)), assets: AssetRegistry.serialize() });
         const blob = new Blob([data], { type: "text/plain" });
         const cs = new CompressionStream("gzip");
         const compressed = new Response(blob.stream().pipeThrough(cs));
@@ -195,7 +196,15 @@ export class Project {
 
             const projectData = ProjectLoader.deserialize(JSON.parse(decoded));
 
+
+            const editorLayerIndex = System.layers.findIndex(l => l instanceof EditorLayer);
+            const editorLayer = System.layers[editorLayerIndex];
+            System.layers = System.layers.splice(editorLayerIndex, 1);
+
             await ProjectLoader.load(projectData);
+
+            System.pushLayer(editorLayer ?? new EditorLayer());
+
             return true;
         } catch (e) {
             console.log("could not load the project:", e);

@@ -1,3 +1,4 @@
+import { System } from "../runtime/system";
 import type InputAxis from "./input-axis";
 import Vector2 from "./vector2";
 
@@ -38,16 +39,16 @@ export default class Input {
     }
 
 
-    public static init() {
-        document.addEventListener("keydown", this.onKeyDown.bind(this));
-        document.addEventListener("keyup", this.onKeyUp.bind(this));
+    public static init(root: HTMLElement) {
+        root.addEventListener("keydown", this.onKeyDown.bind(this));
+        root.addEventListener("keyup", this.onKeyUp.bind(this));
 
-        document.addEventListener("mousedown", this.onMouseDown.bind(this));
-        document.addEventListener("mouseup", this.onMouseUp.bind(this));
+        root.addEventListener("mousedown", this.onMouseDown.bind(this));
+        root.addEventListener("mouseup", this.onMouseUp.bind(this));
 
-        document.addEventListener("touchstart", this.onMouseMove.bind(this));
-        document.addEventListener("mousemove", this.onMouseMove.bind(this));
-        document.addEventListener("touchmove", this.onMouseMove.bind(this));
+        root.addEventListener("touchstart", this.onMouseMove.bind(this), {passive: true});
+        root.addEventListener("mousemove", this.onMouseMove.bind(this), {passive: true});
+        root.addEventListener("touchmove", this.onMouseMove.bind(this), {passive: true});
     }
 
     private static onKeyDown(event: KeyboardEvent) {
@@ -71,12 +72,14 @@ export default class Input {
     }
 
     private static onMouseMove(event: MouseEvent | TouchEvent) {
+        const canvasHalf = System.rootSize.divide(2).round();
+
         if (event instanceof MouseEvent) {
-            this.mousePosition.set(event.pageX, event.pageY);
+            this.mousePosition.set(event.offsetX, event.offsetY).subtract(canvasHalf);
         }
         else {
             if (event.touches[0]) {
-                this.mousePosition.set(event.touches[0].pageX, event.touches[0].pageY);
+                this.mousePosition.set(event.touches[0].pageX, event.touches[0].pageY).subtract(canvasHalf);
             }
         }
     }

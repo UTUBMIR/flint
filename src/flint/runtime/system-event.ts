@@ -54,7 +54,6 @@ export class SystemEventEmitter {
                 }
                 else if (event.stopNextLayer) {
                     return false;
-
                 }
             }
         }

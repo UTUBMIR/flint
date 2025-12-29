@@ -3,11 +3,16 @@ import type { ColorString } from "../../shared/graphics";
 import type Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
 
-export default class Camera extends RendererComponent  {
+export default class Camera extends RendererComponent {
     public enabled: boolean = true;
 
+    constructor(backgroundColor?: ColorString) {
+        super();
+        this.backgroundColor = backgroundColor ?? "#222" as ColorString;
+    }
+
     @FieldRenderer("color")
-    public backgroundColor: ColorString = "#222" as ColorString;
+    public backgroundColor: ColorString;
 
     public get position(): Vector2 {
         return this.transform.position;

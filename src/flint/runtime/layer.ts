@@ -71,7 +71,7 @@ export default class Layer {
                 this.renderer.fillCanvas();
                 this.renderer.resetTransform();
 
-                const canvasHalf = new Vector2(this.canvas.ctx.canvas.width, this.canvas.ctx.canvas.height).divide(2);
+                const canvasHalf = new Vector2(this.canvas.ctx.canvas.width, this.canvas.ctx.canvas.height).divide(2).round();
 
                 this.renderer.translate(canvasHalf);
                 this.renderer.rotate(camera.angle);

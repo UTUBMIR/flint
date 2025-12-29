@@ -1,4 +1,3 @@
-
 import type { IRenderer } from "../../shared/irenderer";
 import type { ColorString } from "../../shared/graphics";
 import { FieldRenderer } from "../../editor/component-builder";
@@ -7,18 +6,25 @@ import RendererComponent from "../renderer-component";
 
 export default class Shape extends RendererComponent {
     @FieldRenderer("color")
-    private fillColor: ColorString = "#cfd2ee";
+    private fillColor: ColorString;
 
     @FieldRenderer("color")
-    private lineColor: ColorString = "#2e69b6";
+    private lineColor: ColorString;
 
     @FieldRenderer("color")
-    private shadowColor: ColorString = "#1c649b";
+    private shadowColor: ColorString;
+
+    constructor(fillColor?: ColorString, lineColor?: ColorString, shadowColor?: ColorString) {
+        super();
+        this.fillColor = fillColor ?? "#cfd2ee";
+        this.lineColor = lineColor ?? "#2e69b6";
+        this.shadowColor = shadowColor ?? "#1c649b";
+    }
 
     public override render(renderer: IRenderer): void {
         renderer.fillColor = this.fillColor;
         renderer.lineColor = this.lineColor;
-        renderer.lineWidth = 5;
+        renderer.lineWidth = 4.5;
         renderer.lineJoin = "bevel";
 
 
@@ -29,9 +35,9 @@ export default class Shape extends RendererComponent {
         renderer.shadowColor = this.shadowColor;
         renderer.shadowBlur = 20;
 
-        renderer.fillRect(this.transform.position.subtract(this.transform.size.divide(2)), this.transform.size);
+        renderer.fillRect(this.transform.position.copy().subtract(this.transform.size.copy().divide(2)), this.transform.size);
 
-        renderer.strokeRect(this.transform.position.subtract(this.transform.size.divide(2)), this.transform.size);
+        renderer.strokeRect(this.transform.position.copy().subtract(this.transform.size.copy().divide(2)), this.transform.size);
 
 
         renderer.translate(this.transform.position);
