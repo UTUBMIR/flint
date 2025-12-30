@@ -116,7 +116,7 @@ export default class Hierarchy {
 
         const selection = (event as CustomEvent).detail.selection as HTMLElement[];
         this.selectedElement = selection[0];
-        const parsed = (selection[0]! as unknown as { hierarchyId: string }).hierarchyId
+        const parsed = selection[0]!.dataset.hierarchyId!
             .split("-")
             .map(i => Number.parseInt(i));
 
@@ -237,7 +237,7 @@ export default class Hierarchy {
                     textNode.textContent = saveValue ? input.value || oldLabel : oldLabel;
 
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    let parsed = (item as any).hierarchyId;
+                    let parsed = (item as any).dataset.hierarchyId;
                     if (parsed) {
                         parsed = parsed.split("-")
                             .map((i: string) => Number.parseInt(i));
@@ -266,11 +266,10 @@ export default class Hierarchy {
     }
 
     public addItem(text: string, id: string, parent: HTMLElement): HTMLElement {
-        const item = Object.assign(document.createElement("sl-tree-item") as HTMLElement, {
-            textContent: text,
-            hierarchyId: id,
-            expanded: true
-        });
+        const item = document.createElement("sl-tree-item") as HTMLElement;
+        item.textContent = text;
+        item.setAttribute("expanded", "true");
+        item.dataset.hierarchyId = id;
 
         parent.appendChild(item);
         return item;

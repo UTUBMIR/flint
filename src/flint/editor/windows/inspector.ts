@@ -124,7 +124,7 @@ export default class Inspector {
         }
 
         const selection = (event as CustomEvent).detail.selection as HTMLElement[];
-        const parsed = (selection[0]! as unknown as { hierarchyId: string }).hierarchyId
+        const parsed = selection[0]!.dataset.hierarchyId!
             .split("-")
             .map(i => Number.parseInt(i));
 
