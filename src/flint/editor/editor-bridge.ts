@@ -1,7 +1,7 @@
-import type { ProjectData } from "../runtime/project-loader";
+import type { RawProjectData } from "../runtime/project-loader";
 
 export class EditorBridge {
-    static async attach(projectData: ProjectData) {
+    static async attach(projectData: RawProjectData) {
         console.log("EditorBridge attached");
 
         window.opener?.postMessage("FLINT_PREVIEW_READY", "*");

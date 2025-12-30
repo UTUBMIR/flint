@@ -1,7 +1,7 @@
 import Input from "../shared/input";
 import type { IRenderer } from "../shared/irenderer";
 import { SystemEvent, SystemEventEmitter } from "./system-event";
-import playConfig from "./config/play-config.json" with { type: 'json' };
+import defaultPlayConfig from "./config/play-config.json" with { type: 'json' };
 import type { AxisBinding } from "../shared/input-axis";
 import InputAxis from "../shared/input-axis";
 import type Component from "./component";
@@ -114,19 +114,30 @@ export class System {
         }
     }
 
+    public static registerComponent(name: string, component: typeof Component) {
+        System.components.set(name, component);
+    }
+
     private static addBasicComponents() {
         this.components.set("Camera", Camera);
         this.components.set("Shape", Shape);
         this.components.set("Image", Image);
     }
 
-    public static init(renderer: IRenderer, fileSystem: AbstractFileSystem): void {
+    public static init(options: {
+        renderer: IRenderer,
+        fileSystem?: AbstractFileSystem,
+        playConfig?: PlayConfig
+    }): void {
         this.initRootDiv();
-        this._renderer = renderer;
+        this._renderer = options.renderer;
         Input.init(System.rootDiv);
 
-        this.loadPlayConfig(playConfig);
-        this.fileSystem = fileSystem;
+        this.loadPlayConfig(options.playConfig ?? defaultPlayConfig);
+        
+        if (options.fileSystem) {
+            this.fileSystem = options.fileSystem;
+        }
 
         this.addBasicComponents();
 
@@ -322,7 +333,7 @@ export class System {
         if (event.type === "mousemove" || event.type === "touchmove") {
             System.setCursor("initial");
         }
-        
+
         this.eventEmitter.dispatchEvent(new SystemEvent(event.type));
     }
 

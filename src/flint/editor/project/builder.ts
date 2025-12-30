@@ -131,31 +131,26 @@ export class Builder {
     }
 
     private static makeMainTs(data: string, preview: boolean) {
-        return `import * as index from "./index";
-import { Renderer2D } from "@flint/shared/renderer2d";
-import { System } from "@flint/runtime/system";
-import { ProjectLoader } from "@flint/runtime/project-loader";
-${preview ? `import { EditorBridge } from "@flint/editor/bridge";` : ""}
-
-System.init(new Renderer2D());
-
-for (const [name, value] of Object.entries(index)) {
-    System.components.set(name, value as any);
-}
-
-const projectData = ProjectLoader.deserialize(${data});
+        return `import * as gameIndex from "./index";
+import { Runtime } from "@flint/runtime/runtime";
+${preview ? `import { EditorBridge } from "@flint/editor/editor-bridge";` : ""}
 
 (async () => {
+    const projectData = ${data};
+
+    const runtime = new Runtime({
+        components: gameIndex,
+        projectData
+    });
+    
     ${preview ? `if (window.__FLINT_PREVIEW__) {
         console.warn("Launched in preview mode.");
         await EditorBridge.attach(projectData);
     }` : ""}
-    
 
-    await ProjectLoader.load(projectData);
-
-    System.run();
-})();`;
+    await runtime.start();
+})();
+`;
     }
     private static makeHtml(js: string, preview: boolean) {
         return `
