@@ -26,4 +26,9 @@ export default class Camera extends RendererComponent {
     public override attach(): void {
         this.gameObject.layer.cameras.push(this);
     }
+
+    public override detach(): void {
+        const cameras = this.gameObject.layer.cameras;
+        cameras.splice(cameras.indexOf(this), 1);
+    }
 }

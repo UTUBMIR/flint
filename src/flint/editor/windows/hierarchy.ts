@@ -220,6 +220,7 @@ export default class Hierarchy {
                 const input = document.createElement("sl-input") as HTMLInputElement;
                 input.type = "text";
                 input.value = oldLabel;
+                input.name = "gameObjectName";
                 input.style.width = "100%";
 
                 // Hide the text node visually

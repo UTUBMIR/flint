@@ -27,11 +27,14 @@ class DragComponent extends Shape {
             const newPosition = Editor.inspectorWindow.currentObject.transform.position;
 
             if (!this.drag || this.drag.position !== newPosition) {
+                const targetCamera = Editor.inspectorWindow.currentObject.layer.cameras[0]!.transform;
+                this.gameObject.layer.cameras[0]!.transform.position = targetCamera.position;
+                this.gameObject.layer.cameras[0]!.transform.size = targetCamera.size;
+
                 this.transform.position = newPosition;
                 this.drag = new Drag(new Rect(newPosition, this.transform.size));
-                this.drag.onGrabbing = this.onGrabbing;
             }
-            
+
             if (this.drag.isHovered) {
                 this.fillColor = "rgba(0, 118, 255, 0.5)";
                 this.lineColor = "rgba(0, 118, 255, 0.75)";
@@ -40,14 +43,13 @@ class DragComponent extends Shape {
                 this.fillColor = "rgba(0, 98, 255, 0.5)";
                 this.lineColor = "rgba(0, 98, 255, 0.75)";
             }
+
             super.render(renderer);
         }
         else {
             this.drag = undefined;
         }
     }
-
-    public onGrabbing() { }
 }
 
 export class EditorLayer extends Layer {

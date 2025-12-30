@@ -31,7 +31,7 @@ export class AssetHandle<T> {
     public get() {
         const asset = AssetRegistry.getRuntime<T>(this.id);
         if (!asset) {
-            throw new Error(`Asset not loaded: ${this.id}`);
+            throw new Error(`Asset is not loaded: ${this.id}`);
         }
         return asset;
     }
