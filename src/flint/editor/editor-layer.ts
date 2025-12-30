@@ -31,6 +31,15 @@ class DragComponent extends Shape {
                 this.drag = new Drag(new Rect(newPosition, this.transform.size));
                 this.drag.onGrabbing = this.onGrabbing;
             }
+            
+            if (this.drag.isHovered) {
+                this.fillColor = "rgba(0, 118, 255, 0.5)";
+                this.lineColor = "rgba(0, 118, 255, 0.75)";
+            }
+            else {
+                this.fillColor = "rgba(0, 98, 255, 0.5)";
+                this.lineColor = "rgba(0, 98, 255, 0.75)";
+            }
             super.render(renderer);
         }
         else {

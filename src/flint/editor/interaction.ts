@@ -34,6 +34,12 @@ export class Drag {
         return Editor.draggedItem === this;
     }
 
+    private hovered = false;
+
+    public get isHovered(): boolean {
+        return this.hovered;
+    }
+
     public constructor(rect?: Rect) {
         this.rect = rect ?? new Rect();
     }
@@ -47,6 +53,7 @@ export class Drag {
         const isDown = event.type === "mousedown" || event.type === "touchstart";
         const isMove = event.type === "mousemove" || event.type === "touchmove";
         const isUp = event.type === "mouseup" || event.type === "touchend";
+        this.hovered = false;
 
         const fixedMouse = Input.mousePosition.copy().add(new Vector2(this.size.x/2, this.size.y/2));
 
@@ -54,6 +61,7 @@ export class Drag {
             this.dragOffset.assign(this.position.copy().subtract(Input.mousePosition));
 
             Editor.draggedItem = this;
+            this.hovered = true;
             System.setCursor(this.draggedCursor);
             this.onGrab();
 
@@ -63,6 +71,7 @@ export class Drag {
 
         if (isMove && !this.isDragged() && this.rect.contains(fixedMouse)) {
             System.setCursor(this.hoveredCursor);
+            this.hovered = true;
 
             event.stopImmediatePropagation();
             return;
@@ -78,6 +87,7 @@ export class Drag {
             //     )
             // );
             System.setCursor(this.draggedCursor);
+            this.hovered = true;
             this.onGrabbing();
 
             event.stopImmediatePropagation();
@@ -89,6 +99,7 @@ export class Drag {
             Editor.draggedItem = undefined;
             this.onRelease();
             System.setCursor(this.hoveredCursor);
+            this.hovered = true;
 
             event.stopImmediatePropagation();
             return;

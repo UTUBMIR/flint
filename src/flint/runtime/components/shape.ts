@@ -6,13 +6,13 @@ import RendererComponent from "../renderer-component";
 
 export default class Shape extends RendererComponent {
     @FieldRenderer("color")
-    private fillColor: ColorString;
+    protected fillColor: ColorString;
 
     @FieldRenderer("color")
-    private lineColor: ColorString;
+    protected lineColor: ColorString;
 
     @FieldRenderer("color")
-    private shadowColor: ColorString;
+    protected shadowColor: ColorString;
 
     constructor(fillColor?: ColorString, lineColor?: ColorString, shadowColor?: ColorString) {
         super();
