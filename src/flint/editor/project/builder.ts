@@ -149,9 +149,9 @@ ${preview ? `import { EditorBridge } from "@flint/editor/editor-bridge";` : ""}
     }` : ""}
 
     await runtime.start();
-})();
-`;
+})();`;
     }
+
     private static makeHtml(js: string, preview: boolean) {
         return `
 <!DOCTYPE html>

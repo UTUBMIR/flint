@@ -16,6 +16,7 @@ import { type AbstractFileSystem } from "../shared/file-system";
 import Image from "./components/image";
 import { TimerSystem } from "./timers";
 import Vector2 from "../shared/vector2";
+import Label from "./components/label";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -122,6 +123,7 @@ export class System {
         this.components.set("Camera", Camera);
         this.components.set("Shape", Shape);
         this.components.set("Image", Image);
+        this.components.set("Label", Label);
     }
 
     public static init(options: {

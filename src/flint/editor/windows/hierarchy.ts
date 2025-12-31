@@ -270,6 +270,8 @@ export default class Hierarchy {
         item.textContent = text;
         item.setAttribute("expanded", "true");
         item.dataset.hierarchyId = id;
+        
+        item.draggable = true;
 
         parent.appendChild(item);
         return item;

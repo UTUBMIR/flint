@@ -170,5 +170,4 @@ export default class Metadata {
         //     console.log("Failed to load metadata");
         // }
     }
-
 }
