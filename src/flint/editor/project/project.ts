@@ -344,7 +344,7 @@ export class ${name} extends Component {
             data: name
         });
 
-        ProjectConfig.config.components.push({ name, file: relativeFilePath });
+        ProjectConfig.config.components.push({ name, file: "/" + relativeFilePath });
         await ProjectConfig.save();
 
         await Project.openInFileEditor("/" + relativeFilePath);

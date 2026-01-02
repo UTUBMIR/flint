@@ -3,7 +3,10 @@ import { System } from "./flint/runtime/system";
 import Editor from "./flint/editor/editor";
 import { BrowserFileSystem } from "./flint/shared/file-system";
 
-System.init(new Renderer2D(), new BrowserFileSystem());
+System.init({
+    renderer: new Renderer2D(),
+    fileSystem: new BrowserFileSystem()
+});
 
 System.runRenderingOnly();
 
