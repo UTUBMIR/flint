@@ -3,6 +3,9 @@ import { type DropdownType } from "../editor";
 import ProjectConfig from "../project/project-config";
 import { AssetRegistry, AssetType } from "../../runtime/assets";
 
+import type SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox.js";
+import type SlCopyButton from "@shoelace-style/shoelace/dist/components/copy-button/copy-button.js";
+
 export type AssetData = {
     id: string;
     name: string;
@@ -89,7 +92,7 @@ export default class Assets {
             idCell.style.display = "flex";
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const idCopyButton = document.createElement("sl-copy-button") as any;
+            const idCopyButton = document.createElement("sl-copy-button") as SlCopyButton;
             idCopyButton.value = asset.id;
             idCopyButton.style.marginLeft = "auto";
 
@@ -98,7 +101,7 @@ export default class Assets {
             row.insertCell().innerText = AssetType[asset.type];
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const checkbox = document.createElement("sl-checkbox") as any;
+            const checkbox = document.createElement("sl-checkbox") as SlCheckbox;
             checkbox.checked = asset.preload;
 
             checkbox.addEventListener("sl-change", () => {

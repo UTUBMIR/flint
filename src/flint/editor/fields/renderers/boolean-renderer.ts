@@ -2,6 +2,8 @@
 import { BehaviorRegistry } from "../../component-builder";
 import type { FieldRenderer, GetType, SetType } from "../field-renderer";
 
+import type SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox.js";
+
 export class BooleanRenderer implements FieldRenderer {
     canRender(type: string) {
         return type === "boolean";
@@ -21,7 +23,7 @@ export class BooleanRenderer implements FieldRenderer {
             update: this.update
         };
 
-        const checkbox = document.createElement("sl-checkbox") as any;
+        const checkbox = document.createElement("sl-checkbox") as SlCheckbox;
 
         checkbox.addEventListener("sl-input", (e: any) => {
             ctx.set(!!e.target.checked);

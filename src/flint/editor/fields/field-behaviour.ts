@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface FieldBehavior {
-    attach(element: HTMLElement, context: BehaviorContext): void;
+    attach(element: HTMLElement | Node, context: BehaviorContext): void;
 }
 
 export interface BehaviorContext {

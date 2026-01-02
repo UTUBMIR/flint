@@ -2,6 +2,7 @@
 import { BehaviorRegistry } from "../../component-builder";
 import type { FieldRenderer, GetType, SetType } from "../field-renderer";
 
+import type SlColorPicker from "@shoelace-style/shoelace/dist/components/color-picker/color-picker.js";
 
 export class ColorRenderer implements FieldRenderer {
     canRender(type: string) {
@@ -22,7 +23,7 @@ export class ColorRenderer implements FieldRenderer {
             update: this.update
         };
 
-        const picker = document.createElement("sl-color-picker") as any;
+        const picker = document.createElement("sl-color-picker") as SlColorPicker;
         picker.noFormatToggle = true;
         picker.hoist = true;
 

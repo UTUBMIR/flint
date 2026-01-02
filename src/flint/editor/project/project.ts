@@ -9,6 +9,8 @@ import { AbstractFileSystem as AbstractFileSystem } from "../../shared/file-syst
 import { AssetRegistry } from "../../runtime/assets";
 import { EditorLayer as EditorLayer } from "../editor-layer";
 
+import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
+import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
 // export class FileTracker {
 //     private constructor() { }
 
@@ -101,8 +103,8 @@ import { EditorLayer as EditorLayer } from "../editor-layer";
 
 export class Project {
     private static createComponentDialog: HTMLElement & { show: () => void; hide: () => void };
-    private static createComponentButton: HTMLButtonElement;
-    private static createComponentInput: HTMLInputElement;
+    private static createComponentButton: SlButton;
+    private static createComponentInput: SlInput;
 
     public static names: Map<UUID, string> = new Map();
 
@@ -112,13 +114,13 @@ export class Project {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Project.createComponentDialog = document.getElementById("create-component-dialog")! as any;
 
-        Project.createComponentButton = Project.createComponentDialog.querySelector("sl-button") as HTMLButtonElement;
+        Project.createComponentButton = Project.createComponentDialog.querySelector("sl-button") as SlButton;
         Project.createComponentButton.addEventListener("click", () => {
             Project.createComponentDialog.hide();
             Project.createComponent(Project.createComponentInput.value.trim());
         });
 
-        Project.createComponentInput = Project.createComponentDialog.querySelector("sl-input") as HTMLInputElement;
+        Project.createComponentInput = Project.createComponentDialog.querySelector("sl-input") as SlInput;
         Project.createComponentInput.addEventListener("sl-input", () => {
             Project.createComponentButton.disabled = Project.createComponentInput.value.trim() === "";
         });

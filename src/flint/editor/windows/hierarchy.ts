@@ -6,6 +6,7 @@ import Editor, { Notifier } from "../editor";
 import { type DropdownType } from "../editor";
 import { EditorLayer } from "../editor-layer";
 
+import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
 
 /**
  * Sets a name for and object, exists only in the Editor.
@@ -217,7 +218,7 @@ export default class Hierarchy {
 
                 const oldLabel = textNode.textContent || "";
 
-                const input = document.createElement("sl-input") as HTMLInputElement;
+                const input = document.createElement("sl-input") as SlInput;
                 input.type = "text";
                 input.value = oldLabel;
                 input.name = "gameObjectName";

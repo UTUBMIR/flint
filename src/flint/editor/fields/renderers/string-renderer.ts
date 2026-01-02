@@ -2,6 +2,8 @@
 import { BehaviorRegistry } from "../../component-builder";
 import type { FieldRenderer, GetType, SetType } from "../field-renderer";
 
+import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
+
 export class StringRenderer implements FieldRenderer {
     canRender(type: string) {
         return type === "string";
@@ -21,7 +23,7 @@ export class StringRenderer implements FieldRenderer {
             update: this.update
         };
 
-        const input = document.createElement("sl-input") as any;
+        const input = document.createElement("sl-input") as SlInput;
 
         input.addEventListener("sl-input", (e: any) => {
             ctx.set(e.target.value);
