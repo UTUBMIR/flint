@@ -66,6 +66,36 @@ type SerializePlugin<T> = {
     serialize(value: T): any;
 };
 
+function hasSameShape(
+    value: any,
+    template: any,
+    strict = false
+): boolean {
+    if (!value || !template) return false;
+    if (typeof value !== "object" || typeof template !== "object") return false;
+
+    const valueKeys = Object.keys(value);
+    const templateKeys = Object.keys(template);
+
+    if (strict && valueKeys.length !== templateKeys.length) {
+        return false;
+    }
+
+    for (const key of templateKeys) {
+        if (!(key in value)) return false;
+
+        const v = value[key];
+        const t = template[key];
+
+        if (v == null || t == null) continue;
+
+        if (typeof v !== typeof t) return false;
+    }
+
+    return true;
+}
+
+
 class LoaderPlugins {
     private static serialize = new Map<(abstract new () => any), SerializePlugin<any>>();
     private static deserialize = new Map<(abstract new () => any), DeserializePlugin<any>>();
@@ -78,12 +108,70 @@ class LoaderPlugins {
         this.deserialize.set(plugin.type, plugin);
     }
 
-    static getSerialize(type: (abstract new () => any)) {
+    static getSerializeByType(type: (abstract new () => any)) {
         return this.serialize.get(type);
     }
 
-    static getDeserialize(type: (abstract new () => any)) {
-        return this.deserialize.get(type);
+    static getSerializeByShape(
+        value: any,
+        strict = false
+    ): SerializePlugin<any> | undefined {
+        if (!value || typeof value !== "object") return;
+
+        for (const plugin of LoaderPlugins.serialize.values()) {
+            const TemplateType = plugin.type;
+            let template: any;
+
+            try {
+                template = new (TemplateType as any)();
+            } catch {
+                continue;
+            }
+
+            if (hasSameShape(value, template, strict)) {
+                return plugin;
+            }
+        }
+
+        return;
+    }
+
+
+    static getDeserializeByShape(
+        value: any,
+        strict = false
+    ): DeserializePlugin<any> | undefined {
+        if (!value || typeof value !== "object") return;
+
+        for (const plugin of LoaderPlugins.deserialize.values()) {
+            const TemplateType = plugin.type;
+            let template: any;
+
+            try {
+                template = new (TemplateType as any)();
+            } catch {
+                continue;
+            }
+
+            if (hasSameShape(value, template, strict)) {
+                return plugin;
+            }
+        }
+
+        return;
+    }
+
+    static getDeserializeByType(type: abstract new () => any) {
+        let ctor: any = type;
+
+        while (ctor) {
+            const plugin = this.deserialize.get(ctor);
+            if (plugin) return plugin;
+
+            ctor = Object.getPrototypeOf(ctor);
+        }
+
+        return;
     }
 }
 
@@ -96,10 +184,10 @@ function restorePrototypesDeep(
 
     // 1. trying plugin
     if (useModules) {
-        const plugin = LoaderPlugins.getDeserialize(template.constructor);
+        const plugin = LoaderPlugins.getDeserializeByShape(template);
         if (plugin && plugin.phase === LoadPhase.Deserialize) {
             const restored = new (template.constructor as any)();
-            plugin.deserialize(loaded, restored, {} as LoadContext); // TODO: Set current context as argument
+            plugin.deserialize(loaded, restored, ProjectLoader.context ?? new LoadContext()); // TODO: Set current context as argument
             Object.assign(loaded, restored);
             return;
         }
@@ -121,10 +209,10 @@ function restorePrototypesDeep(
                 const item = lVal[i];
                 if (!item || typeof item !== "object") continue;
 
-                const itemPlugin = LoaderPlugins.getDeserialize(tItem.constructor);
+                const itemPlugin = LoaderPlugins.getDeserializeByShape(tItem);
                 if (itemPlugin && itemPlugin.phase === LoadPhase.Deserialize) {
                     const restoredItem = new (tItem.constructor as any)();
-                    itemPlugin.deserialize(item, restoredItem, {} as LoadContext);
+                    itemPlugin.deserialize(item, restoredItem, ProjectLoader.context ?? new LoadContext());
                     Object.assign(item, restoredItem);
                 } else {
                     Object.setPrototypeOf(item, Object.getPrototypeOf(tItem));
@@ -134,10 +222,10 @@ function restorePrototypesDeep(
             continue;
         }
 
-        const fieldPlugin = LoaderPlugins.getDeserialize(tVal.constructor);
+        const fieldPlugin = LoaderPlugins.getDeserializeByShape(tVal);
         if (fieldPlugin && fieldPlugin.phase === LoadPhase.Deserialize) {
             const restoredField = new (tVal.constructor as any)();
-            fieldPlugin.deserialize(lVal, restoredField, {} as LoadContext);
+            fieldPlugin.deserialize(lVal, restoredField, ProjectLoader.context ?? new LoadContext());
             Object.assign(lVal, restoredField);
         } else {
             Object.setPrototypeOf(lVal, Object.getPrototypeOf(tVal));
@@ -151,8 +239,14 @@ function restorePrototypesDeep(
 export class ProjectLoader {
     private constructor() { }
 
+    private static _context: LoadContext | undefined;
+    public static get context(): LoadContext | undefined {
+        return ProjectLoader._context;
+    }
+
     public static deserialize(raw: RawProjectData): ProjectData {
         const ctx = new LoadContext();
+        ProjectLoader._context = ctx;
         const scheduler = new LoadScheduler();
 
         const result: ProjectData = {
@@ -217,7 +311,7 @@ export class ProjectLoader {
                     });
 
 
-                    const plugin = LoaderPlugins.getDeserialize(CompClass);
+                    const plugin = LoaderPlugins.getDeserializeByType(CompClass);
                     if (plugin) {
                         scheduler.add(plugin.phase, () => {
                             plugin.deserialize(rawComp.data, instance, ctx);
@@ -228,6 +322,7 @@ export class ProjectLoader {
         });
 
         scheduler.run();
+        ProjectLoader._context = undefined;
         return result;
     }
     public static serialize(data: ProjectData): string {
@@ -262,7 +357,7 @@ export class ProjectLoader {
                         const value = (comp as any)[key];
                         if (value === undefined) continue;
 
-                        const plugin = LoaderPlugins.getSerialize(value?.constructor); //BUG: Loader module works not as expected (see module below)
+                        const plugin = LoaderPlugins.getSerializeByShape(value);
                         rawComp.data[key] = plugin
                             ? plugin.serialize(value)
                             : value;
