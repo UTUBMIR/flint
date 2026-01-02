@@ -261,10 +261,10 @@ export class ProjectLoader {
             result.layers.push(layer);
 
             for (const rawObj of rawLayer.objects) {
-                const go = new GameObject([], null!, rawObj.uuid);
+                const go = new GameObject([], undefined, rawObj.uuid);
                 ctx.objects.set(rawObj.uuid, go);
 
-                scheduler.add(LoadPhase.Create, () => {
+                scheduler.add(LoadPhase.Resolve, () => {
                     layer.addObject(go);
                 });
             }
@@ -325,6 +325,7 @@ export class ProjectLoader {
         ProjectLoader._context = undefined;
         return result;
     }
+
     public static serialize(data: ProjectData): string {
         const raw: RawProjectData = {
             layers: [],
@@ -405,6 +406,7 @@ LoaderPlugins.addDeserialize<GameObject>({
         const existing = ctx.objects.get(data.uuid);
         if (existing) {
             Object.assign(instance, existing);
+            Object.setPrototypeOf(data, Object.getPrototypeOf(existing));
         } else {
             (instance as any)["uuid"] = data.uuid;
         }

@@ -21,6 +21,8 @@ export default class Image extends RendererComponent {
             return;
         }
 
+        renderer.shadowColor = "#fff0";
+
         renderer.translate(this.transform.position);
         renderer.rotate(this.transform.rotation);
 
