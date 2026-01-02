@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Metadata, { MetadataKeys } from "../shared/metadata";
 import { AssetRegistry, AssetRequestSystem, type AssetMeta } from "./assets";
+import Component from "./component";
 import GameObject from "./game-object";
 import Layer from "./layer";
 import { System, type UUID } from "./system";
@@ -390,6 +391,7 @@ export class ProjectLoader {
     }
 }
 
+
 LoaderPlugins.addSerialize<GameObject>({
     type: GameObject,
     serialize(go: GameObject) {
@@ -410,5 +412,28 @@ LoaderPlugins.addDeserialize<GameObject>({
         } else {
             (instance as any)["uuid"] = data.uuid;
         }
+    }
+});
+
+LoaderPlugins.addSerialize<Component>({
+    type: Component,
+    serialize(comp: Component) {
+        return {
+            uuid: comp.gameObject?.uuid,
+            component: comp.constructor.name
+        };
+    }
+});
+
+LoaderPlugins.addDeserialize<Component>({
+    type: Component,
+    phase: LoadPhase.Deserialize,
+    deserialize(data: any, instance: Component, ctx: LoadContext) {
+        const existingObject = ctx.objects.get(data.uuid);
+        const existing = existingObject?.requireComponent(System.components.get(data.component) as (typeof Component));
+
+        delete data.component;
+        Object.assign(instance, existing);
+        Object.setPrototypeOf(data, Object.getPrototypeOf(instance));
     }
 });

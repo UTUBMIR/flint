@@ -271,8 +271,28 @@ export default class Hierarchy {
         item.textContent = text;
         item.setAttribute("expanded", "true");
         item.dataset.hierarchyId = id;
-        
+
         item.draggable = true;
+
+        function dragstartHandler(ev: DragEvent) {
+            const parsed = item.dataset.hierarchyId!
+                .split("-")
+                .map(i => Number.parseInt(i));
+
+            if (parsed.length !== 2) return;
+
+            const layer = Editor.hierarchyWindow.layers.get(parsed[0] ?? 0);
+
+            const go = layer?.getObjects()[parsed[1] ?? 0];
+
+            if (!go) {
+                return;
+            }
+
+            ev.dataTransfer!.setData("application/x-gameobject-id", go.uuid);
+        }
+
+        item.addEventListener("dragstart", dragstartHandler);
 
         parent.appendChild(item);
         return item;

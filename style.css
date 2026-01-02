@@ -330,3 +330,22 @@ tr:nth-child(even) {
 tr:hover {
     background-color: var(--sl-color-neutral-200);
 }
+
+.dropzone {
+    padding: 12px;
+    border: 2px dashed #555;
+    border-radius: var(--sl-color-neutral-50);
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.dropzone.drag-over {
+    border-color: #4da3ff;
+    background: rgba(77, 163, 255, 0.1);
+}
+
+.drop-value {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}

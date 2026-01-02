@@ -50,11 +50,13 @@ export default class Inspector {
         });
 
         this.dropTarget.addEventListener("drop", (ev) => {
-            ev.preventDefault();
 
-            ev.dataTransfer!.items[0]?.getAsString((componentName) => {
+            const componentName = ev.dataTransfer!.getData("application/x-component-name");
+
+            if (componentName.length > 0) {
+                ev.preventDefault();
                 this.currentObject?.addComponent(new (System.components.get(componentName) as any)());
-            });
+            }
         });
 
         this.dialogSelect = this.dialog.getElementsByTagName("sl-select")[0] as HTMLSelectElement;

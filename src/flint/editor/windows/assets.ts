@@ -91,7 +91,6 @@ export default class Assets {
             const idCell = row.insertCell();
             idCell.style.display = "flex";
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const idCopyButton = document.createElement("sl-copy-button") as SlCopyButton;
             idCopyButton.value = asset.id;
             idCopyButton.style.marginLeft = "auto";
@@ -100,7 +99,6 @@ export default class Assets {
 
             row.insertCell().innerText = AssetType[asset.type];
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const checkbox = document.createElement("sl-checkbox") as SlCheckbox;
             checkbox.checked = asset.preload;
 
@@ -268,7 +266,7 @@ export default class Assets {
                 asset.data = found!; // its already undefined so it doesn`t matter
             }
             function dragstartHandler(ev: DragEvent) {
-                ev.dataTransfer!.items.add(asset.data, "text/plain");
+                ev.dataTransfer!.items.add(asset.data, "application/x-component-name");
             }
 
             card.addEventListener("dragstart", dragstartHandler);

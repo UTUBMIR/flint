@@ -10,6 +10,7 @@ import { StringRenderer } from "./fields/renderers/string-renderer";
 import Metadata, { MetadataKeys } from "../shared/metadata";
 import { AngleRenderer } from "./fields/renderers/angle-renderer";
 import { BooleanRenderer } from "./fields/renderers/boolean-renderer";
+import { GameObjectDropRenderer } from "./fields/renderers/game-object-renderer";
 
 
 /**
@@ -47,8 +48,12 @@ export class RendererRegistry {
         this.renderers.push(renderer);
     }
 
-    public static getRenderer(type: string) {
-        return this.renderers.find(r => r.canRender(type));
+    public static getRendererByValue(type: any) {
+        return this.renderers.find(r => (r.canRender(typeof type) || r.canRender(type?.constructor.name.toLowerCase())));
+    }
+
+    public static getRendererByTypeName(typeName: string) {
+        return this.renderers.find(r => (r.canRender(typeName.toLowerCase())));
     }
 }
 
@@ -150,7 +155,7 @@ export class ComponentBuilder {
     public static field(root: Component, path: string[]): HTMLElement {
         const key = this.lastKey(path);
         const value = this.get(root, path);
-
+        
         // Simple primitive
         const type = typeof value;
 
@@ -172,7 +177,7 @@ export class ComponentBuilder {
         };
 
         if (meta) {
-            const renderer = RendererRegistry.getRenderer(meta);
+            const renderer = RendererRegistry.getRendererByTypeName(meta);
             if (renderer) {
                 return render(renderer);
             }
@@ -182,11 +187,12 @@ export class ComponentBuilder {
             return this.wrapField(key, span);
         }
 
-        if (!this.isPlainObject(value)) {
-            const renderer = RendererRegistry.getRenderer(type);
+        const renderer = RendererRegistry.getRendererByValue(value);
+        if (!this.isPlainObject(value) || renderer) {
             if (renderer) {
                 return render(renderer);
             }
+
             // fallback
             const span = document.createElement("span");
             span.textContent = `[${type}]`;
@@ -270,6 +276,7 @@ RendererRegistry.register(new BooleanRenderer());
 RendererRegistry.register(new StringRenderer());
 RendererRegistry.register(new AngleRenderer());
 
+RendererRegistry.register(new GameObjectDropRenderer());
 
 BehaviorRegistry.register("number", new WheelScrubBehavior());
 BehaviorRegistry.register("number", new DragScrubBehavior());
