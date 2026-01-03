@@ -5,17 +5,50 @@ import Editor, { Notifier } from "../editor";
 import type Component from "../../runtime/component";
 import { ComponentBuilder } from "../component-builder";
 import { System } from "../../runtime/system";
-
 class InspectorComponent {
     public readonly element: HTMLElement;
-    public readonly component: Component;
+    private allowDrag = false;
 
-    public constructor(component: Component) {
-        this.component = component;
+    public constructor(private component: Component) {
+        this.element = Object.assign(
+            document.createElement("sl-details"),
+            {
+                summary: component.constructor.name,
+                open: true,
+                draggable: true
+            }
+        );
 
-        this.element = Object.assign(document.createElement("sl-details") as HTMLElement, {
-            summary: component.constructor.name,
-            open: true
+        // 1️⃣ Визначаємо, де був клік
+        this.element.addEventListener("mousedown", (ev) => {
+            const path = ev.composedPath();
+
+            // дозволяємо drag ТІЛЬКИ якщо клік по summary
+            this.allowDrag = path.some(
+                el =>
+                    el instanceof HTMLElement &&
+                    el.getAttribute?.("part") === "summary"
+            );
+        }, true);
+
+        // 2️⃣ Контролюємо drag
+        this.element.addEventListener("dragstart", (ev) => {
+            if (!this.allowDrag) {
+                ev.preventDefault();
+                return;
+            }
+
+            ev.dataTransfer!.setData(
+                "application/x-component-ref",
+                JSON.stringify({
+                    name: component.constructor.name,
+                    id: component.gameObject.uuid
+                })
+            );
+        });
+
+        this.element.addEventListener("dragend", () => {
+            this.allowDrag = false;
         });
 
         this.generateContent();
@@ -164,7 +197,7 @@ export default class Inspector {
 
         if (expected.length !== this.components.length) return false;
 
-        for (let i = 0; i < expected.length; i++) {
+        for (let i = 0; i < expected.length; ++i) {
             if (this.components[i]!.component !== expected[i]) {
                 return false;
             }
