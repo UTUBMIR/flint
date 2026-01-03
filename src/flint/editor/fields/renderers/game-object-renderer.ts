@@ -3,7 +3,7 @@ import type GameObject from "../../../runtime/game-object";
 import { System, type UUID } from "../../../runtime/system";
 import Metadata, { MetadataKeys } from "../../../shared/metadata";
 
-export class GameObjectDropRenderer extends BaseDropRenderer<GameObject> {
+export class GameObjectRenderer extends BaseDropRenderer<GameObject> {
     canRender(type: string) {
         return type === "gameobject";
     }

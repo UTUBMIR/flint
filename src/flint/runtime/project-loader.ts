@@ -4,6 +4,7 @@ import { AssetRegistry, AssetRequestSystem, type AssetMeta } from "./assets";
 import Component from "./component";
 import GameObject from "./game-object";
 import Layer from "./layer";
+import StrongRef from "./strong-ref";
 import { System, type UUID } from "./system";
 import Transform from "./transform";
 
@@ -59,7 +60,7 @@ class LoadScheduler {
 type DeserializePlugin<T> = {
     type: abstract new () => T;
     phase: LoadPhase;
-    deserialize(data: any, instance: T, ctx: LoadContext): void;
+    deserialize(dataRef: StrongRef<any>, instance: T, ctx: LoadContext): void;
 };
 
 type SerializePlugin<T> = {
@@ -177,11 +178,11 @@ class LoaderPlugins {
 }
 
 function restorePrototypesDeep(
-    loaded: any,
+    loaded: StrongRef<any>,
     template: any,
     useModules: boolean = true
 ): void {
-    if (!loaded || !template) return;
+    if (!loaded.value || !template) return;
 
     // 1. trying plugin
     if (useModules) {
@@ -189,14 +190,13 @@ function restorePrototypesDeep(
         if (plugin && plugin.phase === LoadPhase.Deserialize) {
             const restored = new (template.constructor as any)();
             plugin.deserialize(loaded, restored, ProjectLoader.context ?? new LoadContext()); // TODO: Set current context as argument
-            Object.assign(loaded, restored);
             return;
         }
     }
 
     // 2. restoring by fallback
-    for (const key of Object.keys(loaded)) {
-        const lVal = loaded[key];
+    for (const key of Object.keys(loaded.value)) {
+        const lVal = loaded.value[key];
         const tVal = template[key];
 
         if (!lVal || !tVal) continue;
@@ -213,11 +213,10 @@ function restorePrototypesDeep(
                 const itemPlugin = LoaderPlugins.getDeserializeByShape(tItem);
                 if (itemPlugin && itemPlugin.phase === LoadPhase.Deserialize) {
                     const restoredItem = new (tItem.constructor as any)();
-                    itemPlugin.deserialize(item, restoredItem, ProjectLoader.context ?? new LoadContext());
-                    Object.assign(item, restoredItem);
+                    itemPlugin.deserialize(new StrongRef(lVal, i), restoredItem, ProjectLoader.context ?? new LoadContext());
                 } else {
                     Object.setPrototypeOf(item, Object.getPrototypeOf(tItem));
-                    restorePrototypesDeep(item, tItem, true);
+                    restorePrototypesDeep(new StrongRef(lVal, i), tItem, true);
                 }
             }
             continue;
@@ -226,11 +225,10 @@ function restorePrototypesDeep(
         const fieldPlugin = LoaderPlugins.getDeserializeByShape(tVal);
         if (fieldPlugin && fieldPlugin.phase === LoadPhase.Deserialize) {
             const restoredField = new (tVal.constructor as any)();
-            fieldPlugin.deserialize(lVal, restoredField, ProjectLoader.context ?? new LoadContext());
-            Object.assign(lVal, restoredField);
+            fieldPlugin.deserialize(new StrongRef(loaded.value, key), restoredField, ProjectLoader.context ?? new LoadContext());
         } else {
             Object.setPrototypeOf(lVal, Object.getPrototypeOf(tVal));
-            restorePrototypesDeep(lVal, tVal, true);
+            restorePrototypesDeep(new StrongRef(loaded.value, key), tVal, true);
         }
     }
 }
@@ -291,7 +289,7 @@ export class ProjectLoader {
                     scheduler.add(LoadPhase.Create, () => {
                         if (instance instanceof Transform) {
                             restorePrototypesDeep(
-                                rawComp.data,
+                                new StrongRef(rawComp, "data"),
                                 instance,
                                 false
                             );
@@ -303,7 +301,7 @@ export class ProjectLoader {
 
                     scheduler.add(LoadPhase.Deserialize, () => {
                         restorePrototypesDeep(
-                            rawComp.data,
+                            new StrongRef(rawComp, "data"),
                             instance,
                             false
                         );
@@ -315,7 +313,7 @@ export class ProjectLoader {
                     const plugin = LoaderPlugins.getDeserializeByType(CompClass);
                     if (plugin) {
                         scheduler.add(plugin.phase, () => {
-                            plugin.deserialize(rawComp.data, instance, ctx);
+                            plugin.deserialize(new StrongRef(rawComp, "data"), instance, ctx);
                         });
                     }
                 }
@@ -404,13 +402,10 @@ LoaderPlugins.addSerialize<GameObject>({
 LoaderPlugins.addDeserialize<GameObject>({
     type: GameObject,
     phase: LoadPhase.Deserialize,
-    deserialize(data: any, instance: GameObject, ctx: LoadContext) {
-        const existing = ctx.objects.get(data.uuid);
+    deserialize(dataRef: StrongRef<any>, _restored: GameObject, ctx: LoadContext) {
+        const existing = ctx.objects.get(dataRef.value.uuid);
         if (existing) {
-            Object.assign(instance, existing);
-            Object.setPrototypeOf(data, Object.getPrototypeOf(existing));
-        } else {
-            (instance as any)["uuid"] = data.uuid;
+            dataRef.value = existing;
         }
     }
 });
@@ -428,12 +423,10 @@ LoaderPlugins.addSerialize<Component>({
 LoaderPlugins.addDeserialize<Component>({
     type: Component,
     phase: LoadPhase.Deserialize,
-    deserialize(data: any, instance: Component, ctx: LoadContext) {
-        const existingObject = ctx.objects.get(data.uuid);
-        const existing = existingObject?.requireComponent(System.components.get(data.component) as (typeof Component));
+    deserialize(dataRef: StrongRef<any>, _instance: Component, ctx: LoadContext) {
+        const existingObject = ctx.objects.get(dataRef.value.uuid);
+        const existing = existingObject?.requireComponent(System.components.get(dataRef.value.component) as (typeof Component));
 
-        delete data.component;
-        Object.assign(instance, existing);
-        Object.setPrototypeOf(data, Object.getPrototypeOf(instance));
+        dataRef.value = existing;
     }
 });

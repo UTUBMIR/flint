@@ -1,21 +1,23 @@
 import { BaseDropRenderer } from "./base-drop-renderer";
-import type GameObject from "../../../runtime/game-object";
-import { System, type UUID } from "../../../runtime/system";
-import Metadata, { MetadataKeys } from "../../../shared/metadata";
+import { System } from "../../../runtime/system";
+import type Component from "../../../runtime/component";
 
-export class GameObjectDropRenderer extends BaseDropRenderer<GameObject> {
+export class ComponentRenderer extends BaseDropRenderer<Component> {
     canRender(type: string) {
-        return type === "gameObject";
+        return type === "component";
     }
 
-    protected parseDrop(dt: DataTransfer): GameObject | null {
-        const id = dt.getData("application/x-gameobject-id");
-        if (!id) return null;
+    protected parseDrop(dt: DataTransfer): Component | null {
+        const parsed = JSON.parse(dt.getData("application/x-component-ref"));
+        if (!parsed) return null;
+        const compType = System.components.get(parsed.name);
 
-        return System.getGameObjectById(id as UUID)??null;
+        if (!compType) return null;
+
+        return System.getGameObjectById(parsed.id)?.getComponent(compType) ?? null;
     }
 
-    protected stringify(go: GameObject | null): string {
-        return go ? `GameObject: ${Metadata.getClass(go, MetadataKeys.EditorName)}` : "Drop GameObject";
+    protected stringify(comp: Component | null): string {
+        return comp ? `Component: ${comp.constructor.name}` : "Drop Component";
     }
 }

@@ -10,7 +10,8 @@ import { StringRenderer } from "./fields/renderers/string-renderer";
 import Metadata, { MetadataKeys } from "../shared/metadata";
 import { AngleRenderer } from "./fields/renderers/angle-renderer";
 import { BooleanRenderer } from "./fields/renderers/boolean-renderer";
-import { GameObjectDropRenderer } from "./fields/renderers/game-object-renderer";
+import { GameObjectRenderer } from "./fields/renderers/game-object-renderer";
+import { ComponentRenderer } from "./fields/renderers/component-renderer";
 
 
 /**
@@ -49,7 +50,24 @@ export class RendererRegistry {
     }
 
     public static getRendererByValue(type: any) {
-        return this.renderers.find(r => (r.canRender(typeof type) || r.canRender(type?.constructor.name.toLowerCase())));
+        if (type == null) return undefined;
+
+        function check(r: { canRender: (t: string) => boolean }, t: any) {
+            const tTypeof = typeof t;
+            const ctorName = t?.constructor?.name?.toLowerCase();
+            return r.canRender(tTypeof) || (ctorName ? r.canRender(ctorName) : false);
+        }
+
+        return this.renderers.find(r => {
+            let current = type;
+            while (current) {
+                if (check(r, current)) {
+                    return true;
+                }
+                current = Object.getPrototypeOf(current);
+            }
+            return false;
+        });
     }
 
     public static getRendererByTypeName(typeName: string) {
@@ -155,7 +173,7 @@ export class ComponentBuilder {
     public static field(root: Component, path: string[]): HTMLElement {
         const key = this.lastKey(path);
         const value = this.get(root, path);
-        
+
         // Simple primitive
         const type = typeof value;
 
@@ -187,7 +205,7 @@ export class ComponentBuilder {
             return this.wrapField(key, span);
         }
 
-        const renderer = RendererRegistry.getRendererByValue(value);
+        const renderer = RendererRegistry.getRendererByValue(value) ?? RendererRegistry.getRendererByTypeName(type);
         if (!this.isPlainObject(value) || renderer) {
             if (renderer) {
                 return render(renderer);
@@ -276,7 +294,8 @@ RendererRegistry.register(new BooleanRenderer());
 RendererRegistry.register(new StringRenderer());
 RendererRegistry.register(new AngleRenderer());
 
-RendererRegistry.register(new GameObjectDropRenderer());
+RendererRegistry.register(new GameObjectRenderer());
+RendererRegistry.register(new ComponentRenderer());
 
 BehaviorRegistry.register("number", new WheelScrubBehavior());
 BehaviorRegistry.register("number", new DragScrubBehavior());
