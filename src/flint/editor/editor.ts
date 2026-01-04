@@ -92,7 +92,6 @@ class ToolBarActions {
         await Project.saveProject();
         if (await Project.buildAndRun()) {
             Notifier.notify("Project builded successfully.", "success");
-            Editor.openBuildAnchor.href = Builder.previewUrl;
         }
     }
 
@@ -138,8 +137,6 @@ export default class Editor {
     public static runButton: HTMLButtonElement;
     public static runButtonIcon: { name: string };
 
-    public static openBuildAnchor: HTMLAnchorElement;
-
     public static loadingDialog: HTMLElement & { show: () => void, hide: () => void };
     public static loadingDialogProgressBar: HTMLElement & { value: number, indeterminate: boolean };
 
@@ -179,8 +176,6 @@ export default class Editor {
                     event.preventDefault();
                 }
             });
-
-            Editor.openBuildAnchor = document.getElementById("open-build-button")! as HTMLAnchorElement;
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             Editor.loadingDialogProgressBar = Editor.loadingDialog.querySelector("sl-progress-bar")! as any;
