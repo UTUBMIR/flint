@@ -92,11 +92,8 @@ class ToolBarActions {
         await Project.saveProject();
         if (await Project.buildAndRun()) {
             Notifier.notify("Project builded successfully.", "success");
+            Editor.openBuildAnchor.href = Builder.previewUrl;
         }
-    }
-
-    public static openBuild() {
-        Builder.openBuild();
     }
 
     public static async compile() {
@@ -141,6 +138,8 @@ export default class Editor {
     public static runButton: HTMLButtonElement;
     public static runButtonIcon: { name: string };
 
+    public static openBuildAnchor: HTMLAnchorElement;
+
     public static loadingDialog: HTMLElement & { show: () => void, hide: () => void };
     public static loadingDialogProgressBar: HTMLElement & { value: number, indeterminate: boolean };
 
@@ -181,6 +180,8 @@ export default class Editor {
                 }
             });
 
+            Editor.openBuildAnchor = document.getElementById("open-build-button")! as HTMLAnchorElement;
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             Editor.loadingDialogProgressBar = Editor.loadingDialog.querySelector("sl-progress-bar")! as any;
 
@@ -202,8 +203,6 @@ export default class Editor {
                     await ToolBarActions.buildAndRun();
                 }
             }, true);
-
-            document.getElementById("open-build-button")!.addEventListener("click", ToolBarActions.openBuild);
 
             document.getElementById("compile-button")!.addEventListener("click", ToolBarActions.compile);
             document.addEventListener("keydown", async function (event) {
