@@ -16,7 +16,11 @@ export class Builder {
     private static compiled: string;
 
     public static get previewExists(): boolean {
-        return !!Builder.tab;
+        return !!Builder.tabUrl;
+    }
+
+    public static get previewUrl() {
+        return Builder.tabUrl;
     }
 
     private constructor() { }
