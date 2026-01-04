@@ -136,7 +136,7 @@ export class System {
         Input.init(System.rootDiv);
 
         this.loadPlayConfig(options.playConfig ?? defaultPlayConfig);
-        
+
         if (options.fileSystem) {
             this.fileSystem = options.fileSystem;
         }
@@ -304,10 +304,17 @@ export class System {
 
     private static addResizing(canvas: HTMLCanvasElement, ctx: RenderingContext) {
         const resize = () => {
-            canvas.width = Math.floor(+(this.rootDiv.clientWidth) * System.dpr);
-            canvas.height = Math.floor(+(this.rootDiv.clientHeight) * System.dpr);
+            const width = this.rootDiv.clientWidth;
+            const height = this.rootDiv.clientHeight;
+
+            canvas.width = Math.floor(width * System.dpr);
+            canvas.height = Math.floor(height * System.dpr);
+
+            canvas.style.width = width + "px";
+            canvas.style.height = height + "px";
 
             if (ctx instanceof CanvasRenderingContext2D) {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.scale(System.dpr, System.dpr);
             }
         };
@@ -317,8 +324,8 @@ export class System {
                 resize();
             }, 0);
         });
+        
         resize();
-
         ro.observe(this.rootDiv);
     }
 
