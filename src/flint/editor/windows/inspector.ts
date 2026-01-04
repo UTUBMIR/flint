@@ -9,7 +9,7 @@ class InspectorComponent {
     public readonly element: HTMLElement;
     private allowDrag = false;
 
-    public constructor(private component: Component) {
+    public constructor(public component: Component) {
         this.element = Object.assign(
             document.createElement("sl-details"),
             {
@@ -19,11 +19,10 @@ class InspectorComponent {
             }
         );
 
-        // 1️⃣ Визначаємо, де був клік
         this.element.addEventListener("mousedown", (ev) => {
             const path = ev.composedPath();
 
-            // дозволяємо drag ТІЛЬКИ якщо клік по summary
+            // allowing ONLY if click was on "summary"
             this.allowDrag = path.some(
                 el =>
                     el instanceof HTMLElement &&
@@ -31,7 +30,6 @@ class InspectorComponent {
             );
         }, true);
 
-        // 2️⃣ Контролюємо drag
         this.element.addEventListener("dragstart", (ev) => {
             if (!this.allowDrag) {
                 ev.preventDefault();

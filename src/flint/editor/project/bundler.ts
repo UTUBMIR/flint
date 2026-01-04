@@ -67,7 +67,7 @@ export default class Bundler {
 
                     if (!content) {
                         console.warn("Missing virtual flint file:", flintPath);
-                        
+
                         return { contents: "export {}", loader: flintPath.endsWith(".json") ? "json" : "ts" };
                     }
 
@@ -106,14 +106,17 @@ export default class Bundler {
 
     public static async init() {
         if (!Bundler.esbuild) {
-            const { default: esbuild } = await import("https://esm.sh/esbuild-wasm@0.19.12");
+            const { default: esbuild } = await import("https://cdn.jsdelivr.net/npm/esbuild-wasm@0.19.12/esm/browser.min.js");
+
             await esbuild.initialize({
-                wasmURL: "https://esm.sh/esbuild-wasm@0.19.12/esbuild.wasm",
+                wasmURL: "https://cdn.jsdelivr.net/npm/esbuild-wasm@0.19.12/esbuild.wasm",
             });
+
             Bundler.esbuild = esbuild;
         }
         return Bundler;
     }
+
 
     public static async bundle(entryPoint: string = "/index.ts") {
         return await Bundler.esbuild.build({
