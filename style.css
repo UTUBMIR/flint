@@ -49,7 +49,7 @@ sl-menu {
 }
 
 #create-object-button::part(base),
-#add-component-button::part(base) {
+#assets-back-button::part(base) {
     padding: 0;
 }
 
