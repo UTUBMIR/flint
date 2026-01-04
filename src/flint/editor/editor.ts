@@ -62,7 +62,6 @@ class ToolBarActions {
             return window.showDirectoryPicker({ mode: "readwrite", id: "project" });
         }
         else {
-            alert(navigator.storage);
             return navigator.storage.getDirectory();
         }
     }
