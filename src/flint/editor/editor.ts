@@ -203,7 +203,7 @@ export default class Editor {
                 }
             }, true);
 
-            document.getElementById("open-build-button")!.addEventListener("click", ToolBarActions.buildAndRun);
+            document.getElementById("open-build-button")!.addEventListener("click", ToolBarActions.openBuild);
 
             document.getElementById("compile-button")!.addEventListener("click", ToolBarActions.compile);
             document.addEventListener("keydown", async function (event) {

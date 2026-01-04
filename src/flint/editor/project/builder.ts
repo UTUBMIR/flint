@@ -130,8 +130,7 @@ export class Builder {
         const blob = new Blob([html], { type: "text/html" });
         Builder.tabUrl = URL.createObjectURL(blob);
 
-        Builder.tab?.close();
-        Builder.tab = window.open(Builder.tabUrl, "flint_preview")!;
+        Builder.openBuild();
 
         return true;
     }
