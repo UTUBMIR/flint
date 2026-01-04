@@ -11,7 +11,13 @@ import { AssetRegistry } from "../../runtime/assets";
 
 export class Builder {
     private static tab: Window;
+    private static tabUrl: string = "";
+
     private static compiled: string;
+
+    public static get previewExists(): boolean {
+        return !!Builder.tab;
+    }
 
     private constructor() { }
 
@@ -122,12 +128,19 @@ export class Builder {
         const html = this.makeHtml(Builder.compiled, true);
 
         const blob = new Blob([html], { type: "text/html" });
-        const url = URL.createObjectURL(blob);
+        Builder.tabUrl = URL.createObjectURL(blob);
 
         Builder.tab?.close();
-        Builder.tab = window.open(url, "flint_preview")!;
+        Builder.tab = window.open(Builder.tabUrl, "flint_preview")!;
 
         return true;
+    }
+
+    public static openBuild() {
+        if (Builder.previewExists) {
+            Builder.tab?.close();
+            Builder.tab = window.open(Builder.tabUrl, "flint_preview")!;
+        }
     }
 
     private static makeMainTs(data: string, preview: boolean) {

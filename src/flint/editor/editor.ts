@@ -95,6 +95,10 @@ class ToolBarActions {
         }
     }
 
+    public static openBuild() {
+        Builder.openBuild();
+    }
+
     public static async compile() {
         try {
             if (await Builder.buildForEditor(true)) {
@@ -198,6 +202,8 @@ export default class Editor {
                     await ToolBarActions.buildAndRun();
                 }
             }, true);
+
+            document.getElementById("open-build-button")!.addEventListener("click", ToolBarActions.buildAndRun);
 
             document.getElementById("compile-button")!.addEventListener("click", ToolBarActions.compile);
             document.addEventListener("keydown", async function (event) {
