@@ -57,14 +57,24 @@ export class Notifier {
 class ToolBarActions {
     private constructor() { }
 
+    private static async getPicker() {
+        if (window.showDirectoryPicker as unknown) {
+            return window.showDirectoryPicker({ mode: "readwrite", id: "project" });
+        }
+        else {
+            alert(navigator.storage);
+            return navigator.storage.getDirectory();
+        }
+    }
+
     public static async newProject() {
-        await Project.newProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
+        await Project.newProject(await ToolBarActions.getPicker());
         Editor.onProjectLoad();
         Notifier.notify("Project created successfully.", "success");
     }
 
     public static async openProject() {
-        await Project.openProject(await window.showDirectoryPicker({ mode: "readwrite", id: "project" }));
+        await Project.openProject(await ToolBarActions.getPicker());
         Editor.onProjectLoad();
         Notifier.notify("Project loaded successfully.", "success");
     }
