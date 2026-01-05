@@ -60,12 +60,18 @@ export default class Input {
     }
 
     private static onPointerDown(event: PointerEvent) {
+        const canvasHalf = System.rootSize.divide(2).round();
+
         this.pressedMouseButtons.add(event.button);
+        this.mousePosition.set(event.offsetX, event.offsetY).subtract(canvasHalf);
         this.updateInputAxes();
     }
 
     private static onPointerUp(event: PointerEvent) {
+        const canvasHalf = System.rootSize.divide(2).round();
+
         this.pressedMouseButtons.delete(event.button);
+        this.mousePosition.set(event.offsetX, event.offsetY).subtract(canvasHalf);
         this.updateInputAxes();
     }
 

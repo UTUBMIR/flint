@@ -145,7 +145,7 @@ export class System {
 
         this.rootDiv.addEventListener('contextmenu', event => event.preventDefault());
 
-        for (const event of ["pointerdown", "pointerup", "pointermove"]) {
+        for (const event of ["pointerdown", "pointermove", "pointerup"]) {
             document.addEventListener(event, this.sendEventToLayers.bind(this));
         }
 
@@ -324,7 +324,7 @@ export class System {
                 resize();
             }, 0);
         });
-        
+
         resize();
         ro.observe(this.rootDiv);
     }
@@ -343,7 +343,7 @@ export class System {
             System.setCursor("initial");
         }
 
-        this.eventEmitter.dispatchEvent(new SystemEvent(event.type));
+        System.eventEmitter.dispatchEvent(new SystemEvent(event.type));
     }
 
     private static loadPlayConfig(config: PlayConfig) {

@@ -94,7 +94,6 @@ export class Drag {
             return;
         }
 
-
         if (isUp && this.isDragged()) {
             Editor.draggedItem = undefined;
             this.onRelease();

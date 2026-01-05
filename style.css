@@ -301,6 +301,7 @@ sl-menu-label::part(base) {
     height: 100%;
     display: block;
     border-radius: var(--sl-border-radius-medium);
+    touch-action: none;
 }
 
 table {
