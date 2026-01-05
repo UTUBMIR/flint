@@ -1,6 +1,6 @@
 import type GameObject from "./game-object";
 import { type IRenderer } from "../shared/irenderer";
-import { RenderSystem, RunningState, System, type Canvas } from "./system";
+import { RenderSystem, RunningState, System, type Canvas, type UUID } from "./system";
 import { SystemEventEmitter, SystemEvent } from "./system-event";
 import type Camera from "./components/camera";
 import Vector2 from "../shared/vector2";
@@ -12,7 +12,13 @@ export default class Layer {
     public readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(true, true);
     public readonly cameras: Camera[] = [];
 
+    public readonly id: UUID;
+
     public readonly renderSystem: RenderSystem = new RenderSystem();
+
+    constructor(uuid?: UUID) {
+        this.id = uuid ?? crypto.randomUUID();
+    }
 
     /**
      * Called once when this layer is attached.

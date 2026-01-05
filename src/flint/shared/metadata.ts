@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type Layer from "../runtime/layer";
 import { System, type UUID } from "../runtime/system";
 
 export const MetadataKeys = {
@@ -40,8 +41,10 @@ export function NonSerialized() {
 
 type SaveType = {
     layers: {
+        id: UUID;
+        editorName: string;
         objects: {
-            id: UUID, editorName: string
+            id: UUID, editorName: string;
         }[]
     }[]
 };
@@ -152,22 +155,29 @@ export default class Metadata {
 
     }
 
-    public static async saveToFile() {
+    public static async saveToFile(layers: Layer[]) {
         const save: SaveType = { layers: [] };
-        
-        for (const layer of System.layers) {
+
+        for (const layer of layers) {
             const objects: { id: UUID, editorName: string }[] = [];
 
             for (const go of layer.getObjects()) {
                 const editorName = Metadata.getClass(go, MetadataKeys.EditorName, false);
                 if (editorName) {
                     objects.push({
-                        id: go.uuid,
+                        id: go.id,
                         editorName: editorName
                     });
                 }
             }
-            save.layers.push({ objects });
+            const rawLayer = { id: layer.id, objects };
+            const layerEditorName = Metadata.getClass(layer, MetadataKeys.EditorName, false);
+            
+            if (layerEditorName) {
+                (rawLayer as any).editorName = layerEditorName;
+            }
+
+            save.layers.push(rawLayer as any);
         }
         await System.fileSystem.writeTextFile("metadata.json", JSON.stringify(save));
     }
@@ -180,6 +190,11 @@ export default class Metadata {
         const save = JSON.parse(await System.fileSystem.readTextFile("metadata.json")) as SaveType;
 
         for (const layer of save.layers) {
+            const foundLayer = System.layers.find(l => l.id === layer.id);
+            if (layer.id && foundLayer) {
+                Metadata.setClass(foundLayer, MetadataKeys.EditorName, layer.editorName);
+            }
+
             for (const object of layer.objects) {
                 const go = System.getGameObjectById(object.id);
                 if (go) {

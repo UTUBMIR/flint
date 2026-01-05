@@ -7,12 +7,12 @@ export default class GameObject {
     public layer!: Layer;
     private components: Component[] = [];
     public readonly transform: Transform;
-    public readonly uuid: UUID;
+    public readonly id: UUID;
 
-    public constructor(components?: Component[], transform?: Transform, uuid?: UUID) {
+    public constructor(components?: Component[], transform?: Transform, id?: UUID) {
         this.transform = transform ?? new Transform();
         this.transform.gameObject = this;
-        this.uuid = uuid ?? crypto.randomUUID() as UUID;
+        this.id = id ?? crypto.randomUUID() as UUID;
 
         if (components) {
             this.addComponents(components);

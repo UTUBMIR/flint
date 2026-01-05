@@ -1,6 +1,6 @@
 import GameObject from "../../runtime/game-object";
 import Layer from "../../runtime/layer";
-import { System } from "../../runtime/system";
+import { System, type UUID } from "../../runtime/system";
 import Metadata, { MetadataKeys } from "../../shared/metadata";
 import Editor, { Notifier } from "../editor";
 import { type DropdownType } from "../editor";
@@ -180,20 +180,20 @@ export default class Hierarchy {
             }
 
             const layerName = Metadata.getClass(
-                layer, MetadataKeys.EditorName) ??
+                layer, MetadataKeys.EditorName, false) ??
                 `new Layer${layerIndex > 0 ? " " + layerIndex : ""}`;
 
-            const layerItem = this.addItem(layerName, layerIndex.toString(), this.element);
+            const layerItem = this.addItem(layerName, layer.id, this.element);
 
             const objects = layer.getObjects();
             for (let index = objects.length - 1; index >= 0; index--) {
                 const objectName = Metadata.getClass(
-                    objects[index]!, MetadataKeys.EditorName) ??
+                    objects[index]!, MetadataKeys.EditorName, false) ??
                     `new GameObject${index > 0 ? " " + index : ""}`;
 
                 this.addItem(
                     objectName,
-                    `${layerIndex}-${index}`,
+                    objects[index]!.id,
                     layerItem
                 );
             }
@@ -238,16 +238,13 @@ export default class Hierarchy {
                     textNode.textContent = saveValue ? input.value || oldLabel : oldLabel;
 
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    let parsed = (item as any).dataset.hierarchyId;
-                    if (parsed) {
-                        parsed = parsed.split("-")
-                            .map((i: string) => Number.parseInt(i));
+                    const id = (item as any).dataset.id;
+                    const found = System.getById(id);
 
-                        const layer = Editor.hierarchyWindow.layers.get(parsed[0] ?? 0);
-                        const gameObject = layer?.getObjects()[parsed[1] ?? 0];
-
-                        Metadata.setClass(gameObject!, MetadataKeys.EditorName, textNode.textContent);
+                    if (found) {
+                        Metadata.setClass(found, MetadataKeys.EditorName, textNode.textContent);
                     }
+
                     try {
                         input.remove();
                     }
@@ -266,30 +263,22 @@ export default class Hierarchy {
 
     }
 
-    public addItem(text: string, id: string, parent: HTMLElement): HTMLElement {
+    public addItem(text: string, id: UUID, parent: HTMLElement): HTMLElement {
         const item = document.createElement("sl-tree-item") as HTMLElement;
         item.textContent = text;
         item.setAttribute("expanded", "true");
-        item.dataset.hierarchyId = id;
+        item.dataset.id = id;
 
         item.draggable = true;
 
         function dragstartHandler(ev: DragEvent) {
-            const parsed = item.dataset.hierarchyId!
-                .split("-")
-                .map(i => Number.parseInt(i));
-
-            if (parsed.length !== 2) return;
-
-            const layer = Editor.hierarchyWindow.layers.get(parsed[0] ?? 0);
-
-            const go = layer?.getObjects()[parsed[1] ?? 0];
+            const go = System.getGameObjectById(id);
 
             if (!go) {
                 return;
             }
 
-            ev.dataTransfer!.setData("application/x-gameobject-id", go.uuid);
+            ev.dataTransfer!.setData("application/x-gameobject-id", go.id);
         }
 
         item.addEventListener("dragstart", dragstartHandler);

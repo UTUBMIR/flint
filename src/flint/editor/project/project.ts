@@ -136,7 +136,7 @@ export class Project {
         Editor.hierarchyWindow.update();
 
         if (Editor.inspectorWindow.currentObject) {
-            Editor.inspectorWindow.currentObject = System.getGameObjectById(Editor.inspectorWindow.currentObject.uuid);
+            Editor.inspectorWindow.currentObject = System.getGameObjectById(Editor.inspectorWindow.currentObject.id);
         }
         return success;
     }
@@ -181,7 +181,7 @@ export class Project {
             new Uint8Array(arrayBuffer)
         );
 
-        await Metadata.saveToFile();
+        await Metadata.saveToFile(System.layers.filter(l => !(l instanceof EditorLayer)));
     }
 
     private static async loadProject() {

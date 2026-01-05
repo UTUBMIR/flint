@@ -106,9 +106,25 @@ export class System {
 
     private constructor() { }
 
-    public static getGameObjectById(uuid: UUID): GameObject | undefined {
+    public static getById(id: UUID, prioritizeLayers = true): GameObject | Layer | undefined {
+        if (prioritizeLayers) {
+            return System.getLayerById(id) ?? System.getGameObjectById(id);
+        }
+        else {
+            return System.getGameObjectById(id) ?? System.getLayerById(id);
+        }
+    }
+
+    public static getLayerById(id: UUID): Layer | undefined {
+        const found = System.layers.find(go => go.id === id);
+        if (found) {
+            return found;
+        }
+    }
+
+    public static getGameObjectById(id: UUID): GameObject | undefined {
         for (let i = 0; i < System.layers.length; ++i) {
-            const found = System.layers[i]!.getObjects().find(go => go.uuid === uuid);
+            const found = System.layers[i]!.getObjects().find(go => go.id === id);
             if (found) {
                 return found;
             }

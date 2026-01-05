@@ -17,8 +17,9 @@ export enum LoadPhase {
 
 export type RawProjectData = {
     layers: {
+        id: UUID;
         objects: {
-            uuid: UUID;
+            id: UUID;
             components: { name: string; data: any }[];
         }[];
     }[];
@@ -255,13 +256,13 @@ export class ProjectLoader {
 
         // Create: layers + objects
         raw.layers.forEach((rawLayer, layerIndex) => {
-            const layer = new Layer();
+            const layer = new Layer(rawLayer.id);
             ctx.layers.set(layerIndex, layer);
             result.layers.push(layer);
 
             for (const rawObj of rawLayer.objects) {
-                const go = new GameObject([], undefined, rawObj.uuid);
-                ctx.objects.set(rawObj.uuid, go);
+                const go = new GameObject([], undefined, rawObj.id);
+                ctx.objects.set(rawObj.id, go);
 
                 scheduler.add(LoadPhase.Resolve, () => {
                     layer.addObject(go);
@@ -272,7 +273,7 @@ export class ProjectLoader {
         // components
         raw.layers.forEach(rawLayer => {
             for (const rawObj of rawLayer.objects) {
-                const go = ctx.objects.get(rawObj.uuid)!;
+                const go = ctx.objects.get(rawObj.id)!;
 
                 for (const rawComp of rawObj.components) {
                     const CompClass =
@@ -332,11 +333,11 @@ export class ProjectLoader {
         };
 
         for (const layer of data.layers) {
-            const rawLayer = { objects: [] as any[] };
+            const rawLayer = { objects: [] as any[], id: layer.id };
 
             for (const obj of layer.getObjects()) {
                 const rawObject = {
-                    uuid: obj.uuid as UUID,
+                    id: obj.id as UUID,
                     components: [] as any[]
                 };
 
@@ -394,7 +395,7 @@ LoaderPlugins.addSerialize<GameObject>({
     type: GameObject,
     serialize(go: GameObject) {
         return {
-            uuid: go.uuid
+            id: go.id
         };
     }
 });
@@ -403,7 +404,7 @@ LoaderPlugins.addDeserialize<GameObject>({
     type: GameObject,
     phase: LoadPhase.Deserialize,
     deserialize(dataRef: StrongRef<any>, _restored: GameObject, ctx: LoadContext) {
-        const existing = ctx.objects.get(dataRef.value.uuid);
+        const existing = ctx.objects.get(dataRef.value.id);
         if (existing) {
             dataRef.value = existing;
         }
@@ -414,7 +415,7 @@ LoaderPlugins.addSerialize<Component>({
     type: Component,
     serialize(comp: Component) {
         return {
-            uuid: comp.gameObject?.uuid,
+            id: comp.gameObject?.id,
             component: comp.constructor.name
         };
     }
@@ -424,7 +425,7 @@ LoaderPlugins.addDeserialize<Component>({
     type: Component,
     phase: LoadPhase.Deserialize,
     deserialize(dataRef: StrongRef<any>, _instance: Component, ctx: LoadContext) {
-        const existingObject = ctx.objects.get(dataRef.value.uuid);
+        const existingObject = ctx.objects.get(dataRef.value.id);
         const existing = existingObject?.requireComponent(System.components.get(dataRef.value.component) as (typeof Component));
 
         dataRef.value = existing;

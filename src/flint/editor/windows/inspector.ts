@@ -4,7 +4,7 @@ import type GameObject from "../../runtime/game-object";
 import Editor, { Notifier } from "../editor";
 import type Component from "../../runtime/component";
 import { ComponentBuilder } from "../component-builder";
-import { System } from "../../runtime/system";
+import { System, type UUID } from "../../runtime/system";
 class InspectorComponent {
     public readonly element: HTMLElement;
     private allowDrag = false;
@@ -40,7 +40,7 @@ class InspectorComponent {
                 "application/x-component-ref",
                 JSON.stringify({
                     name: component.constructor.name,
-                    id: component.gameObject.uuid
+                    id: component.gameObject.id
                 })
             );
         });
@@ -157,15 +157,9 @@ export default class Inspector {
         }
 
         const selection = (event as CustomEvent).detail.selection as HTMLElement[];
-        const parsed = selection[0]!.dataset.hierarchyId!
-            .split("-")
-            .map(i => Number.parseInt(i));
+        const id = selection[0]!.dataset.id as UUID;
 
-        if (parsed.length !== 2) return;
-
-        const layer = Editor.hierarchyWindow.layers.get(parsed[0] ?? 0);
-
-        this.currentObject = layer?.getObjects()[parsed[1] ?? 0];
+        this.currentObject = System.getGameObjectById(id);
 
         if (!this.currentObject) {
             throw new Error("Failed to get 'currentObject'");
