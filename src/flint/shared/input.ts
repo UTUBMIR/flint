@@ -40,13 +40,13 @@ export default class Input {
 
 
     public static init(root: HTMLElement) {
-        root.addEventListener("keydown", this.onKeyDown.bind(this));
-        root.addEventListener("keyup", this.onKeyUp.bind(this));
+        root.addEventListener("keydown", this.onKeyDown.bind(this), true);
+        root.addEventListener("keyup", this.onKeyUp.bind(this), true);
 
-        root.addEventListener("pointerdown", this.onPointerDown.bind(this));
-        root.addEventListener("pointerup", this.onPointerUp.bind(this));
+        root.addEventListener("pointerdown", this.onPointerDown.bind(this), true);
+        root.addEventListener("pointerup", this.onPointerUp.bind(this), true);
 
-        root.addEventListener("pointermove", this.onPointerMove.bind(this), { passive: true });
+        root.addEventListener("pointermove", this.onPointerMove.bind(this), { passive: true, capture: true });
     }
 
     private static onKeyDown(event: KeyboardEvent) {

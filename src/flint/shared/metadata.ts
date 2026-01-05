@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { System, type UUID } from "../runtime/system";
 
 export const MetadataKeys = {
     NonSerialized: Symbol.for("shared.non-serialized"),
@@ -37,6 +38,13 @@ export function NonSerialized() {
 //     });
 // }
 
+type SaveType = {
+    layers: {
+        objects: {
+            id: UUID, editorName: string
+        }[]
+    }[]
+};
 
 export default class Metadata {
     private static classMeta = new Map<object, Map<any, any>>();
@@ -54,12 +62,17 @@ export default class Metadata {
         this.changed();
     }
 
-    public static getClass(target: object, key: any) {
+    public static getClass(target: object, key: any, checkPrototypes = true) {
         let proto: any = target;
         while (proto) {
             const value = this.classMeta.get(proto)?.get(key);
             if (value !== undefined) return value;
-            proto = Object.getPrototypeOf(proto);
+            if (checkPrototypes) {
+                proto = Object.getPrototypeOf(proto);
+            }
+            else {
+                return undefined;
+            }
         }
         return undefined;
     }
@@ -136,38 +149,43 @@ export default class Metadata {
     }
 
     private static changed() {
-        this.saveToFile();
+
     }
-    //TODO: make saving and loading of metadata when uuid system is ready
+
     public static async saveToFile() {
-        // const FileHandle = await folderHandle.getFileHandle("metadata.json", { create: true });
-        // const Writable = await FileHandle.createWritable();
+        const save: SaveType = { layers: [] };
+        
+        for (const layer of System.layers) {
+            const objects: { id: UUID, editorName: string }[] = [];
 
-        // await Writable.write(JSON.stringify({
-        //     classMeta: serializeMap(this.classMeta),
-        //     fieldMeta: serializeMap(this.fieldMeta)
-        // }, null, 4));
-
-        // await Writable.close();
-        // this.folderHandle = folderHandle;
+            for (const go of layer.getObjects()) {
+                const editorName = Metadata.getClass(go, MetadataKeys.EditorName, false);
+                if (editorName) {
+                    objects.push({
+                        id: go.uuid,
+                        editorName: editorName
+                    });
+                }
+            }
+            save.layers.push({ objects });
+        }
+        await System.fileSystem.writeTextFile("metadata.json", JSON.stringify(save));
     }
 
     public static async loadFromFile() {
-        // try {
-        //     const FileHandle = await folderHandle.getFileHandle("metadata.json").catch(() => null);
-        //     if (!FileHandle) return;
+        if (!System.fileSystem.fileExists("metadata.json")) {
+            return;
+        }
 
-        //     const File = await FileHandle.getFile();
-        //     const content = await File.text();
-        //     const data = JSON.parse(content);
+        const save = JSON.parse(await System.fileSystem.readTextFile("metadata.json")) as SaveType;
 
-        //     this.classMeta = deserializeMap(data.classMeta);
-        //     this.fieldMeta = deserializeMap(data.fieldMeta);
-
-        //     this.folderHandle = folderHandle;
-        // }
-        // catch {
-        //     console.log("Failed to load metadata");
-        // }
+        for (const layer of save.layers) {
+            for (const object of layer.objects) {
+                const go = System.getGameObjectById(object.id);
+                if (go) {
+                    Metadata.setClass(go, MetadataKeys.EditorName, object.editorName);
+                }
+            }
+        }
     }
 }

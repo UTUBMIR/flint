@@ -180,6 +180,8 @@ export class Project {
             "project.gz",
             new Uint8Array(arrayBuffer)
         );
+
+        await Metadata.saveToFile();
     }
 
     private static async loadProject() {
@@ -207,6 +209,8 @@ export class Project {
 
             System.pushLayer(editorLayer ?? new EditorLayer());
 
+            await Metadata.loadFromFile();
+
             return true;
         } catch (e) {
             console.log("could not load the project:", e);
@@ -229,9 +233,6 @@ export class Project {
             });
         }
         await System.fileSystem.createDir("assets");
-
-        await Metadata.loadFromFile();
-        await Metadata.saveToFile();
 
         await Builder.buildForEditor();
 
