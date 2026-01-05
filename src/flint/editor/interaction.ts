@@ -50,9 +50,9 @@ export class Drag {
     }
 
     public onEvent(event: SystemEvent): void {
-        const isDown = event.type === "mousedown" || event.type === "touchstart";
-        const isMove = event.type === "mousemove" || event.type === "touchmove";
-        const isUp = event.type === "mouseup" || event.type === "touchend";
+        const isDown = event.type === "pointerdown";
+        const isMove = event.type === "pointermove";
+        const isUp = event.type === "pointerup";
         this.hovered = false;
 
         const fixedMouse = Input.mousePosition.copy().add(new Vector2(this.size.x/2, this.size.y/2));
@@ -145,9 +145,9 @@ export class Click {
     }
 
     public onEvent(event: SystemEvent): void {
-        const isDown = event.type === "mousedown" || event.type === "touchstart";
-        const isMove = event.type === "mousemove" || event.type === "touchmove";
-        const isUp = event.type === "mouseup" || event.type === "touchend";
+        const isDown = event.type === "pointerdown";
+        const isMove = event.type === "pointermove";
+        const isUp = event.type === "pointerup";
 
         if (isDown && Input.isMouseButtonPressed(0) && this.rect.contains(Input.mousePosition)) {
             this.pressed = true;

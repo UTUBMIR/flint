@@ -145,7 +145,7 @@ export class System {
 
         this.rootDiv.addEventListener('contextmenu', event => event.preventDefault());
 
-        for (const event of ["mousedown", "mouseup", "mousemove", "touchstart", "touchmove", "touchend"]) {
+        for (const event of ["pointerdown", "pointerup", "pointermove"]) {
             document.addEventListener(event, this.sendEventToLayers.bind(this));
         }
 
@@ -339,7 +339,7 @@ export class System {
     }
 
     private static sendEventToLayers(event: Event): void {
-        if (event.type === "mousemove" || event.type === "touchmove") {
+        if (event.type === "pointermove") {
             System.setCursor("initial");
         }
 
