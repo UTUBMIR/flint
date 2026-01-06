@@ -5,7 +5,7 @@ export class WheelScrubBehavior implements FieldBehavior {
     private shiftMult = 8;
     private ctrlMult = 0.1;
 
-    attach(el: HTMLInputElement, ctx: BehaviorContext) {
+    public attach(el: HTMLInputElement, ctx: BehaviorContext) {
         const handleWheel = (ev: WheelEvent) => {
             if (document.activeElement != el) return;
             

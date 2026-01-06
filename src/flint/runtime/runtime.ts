@@ -5,7 +5,7 @@ import type Component from "./component";
 import Metadata from "../shared/metadata";
 
 export class Runtime {
-    constructor(private options: {
+    public constructor(private options: {
         components: Record<string, typeof Component>;
         projectData: RawProjectData;
         enableMetadata: boolean;
@@ -13,7 +13,7 @@ export class Runtime {
         Metadata.enabled = options.enableMetadata;
     }
 
-    async start() {
+    public async start() {
         System.init({
             renderer: new Renderer2D()
         });

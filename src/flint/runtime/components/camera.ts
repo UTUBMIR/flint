@@ -6,7 +6,7 @@ import RendererComponent from "../renderer-component";
 export default class Camera extends RendererComponent {
     public enabled: boolean = true;
 
-    constructor(backgroundColor?: ColorString) {
+    public constructor(backgroundColor?: ColorString) {
         super();
         this.backgroundColor = backgroundColor ?? "#222" as ColorString;
     }

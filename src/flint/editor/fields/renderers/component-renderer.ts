@@ -3,7 +3,7 @@ import { System } from "../../../runtime/system";
 import type Component from "../../../runtime/component";
 
 export class ComponentRenderer extends BaseDropRenderer<Component> {
-    canRender(type: string) {
+    public canRender(type: string) {
         return type === "component";
     }
 

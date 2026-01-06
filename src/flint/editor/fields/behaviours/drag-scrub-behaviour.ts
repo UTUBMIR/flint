@@ -5,7 +5,7 @@ export class DragScrubBehavior implements FieldBehavior {
     private shiftMult = 8;
     private ctrlMult = 0.1;
 
-    attach(el: HTMLInputElement, ctx: BehaviorContext) {
+    public attach(el: HTMLInputElement, ctx: BehaviorContext) {
         let dragging = false;
         let startValue = 0;
         let usingPointerLock = false;

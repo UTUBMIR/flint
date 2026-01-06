@@ -160,8 +160,12 @@ export default class Inspector {
         const id = selection[0]!.dataset.id as UUID;
 
         this.currentObject = System.getGameObjectById(id);
+        const layer = System.getLayerById(id);
 
         if (!this.currentObject) {
+            if (layer) {
+                return;
+            }
             throw new Error("Failed to get 'currentObject'");
         }
 

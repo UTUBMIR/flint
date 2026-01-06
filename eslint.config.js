@@ -40,6 +40,7 @@ export default defineConfig([
                     disallowTypeAnnotations: false
                 }
             ],
+            "@typescript-eslint/explicit-member-accessibility": "error"
         }
     }
 ]);

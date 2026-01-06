@@ -15,14 +15,14 @@ export interface AssetMeta {
 }
 
 export class RuntimeAsset<T> {
-    constructor(
+    public constructor(
         public readonly id: UUID,
         public data: T
     ) { }
 }
 
 export class AssetHandle<T> {
-    constructor(public readonly id: UUID = crypto.randomUUID()) { }
+    public constructor(public readonly id: UUID = crypto.randomUUID()) { }
 
     public get value() {
         return AssetRegistry.getRuntime<T>(this.id);
@@ -82,7 +82,7 @@ export class AssetRegistry {
 export class AssetLoader {
     private constructor() { }
 
-    static async load(meta: AssetMeta) {
+    public static async load(meta: AssetMeta) {
         switch (meta.type) {
             case AssetType.Image:
                 await this.loadImage(meta);

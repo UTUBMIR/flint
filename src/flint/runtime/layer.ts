@@ -16,7 +16,7 @@ export default class Layer {
 
     public readonly renderSystem: RenderSystem = new RenderSystem();
 
-    constructor(uuid?: UUID) {
+    public constructor(uuid?: UUID) {
         this.id = uuid ?? crypto.randomUUID();
     }
 

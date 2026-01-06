@@ -5,11 +5,11 @@ import type { FieldRenderer, GetType, SetType } from "../field-renderer";
 import type SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox.js";
 
 export class BooleanRenderer implements FieldRenderer {
-    canRender(type: string) {
+    public canRender(type: string) {
         return type === "boolean";
     }
 
-    render(root: any, path: string[], get: GetType, set: SetType) {
+    public render(root: any, path: string[], get: GetType, set: SetType) {
         this.update = () => {
             const value = !!ctx.get();
             if (checkbox.checked !== value) {
@@ -37,5 +37,5 @@ export class BooleanRenderer implements FieldRenderer {
         return checkbox;
     }
 
-    update(): void { }
+    public update(): void { }
 }

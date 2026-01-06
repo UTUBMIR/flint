@@ -32,19 +32,19 @@ export type ProjectData = {
 };
 
 export class LoadContext {
-    layers = new Map<number, Layer>();
-    objects = new Map<UUID, GameObject>();
+    public layers = new Map<number, Layer>();
+    public objects = new Map<UUID, GameObject>();
 }
 
 class LoadScheduler {
     private tasks = new Map<LoadPhase, (() => void)[]>();
 
-    add(phase: LoadPhase, task: () => void) {
+    public add(phase: LoadPhase, task: () => void) {
         if (!this.tasks.has(phase)) this.tasks.set(phase, []);
         this.tasks.get(phase)!.push(task);
     }
 
-    run() {
+    public run() {
         for (const phase of [
             LoadPhase.Create,
             LoadPhase.Deserialize,
@@ -103,19 +103,19 @@ class LoaderPlugins {
     private static serialize = new Map<(abstract new () => any), SerializePlugin<any>>();
     private static deserialize = new Map<(abstract new () => any), DeserializePlugin<any>>();
 
-    static addSerialize<T>(plugin: SerializePlugin<T>) {
+    public static addSerialize<T>(plugin: SerializePlugin<T>) {
         this.serialize.set(plugin.type, plugin);
     }
 
-    static addDeserialize<T>(plugin: DeserializePlugin<T>) {
+    public static addDeserialize<T>(plugin: DeserializePlugin<T>) {
         this.deserialize.set(plugin.type, plugin);
     }
 
-    static getSerializeByType(type: (abstract new () => any)) {
+    public static getSerializeByType(type: (abstract new () => any)) {
         return this.serialize.get(type);
     }
 
-    static getSerializeByShape(
+    public static getSerializeByShape(
         value: any,
         strict = false
     ): SerializePlugin<any> | undefined {
@@ -140,7 +140,7 @@ class LoaderPlugins {
     }
 
 
-    static getDeserializeByShape(
+    public static getDeserializeByShape(
         value: any,
         strict = false
     ): DeserializePlugin<any> | undefined {
@@ -164,7 +164,7 @@ class LoaderPlugins {
         return;
     }
 
-    static getDeserializeByType(type: abstract new () => any) {
+    public static getDeserializeByType(type: abstract new () => any) {
         let ctor: any = type;
 
         while (ctor) {

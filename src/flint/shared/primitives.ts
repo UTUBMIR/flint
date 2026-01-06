@@ -33,10 +33,10 @@ export class Rect {
     }
 
 
-    constructor();
-    constructor(position: Vector2, size: Vector2);
-    constructor(x: number, y: number, width: number, height: number);
-    constructor(
+    public constructor();
+    public constructor(position: Vector2, size: Vector2);
+    public constructor(x: number, y: number, width: number, height: number);
+    public constructor(
         a?: Vector2 | number,
         b?: Vector2 | number,
         c?: number,

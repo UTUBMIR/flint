@@ -84,12 +84,12 @@ export class RendererRegistry {
 export class BehaviorRegistry {
     private static map = new Map<string, FieldBehavior[]>();
 
-    static register(type: string, behavior: FieldBehavior) {
+    public static register(type: string, behavior: FieldBehavior) {
         if (!this.map.has(type)) this.map.set(type, []);
         this.map.get(type)!.push(behavior);
     }
 
-    static getBehaviors(type: string) {
+    public static getBehaviors(type: string) {
         return this.map.get(type) ?? [];
     }
 }

@@ -11,11 +11,11 @@ export class SystemEvent {
         this._type = type;
     }
 
-    stopPropagationToNextLayer() {
+    public stopPropagationToNextLayer() {
         this.stopNextLayer = true;
     }
 
-    stopImmediatePropagation() {
+    public stopImmediatePropagation() {
         this.stopImmediate = true;
     }
 }
@@ -27,7 +27,7 @@ export class SystemEventEmitter {
     private reversed: boolean;
     private stopImmediate: boolean;
 
-    constructor(stopImmediate: boolean = false, reversed: boolean = false) {
+    public constructor(stopImmediate: boolean = false, reversed: boolean = false) {
         this.reversed = reversed;
         this.stopImmediate = stopImmediate;
     }

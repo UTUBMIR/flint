@@ -11,18 +11,18 @@ export function isColorString(value: string): boolean {
 }
 
 export class Color {
-    constructor(
+    public constructor(
         public r: number = 1,
         public g: number = 1,
         public b: number = 1,
         public a: number = 1
     ) {}
 
-    static from255(r: number, g: number, b: number, a: number = 255) {
+    public static from255(r: number, g: number, b: number, a: number = 255) {
         return new Color(r / 255, g / 255, b / 255, a / 255);
     }
 
-    static fromHex(hex: string): Color {
+    public static fromHex(hex: string): Color {
         if (hex.startsWith("#")) hex = hex.slice(1);
         if (hex.length === 6) hex += "ff";
 
@@ -36,7 +36,7 @@ export class Color {
         );
     }
 
-    toHex(): string {
+    public toHex(): string {
         const r = Math.round(this.r * 255);
         const g = Math.round(this.g * 255);
         const b = Math.round(this.b * 255);
@@ -50,7 +50,7 @@ export class Color {
         );
     }
 
-    toCSS(): string {
+    public toCSS(): string {
         const r = Math.round(this.r * 255);
         const g = Math.round(this.g * 255);
         const b = Math.round(this.b * 255);

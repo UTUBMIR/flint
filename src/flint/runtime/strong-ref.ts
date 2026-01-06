@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default class StrongRef<T> {
-    constructor(private parent: any, private key: any) {}
+    public constructor(private parent: any, private key: any) {}
 
     public get value() {
         return this.parent[this.key];

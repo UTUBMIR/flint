@@ -14,7 +14,7 @@ export default class Shape extends RendererComponent {
     @FieldRenderer("color")
     protected shadowColor: ColorString;
 
-    constructor(fillColor?: ColorString, lineColor?: ColorString, shadowColor?: ColorString) {
+    public constructor(fillColor?: ColorString, lineColor?: ColorString, shadowColor?: ColorString) {
         super();
         this.fillColor = fillColor ?? "#cfd2ee";
         this.lineColor = lineColor ?? "#2e69b6";

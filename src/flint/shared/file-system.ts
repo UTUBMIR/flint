@@ -130,11 +130,11 @@ export class VirtualFileSystem extends AbstractFileSystem {
     private files = new Map<string, Uint8Array>();
     private folders = new Set<string>();
 
-    async createDir(path: string): Promise<void> {
+    public async createDir(path: string): Promise<void> {
         this.folders.add(path.replace(/\/+$/, ""));
     }
 
-    async deleteDir(path: string, recursive = false): Promise<void> {
+    public async deleteDir(path: string, recursive = false): Promise<void> {
         path = path.replace(/\/+$/, "");
         if (recursive) {
             for (const key of [...this.files.keys()]) {
@@ -147,7 +147,7 @@ export class VirtualFileSystem extends AbstractFileSystem {
         this.folders.delete(path);
     }
 
-    async listDir(path: string): Promise<string[]> {
+    public async listDir(path: string): Promise<string[]> {
         const prefix = path.endsWith("/") ? path : path + "/";
         const files = [...this.files.keys()]
             .filter(p => p.startsWith(prefix))
@@ -158,25 +158,25 @@ export class VirtualFileSystem extends AbstractFileSystem {
         return Array.from(new Set([...files, ...dirs]));
     }
 
-    async readFile(path: string): Promise<Uint8Array> {
+    public async readFile(path: string): Promise<Uint8Array> {
         const data = this.files.get(path);
         if (!data) throw new Error("File not found: " + path);
         return data;
     }
 
-    async writeFile(path: string, data: Uint8Array): Promise<void> {
+    public async writeFile(path: string, data: Uint8Array): Promise<void> {
         this.files.set(path, data);
     }
 
-    async fileExists(path: string): Promise<boolean> {
+    public async fileExists(path: string): Promise<boolean> {
         return this.files.has(path);
     }
 
-    async dirExists(path: string): Promise<boolean> {
+    public async dirExists(path: string): Promise<boolean> {
         return this.folders.has(path);
     }
 
-    async delete(path: string): Promise<void> {
+    public async delete(path: string): Promise<void> {
         this.files.delete(path);
     }
 }

@@ -3,7 +3,7 @@ import { BehaviorRegistry } from "../../component-builder";
 import type { FieldRenderer, GetType, SetType } from "../field-renderer";
 
 export abstract class BaseDropRenderer<T> implements FieldRenderer {
-    abstract canRender(type: string): boolean;
+    public abstract canRender(type: string): boolean;
 
     protected abstract parseDrop(
         dt: DataTransfer,
@@ -14,7 +14,7 @@ export abstract class BaseDropRenderer<T> implements FieldRenderer {
 
     protected abstract stringify(value: T | null): string;
 
-    render(root: any, path: string[], get: GetType, set: SetType) {
+    public render(root: any, path: string[], get: GetType, set: SetType) {
         const valueLabel = document.createElement("div");
         valueLabel.classList.add("drop-value");
 
@@ -63,5 +63,5 @@ export abstract class BaseDropRenderer<T> implements FieldRenderer {
         return dropzone;
     }
 
-    update(): void {}
+    public update(): void {}
 }

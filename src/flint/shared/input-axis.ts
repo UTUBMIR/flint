@@ -28,7 +28,7 @@ export default class InputAxis {
         return this._value;
     }
 
-    constructor(name: string, bindings?: AxisBinding[]) {
+    public constructor(name: string, bindings?: AxisBinding[]) {
         this.name = name;
 
         if (bindings) {

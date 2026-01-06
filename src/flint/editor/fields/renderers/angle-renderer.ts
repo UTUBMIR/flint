@@ -3,7 +3,7 @@ import type { GetType, SetType } from "../field-renderer";
 import { NumberRenderer } from "./number-renderer";
 
 export class AngleRenderer extends NumberRenderer {
-    constructor() {
+    public constructor() {
         super();
         (this.canRender as any) = (type: string) => {
             return type === "angle";

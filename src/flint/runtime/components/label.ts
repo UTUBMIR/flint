@@ -16,7 +16,7 @@ export default class Label extends RendererComponent {
 
     public text: string = "Label text";
 
-    constructor(fillColor?: ColorString, lineColor?: ColorString, shadowColor?: ColorString) {
+    public constructor(fillColor?: ColorString, lineColor?: ColorString, shadowColor?: ColorString) {
         super();
         this.fillColor = fillColor ?? "#cfd2ee";
         this.lineColor = lineColor ?? "#2e2eb6ff";

@@ -16,59 +16,59 @@ export class Renderer2D implements IRenderer {
         this.updateFont();
     }
 
-    set fillColor(color: ColorString) {
+    public set fillColor(color: ColorString) {
         this.ctx.fillStyle = color;
     }
 
 
-    set lineColor(color: ColorString) {
+    public set lineColor(color: ColorString) {
         this.ctx.strokeStyle = color;
     }
 
-    set lineWidth(width: number) {
+    public set lineWidth(width: number) {
         this.ctx.lineWidth = width;
     }
 
-    set lineJoin(lineJoin: "bevel" | "miter" | "round") {
+    public set lineJoin(lineJoin: "bevel" | "miter" | "round") {
         this.ctx.lineJoin = lineJoin;
     }
 
 
-    set shadowColor(color: ColorString) {
+    public set shadowColor(color: ColorString) {
         this.ctx.shadowColor = color;
     }
-    set shadowBlur(blur: number) {
+    public set shadowBlur(blur: number) {
         this.ctx.shadowBlur = blur;
     }
 
 
-    set textBaseLine(baseline: TextBaseLine) {
+    public set textBaseLine(baseline: TextBaseLine) {
         this.ctx.textBaseline = baseline;
     }
 
-    set textAlign(textAlign: TextAlign) {
+    public set textAlign(textAlign: TextAlign) {
         this.ctx.textAlign = textAlign;
     }
 
-    set fontSize(size: number) {
+    public set fontSize(size: number) {
         this._fontSize = size;
         this.updateFont();
     }
 
-    set fontStyle(style: string) {
+    public set fontStyle(style: string) {
         this._fontStyle = style;
         this.updateFont();
     }
 
-    resetTransform(): void {
+    public resetTransform(): void {
         this.ctx.resetTransform();
     }
 
-    translate(position: Vector2): void {
+    public translate(position: Vector2): void {
         this.ctx.translate(position.x, position.y);
     }
 
-    rotate(angle: number): void {
+    public rotate(angle: number): void {
         this.ctx.rotate(angle);
     }
 

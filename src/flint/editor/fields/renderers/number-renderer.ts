@@ -5,11 +5,11 @@ import type { FieldRenderer, GetType, SetType } from "../field-renderer";
 import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
 
 export class NumberRenderer implements FieldRenderer {
-    canRender(type: string) {
+    public canRender(type: string) {
         return type === "number";
     }
 
-    render(root: any, path: string[], get: GetType, set: SetType) {
+    public render(root: any, path: string[], get: GetType, set: SetType) {
         this.update = () => {
             const newValue = (+ctx.get().toFixed(6)).toString();
             if (input.value !== newValue) {
@@ -41,5 +41,5 @@ export class NumberRenderer implements FieldRenderer {
         return input;
     }
 
-    update(): void { }
+    public update(): void { }
 }

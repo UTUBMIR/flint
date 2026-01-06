@@ -26,7 +26,7 @@ export default class Assets {
     public currentPath = "/assets"; // tracks which folder we are currently in
     private backButton: HTMLButtonElement;
 
-    constructor(element: HTMLDivElement, gridElement: HTMLDivElement) {
+    public constructor(element: HTMLDivElement, gridElement: HTMLDivElement) {
         this.element = element;
         this.gridElement = gridElement;
 

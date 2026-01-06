@@ -5,11 +5,11 @@ import type { FieldRenderer, GetType, SetType } from "../field-renderer";
 import type SlColorPicker from "@shoelace-style/shoelace/dist/components/color-picker/color-picker.js";
 
 export class ColorRenderer implements FieldRenderer {
-    canRender(type: string) {
+    public canRender(type: string) {
         return type === "color";
     }
 
-    render(root: any, path: string[], get: GetType, set: SetType) {
+    public render(root: any, path: string[], get: GetType, set: SetType) {
         this.update = () => {
             const newValue = ctx.get();
             if (picker.value !== newValue) {
@@ -37,5 +37,5 @@ export class ColorRenderer implements FieldRenderer {
         return picker;
     }
 
-    update(): void { }
+    public update(): void { }
 }
