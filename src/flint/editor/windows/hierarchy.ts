@@ -117,18 +117,9 @@ export default class Hierarchy {
 
         const selection = (event as CustomEvent).detail.selection as HTMLElement[];
         this.selectedElement = selection[0];
-        const parsed = selection[0]!.dataset.hierarchyId!
-            .split("-")
-            .map(i => Number.parseInt(i));
+        const id = selection[0]!.dataset.id! as UUID;
 
-        const layer = this.layers.get(parsed[0] ?? 0);
-
-        if (parsed[1]) {
-            this.selection = layer?.getObjects()[parsed[1]];
-        }
-        else {
-            this.selection = layer;
-        }
+        this.selection = System.getById(id);
 
         if (!this.selection) {
             throw new Error("Failed to get 'selection'");

@@ -156,7 +156,8 @@ ${preview ? `import { EditorBridge } from "@flint/editor/editor-bridge";` : ""}
 
     const runtime = new Runtime({
         components: gameIndex,
-        projectData
+        projectData,
+        enableMetadata: false
     });
     
     ${preview ? `if (window.__FLINT_PREVIEW__) {

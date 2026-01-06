@@ -14,7 +14,9 @@ export const MetadataKeys = {
  */
 export function NonSerialized() {
     return (target: any, key: string) => {
-        Metadata.setField(target, key, MetadataKeys.NonSerialized, true);
+        metadataRequest(() => {
+            Metadata.setField(target, key, MetadataKeys.NonSerialized, true);
+        });
     };
 }
 
@@ -48,6 +50,25 @@ type SaveType = {
         }[]
     }[]
 };
+
+export function metadataRequest(func: (() => void)) {
+    if (Metadata && Metadata.enabled) {
+        func();
+    }
+    // else {
+    //     // pendingMetadata.push();
+    // }
+}
+
+// const pendingMetadata: (() => void)[] = [];
+
+// const pendingMetadataHandler = {
+//   get(target, prop, receiver) {
+//     return "world";
+//   },
+// };
+
+// const proxy2 = new Proxy(target, handler2);
 
 export default class Metadata {
     private static classMeta = new Map<object, Map<any, any>>();
@@ -172,7 +193,7 @@ export default class Metadata {
             }
             const rawLayer = { id: layer.id, objects };
             const layerEditorName = Metadata.getClass(layer, MetadataKeys.EditorName, false);
-            
+
             if (layerEditorName) {
                 (rawLayer as any).editorName = layerEditorName;
             }

@@ -2,12 +2,16 @@ import { System } from "./system";
 import { ProjectLoader, type RawProjectData } from "./project-loader";
 import { Renderer2D } from "../shared/renderer2d";
 import type Component from "./component";
+import Metadata from "../shared/metadata";
 
 export class Runtime {
     constructor(private options: {
         components: Record<string, typeof Component>;
         projectData: RawProjectData;
-    }) { }
+        enableMetadata: boolean;
+    }) {
+        Metadata.enabled = options.enableMetadata;
+    }
 
     async start() {
         System.init({

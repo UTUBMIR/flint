@@ -7,7 +7,7 @@ import { WheelScrubBehavior } from "./fields/behaviours/wheel-scrub-behaviour";
 import { DragScrubBehavior } from "./fields/behaviours/drag-scrub-behaviour";
 import { ColorRenderer } from "./fields/renderers/color-renderer";
 import { StringRenderer } from "./fields/renderers/string-renderer";
-import Metadata, { MetadataKeys } from "../shared/metadata";
+import Metadata, { MetadataKeys, metadataRequest } from "../shared/metadata";
 import { AngleRenderer } from "./fields/renderers/angle-renderer";
 import { BooleanRenderer } from "./fields/renderers/boolean-renderer";
 import { GameObjectRenderer } from "./fields/renderers/game-object-renderer";
@@ -20,7 +20,9 @@ import { ComponentRenderer } from "./fields/renderers/component-renderer";
  */
 export function FieldRenderer(renderer: string) {
     return (target: any, key: string) => {
-        Metadata.setField(target, key, MetadataKeys.FieldRenderer, renderer);
+        metadataRequest(() => {
+            Metadata.setField(target, key, MetadataKeys.FieldRenderer, renderer);
+        });
     };
 }
 
@@ -29,7 +31,9 @@ export function FieldRenderer(renderer: string) {
  */
 export function HideInInspector() {
     return (target: any, key: string) => {
-        Metadata.setField(target, key, MetadataKeys.HideInInspector, true);
+        metadataRequest(() => {
+            Metadata.setField(target, key, MetadataKeys.HideInInspector, true);
+        });
     };
 }
 
@@ -38,7 +42,9 @@ export function HideInInspector() {
  */
 export function ShowInInspector() {
     return (target: any, key: string) => {
-        Metadata.setField(target, key, MetadataKeys.HideInInspector, false);
+        metadataRequest(() => {
+            Metadata.setField(target, key, MetadataKeys.HideInInspector, false);
+        });
     };
 }
 
