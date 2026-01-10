@@ -63,7 +63,10 @@ export default class Input {
         const canvasHalf = System.rootSize.divide(2).round();
 
         this.pressedMouseButtons.add(event.button);
-        this.mousePosition.set(event.offsetX, event.offsetY).subtract(canvasHalf);
+        this.mousePosition.set(event.offsetX, event.offsetY)
+            .subtract(canvasHalf)
+            .multiply(System.dpr);
+
         this.updateInputAxes();
     }
 
@@ -71,14 +74,19 @@ export default class Input {
         const canvasHalf = System.rootSize.divide(2).round();
 
         this.pressedMouseButtons.delete(event.button);
-        this.mousePosition.set(event.offsetX, event.offsetY).subtract(canvasHalf);
+        this.mousePosition.set(event.offsetX, event.offsetY)
+            .subtract(canvasHalf)
+            .multiply(System.dpr);
+
         this.updateInputAxes();
     }
 
     private static onPointerMove(event: PointerEvent) {
         const canvasHalf = System.rootSize.divide(2).round();
 
-        this.mousePosition.set(event.offsetX, event.offsetY).subtract(canvasHalf);
+        this.mousePosition.set(event.offsetX, event.offsetY)
+            .subtract(canvasHalf)
+            .multiply(System.dpr);
     }
 
     private static updateInputAxes() {
