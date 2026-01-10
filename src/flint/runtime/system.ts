@@ -247,13 +247,14 @@ export class System {
         }
     }
 
-    private static mainTick(now: number) {
+    private static mainTick() {
         System._rafId = null;
 
         if (System._runningState !== RunningState.Running) {
             return;
         }
 
+        const now = performance.now();
         System._deltaTime = (now - System.lastFrame) / 1000;
         System.lastFrame = now;
 

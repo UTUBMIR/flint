@@ -26,6 +26,14 @@ export default class ModuleLoader {
             for (const key of Object.keys(System)) {
                 loadedModule.System[key] = (System as any)[key];
             }
+
+            Object.defineProperty(loadedModule.System, "deltaTime", {
+                configurable: true,
+                enumerable: true,
+                get: function () {
+                    return System.deltaTime;
+                }
+            });
         }
 
         if (loadedModule.Input) {
