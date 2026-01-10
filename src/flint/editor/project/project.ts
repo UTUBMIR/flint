@@ -200,14 +200,18 @@ export class Project {
 
             const projectData = ProjectLoader.deserialize(JSON.parse(decoded));
 
-
             const editorLayerIndex = System.layers.findIndex(l => l instanceof EditorLayer);
             const editorLayer = System.layers[editorLayerIndex];
-            System.layers = System.layers.splice(editorLayerIndex, 1);
+            System.layers.splice(editorLayerIndex, 1);
 
             await ProjectLoader.load(projectData);
 
-            System.pushLayer(editorLayer ?? new EditorLayer());
+            if (editorLayer) {
+                System.layers.push(editorLayer);
+            }
+            else {
+                System.pushLayer(new EditorLayer());
+            }
 
             await Metadata.loadFromFile();
 
