@@ -29,7 +29,9 @@ export default class ProjectConfig {
         },
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
-        "noImplicitOverride": true
+        "noImplicitOverride": true,
+        "module": "esnext",
+        "target": "esnext"
     }
 }`;
 

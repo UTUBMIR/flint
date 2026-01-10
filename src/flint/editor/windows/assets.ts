@@ -5,6 +5,10 @@ import { AssetRegistry, AssetType } from "../../runtime/assets";
 
 import type SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox.js";
 import type SlCopyButton from "@shoelace-style/shoelace/dist/components/copy-button/copy-button.js";
+import type SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog.js";
+import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
+import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
+import type SlSelect from "@shoelace-style/shoelace/dist/components/select/select.js";
 
 export type AssetData = {
     id: string;
@@ -44,11 +48,20 @@ export default class Assets {
 
     private setupToolbar() {
         {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const createAssetDialog: any = document.getElementById("create-asset-dialog")!;
-            const createButton = createAssetDialog!.querySelector("sl-button");
-            const createCheckbox = createAssetDialog!.querySelector("sl-checkbox");
-            const createInput = createAssetDialog!.querySelector("sl-input");
+            const createAssetDialog = document.getElementById("create-asset-dialog")! as SlDialog;
+            const createButton = createAssetDialog!.querySelector("sl-button") as SlButton;
+            const preloadCheckbox = createAssetDialog!.querySelector("sl-checkbox") as SlCheckbox;
+            const typeSelect = createAssetDialog!.querySelector("sl-select")! as SlSelect;
+            const createInput = createAssetDialog!.querySelector("sl-input") as SlInput;
+
+            for (const type of Object.keys(AssetType).filter(key => isNaN(Number(key)))) {
+                typeSelect.append(Object.assign(document.createElement("sl-option"), {
+                    textContent: type,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    value: (AssetType as any)[type]
+                }));
+            }
+            typeSelect.setAttribute("value", "0");
 
             document.getElementById("new-asset-button")!.addEventListener("click", function () {
                 createButton.disabled = true;
@@ -62,7 +75,12 @@ export default class Assets {
 
             createButton.addEventListener("click", () => {
                 createAssetDialog.hide();
-                AssetRegistry.register({ id: crypto.randomUUID(), url: createInput.value.trim(), type: AssetType.Image, preload: createCheckbox.checked });
+                AssetRegistry.register({
+                    id: crypto.randomUUID(),
+                    url: createInput.value.trim(),
+                    type: +typeSelect.value,
+                    preload: preloadCheckbox.checked
+                });
             });
         }
         {

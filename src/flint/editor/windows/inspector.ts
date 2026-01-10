@@ -129,13 +129,13 @@ export default class Inspector {
         for (const [_key, component] of System.components) {
             if (component.name === undefined) continue;
 
-            this.dialogSelect.appendChild(Object.assign(document.createElement("sl-option"), {
+            this.dialogSelect.append(Object.assign(document.createElement("sl-option"), {
                 value: component.name,
                 textContent: ComponentBuilder.splitPascalCase(component.name)
             }));
         }
 
-        (this.dialogSelect as any).value = "";
+        this.dialogSelect.setAttribute("value", "");
 
 
         this.dialog.show();
