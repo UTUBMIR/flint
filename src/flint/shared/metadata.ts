@@ -211,13 +211,13 @@ export default class Metadata {
         const save = JSON.parse(await System.fileSystem.readTextFile("metadata.json")) as SaveType;
 
         for (const layer of save.layers) {
-            const foundLayer = System.layers.find(l => l.id === layer.id);
+            const foundLayer = System.world.getLayers().find(l => l.id === layer.id);
             if (layer.id && foundLayer) {
                 Metadata.setClass(foundLayer, MetadataKeys.EditorName, layer.editorName);
             }
 
             for (const object of layer.objects) {
-                const go = System.getGameObjectById(object.id);
+                const go = System.world.getGameObjectById(object.id);
                 if (go) {
                     Metadata.setClass(go, MetadataKeys.EditorName, object.editorName);
                 }

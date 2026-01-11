@@ -136,7 +136,7 @@ export class Project {
         Editor.hierarchyWindow.update();
 
         if (Editor.inspectorWindow.currentObject) {
-            Editor.inspectorWindow.currentObject = System.getGameObjectById(Editor.inspectorWindow.currentObject.id);
+            Editor.inspectorWindow.currentObject = System.world.getGameObjectById(Editor.inspectorWindow.currentObject.id);
         }
         return success;
     }
@@ -153,7 +153,7 @@ export class Project {
 
     public static async newProject(folderHandle: FileSystemDirectoryHandle) {
         if (await Project.startupProject(folderHandle) || !await Project.loadProject()) {
-            System.pushLayer(Editor.defaultLayer);
+            System.world.addLayer(Editor.defaultLayer);
             Editor.hierarchyWindow.update();
         }
 
@@ -170,7 +170,7 @@ export class Project {
     }
 
     public static async saveProject() {
-        const data = ProjectLoader.serialize({ layers: System.layers.filter(l => !(l instanceof EditorLayer)), assets: AssetRegistry.serialize() });
+        const data = ProjectLoader.serialize({ layers: System.world.getLayers().filter(l => !(l instanceof EditorLayer)), assets: AssetRegistry.serialize() });
         const blob = new Blob([data], { type: "text/plain" });
         const cs = new CompressionStream("gzip");
         const compressed = new Response(blob.stream().pipeThrough(cs));
@@ -181,7 +181,7 @@ export class Project {
             new Uint8Array(arrayBuffer)
         );
 
-        await Metadata.saveToFile(System.layers.filter(l => !(l instanceof EditorLayer)));
+        await Metadata.saveToFile(System.world.getLayers().filter(l => !(l instanceof EditorLayer)));
     }
 
     private static async loadProject() {
@@ -200,17 +200,17 @@ export class Project {
 
             const projectData = ProjectLoader.deserialize(JSON.parse(decoded));
 
-            const editorLayerIndex = System.layers.findIndex(l => l instanceof EditorLayer);
-            const editorLayer = System.layers[editorLayerIndex];
-            System.layers.splice(editorLayerIndex, 1);
+            const editorLayerIndex = System.world.getLayers().findIndex(l => l instanceof EditorLayer);
+            const editorLayer = System.world.getLayers()[editorLayerIndex]!;
+            System.world.removeLayer(editorLayer, false);
 
             await ProjectLoader.load(projectData);
 
             if (editorLayer) {
-                System.layers.unshift(editorLayer);
+                System.world.addLayer(editorLayer);
             }
             else {
-                System.pushLayer(new EditorLayer());
+                System.world.addLayer(new EditorLayer());
             }
 
             await Metadata.loadFromFile();

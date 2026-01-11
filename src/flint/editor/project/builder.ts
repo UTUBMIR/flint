@@ -236,7 +236,7 @@ ${js}
                 const component = System.components.get(name);
                 if (!component) throw new Error("FLINT PANIC: CRITICAL SYSTEM FAILURE");
 
-                for (const layer of System.layers) {
+                for (const layer of System.world.getLayers()) {
                     for (const obj of layer.getObjects()) {
                         const objComponent = obj.getComponent(oldComponentType);
                         if (!objComponent) {

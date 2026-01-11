@@ -159,8 +159,8 @@ export default class Inspector {
         const selection = (event as CustomEvent).detail.selection as HTMLElement[];
         const id = selection[0]!.dataset.id as UUID;
 
-        this.currentObject = System.getGameObjectById(id);
-        const layer = System.getLayerById(id);
+        this.currentObject = System.world.getGameObjectById(id);
+        const layer = System.world.getLayerById(id);
 
         if (!this.currentObject) {
             if (layer) {

@@ -377,15 +377,15 @@ export class ProjectLoader {
     }
 
     public static async load(project: ProjectData) {
-        for (const layer of System.layers) {
-            System.removeLayer(layer);
+        for (const layer of System.world.getLayers()) {
+            System.world.removeLayer(layer);
         }
 
         AssetRegistry.loadSerialized(project.assets);
         await AssetRequestSystem.waitAll();
 
         for (const layer of project.layers) {
-            System.pushLayer(layer);
+            System.world.addLayer(layer);
         }
     }
 }

@@ -12,7 +12,7 @@ export class GameObjectRenderer extends BaseDropRenderer<GameObject> {
         const id = dt.getData("application/x-gameobject-id");
         if (!id) return null;
 
-        return System.getGameObjectById(id as UUID)??null;
+        return System.world.getGameObjectById(id as UUID)??null;
     }
 
     protected stringify(go: GameObject | null): string {

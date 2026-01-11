@@ -1,26 +1,43 @@
 import type { GameSystem } from "./game-system";
 import type Layer from "./layer";
+import { System, type UUID } from "./system";
+import type GameObject from "./game-object";
 
 export class World {
     private layers: Layer[] = [];
     private systems: GameSystem[] = [];
     private running = false;
 
-    public addLayer(layer: Layer): void {
-        if (this.layers.includes(layer)) return;
+    public addLayer(layer: Layer, init = true): void {
+        if (init) {
+            layer.canvas = System.createCanvas();
+            layer.renderer = System.renderer;
+        }
+        System.eventEmitter.addEventListener(layer.onEvent.bind(layer));
 
         this.layers.push(layer);
-        layer.attach();
 
-        if (this.running) layer.start();
+        if (init) {
+            layer.attach();
+
+            if (this.running) {
+                layer.start();
+            }
+        }
     }
 
-    public removeLayer(layer: Layer): void {
+    public removeLayer(layer: Layer, destroy = true) {
         const index = this.layers.indexOf(layer);
         if (index === -1) return;
 
         this.layers.splice(index, 1);
-        layer.destroy();
+        // System.eventEmitter.removeEventListener(layer);//BUG: WE MUST REMOVE LISTENER
+        if (destroy) {
+            layer.destroy();
+        }
+        else {
+            return layer;
+        }
     }
 
     public getLayers(): readonly Layer[] {
@@ -38,12 +55,17 @@ export class World {
         this.sortSystems();
     }
 
-    public removeSystem(system: GameSystem): void {
+    public removeSystem(system: GameSystem, destroy = true) {
         const index = this.systems.indexOf(system);
         if (index === -1) return;
 
         this.systems.splice(index, 1);
-        system.destroy();
+        if (destroy) {
+            system.destroy();
+        }
+        else {
+            return system;
+        }
     }
 
     public getSystem<T extends GameSystem>(
@@ -57,14 +79,40 @@ export class World {
     }
 
 
+    public getById(id: UUID, prioritizeLayers = true): GameObject | Layer | undefined {
+        if (prioritizeLayers) {
+            return this.getLayerById(id) ?? this.getGameObjectById(id);
+        }
+        else {
+            return this.getGameObjectById(id) ?? this.getLayerById(id);
+        }
+    }
+
+    public getLayerById(id: UUID): Layer | undefined {
+        const found = this.layers.find(go => go.id === id);
+        if (found) {
+            return found;
+        }
+    }
+
+    public getGameObjectById(id: UUID): GameObject | undefined {
+        for (let i = 0; i < this.layers.length; ++i) {
+            const found = this.layers[i]!.getObjects().find(go => go.id === id);
+            if (found) {
+                return found;
+            }
+        }
+    }
 
 
 
-    public start(): void {
+    public start(send = true): void {
         if (this.running) return;
         this.running = true;
 
-        for (const l of this.layers) l.start();
+        if (send) {
+            for (const l of this.layers) l.start();
+        }
     }
 
     public update(): void {
@@ -80,8 +128,6 @@ export class World {
     }
 
     public render(): void {
-        if (!this.running) return;
-
         for (const s of this.systems) {
             if (s.enabled) s.render();
         }

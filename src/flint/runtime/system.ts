@@ -5,18 +5,17 @@ import defaultPlayConfig from "./config/play-config.json" with { type: 'json' };
 import type { AxisBinding } from "../shared/input-axis";
 import InputAxis from "../shared/input-axis";
 import type Component from "./component";
-import type Layer from "./layer";
 
 //default components
 import Camera from "./components/camera";
 import Shape from "./components/shape";
-import type GameObject from "./game-object";
 import type RendererComponent from "./renderer-component";
 import { type AbstractFileSystem } from "../shared/file-system";
 import Image from "./components/image";
 import { TimerSystem } from "./timers";
 import Vector2 from "../shared/vector2";
 import Label from "./components/label";
+import { World } from "./world";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -58,7 +57,12 @@ export class RenderSystem {
 
 
 export class System {
-    public static layers: Layer[] = [];
+    private static _world: World;
+
+    public static get world() {
+        return this._world ??= new World();
+    }
+
     public static components = new Map<string, typeof Component>();
 
     public static showColliders: boolean = false;
@@ -106,30 +110,6 @@ export class System {
 
     private constructor() { }
 
-    public static getById(id: UUID, prioritizeLayers = true): GameObject | Layer | undefined {
-        if (prioritizeLayers) {
-            return System.getLayerById(id) ?? System.getGameObjectById(id);
-        }
-        else {
-            return System.getGameObjectById(id) ?? System.getLayerById(id);
-        }
-    }
-
-    public static getLayerById(id: UUID): Layer | undefined {
-        const found = System.layers.find(go => go.id === id);
-        if (found) {
-            return found;
-        }
-    }
-
-    public static getGameObjectById(id: UUID): GameObject | undefined {
-        for (let i = 0; i < System.layers.length; ++i) {
-            const found = System.layers[i]!.getObjects().find(go => go.id === id);
-            if (found) {
-                return found;
-            }
-        }
-    }
 
     public static registerComponent(name: string, component: typeof Component) {
         System.components.set(name, component);
@@ -147,6 +127,7 @@ export class System {
         fileSystem?: AbstractFileSystem,
         playConfig?: PlayConfig
     }): void {
+        System._world = new World();
         this.initRootDiv();
         this._renderer = options.renderer;
         Input.init(System.rootDiv);
@@ -191,31 +172,10 @@ export class System {
         });
     }
 
-    public static pushLayer(layer: Layer): void {
-        layer.canvas = this.createCanvas();
-        layer.renderer = this._renderer;
-        this.eventEmitter.addEventListener(layer.onEvent.bind(layer));
-
-        this.layers.push(layer);
-        layer.attach();
-
-        if (System.runningState === RunningState.Running) {
-            layer.start();
-        }
-    }
-
-    public static removeLayer(layer: Layer): void {
-        const index = System.layers.indexOf(layer);
-        if (index !== -1) System.layers.splice(index, 1);
-        layer.destroy();
-    }
-
     public static run(sendStart = true) {
         if (System._runningState === RunningState.Running) return;
 
-        if (sendStart) {
-            System.sendStart();
-        }
+        System._world.start(sendStart);
 
         System.lastFrame = performance.now();
         System._runningState = RunningState.Running;
@@ -225,12 +185,14 @@ export class System {
     public static stop() {
         System._runningState = RunningState.Stopped;
         System.cancelMainTick();
+        System._world.stop();
     }
 
     public static runRenderingOnly() {
         System.lastFrame = performance.now();
         requestAnimationFrame(System.renderOnlyTick);
         System._runningState = RunningState.RunningRenderingOnly;
+        System._world.stop();
     }
 
 
@@ -258,13 +220,8 @@ export class System {
         System._deltaTime = (now - System.lastFrame) / 1000;
         System.lastFrame = now;
 
-        for (let i = 0; i < System.layers.length; ++i) {
-            System.layers[i]!.update();
-        }
-
-        for (let i = 0; i < System.layers.length; ++i) {
-            System.layers[i]!.render();
-        }
+        System._world.update();
+        System._world.render();
 
         TimerSystem.update(System._deltaTime);
 
@@ -275,18 +232,10 @@ export class System {
         System._deltaTime = (now - System.lastFrame) / 1000;
         System.lastFrame = now;
 
-        for (let i = 0; i < System.layers.length; ++i) {
-            System.layers[i]!.render();
-        }
+        System._world.render();
 
         if (System._runningState === RunningState.RunningRenderingOnly) {
             requestAnimationFrame(System.renderOnlyTick);
-        }
-    }
-
-    private static sendStart() {
-        for (let i = 0; i < System.layers.length; ++i) {
-            System.layers[i]!.start();
         }
     }
 

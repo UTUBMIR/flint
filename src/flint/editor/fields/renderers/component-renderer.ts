@@ -14,7 +14,7 @@ export class ComponentRenderer extends BaseDropRenderer<Component> {
 
         if (!compType) return null;
 
-        return System.getGameObjectById(parsed.id)?.getComponent(compType) ?? null;
+        return System.world.getGameObjectById(parsed.id)?.getComponent(compType) ?? null;
     }
 
     protected stringify(comp: Component | null): string {

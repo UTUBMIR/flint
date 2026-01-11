@@ -88,7 +88,7 @@ export default class Hierarchy {
 
         this.contextMenuElement.querySelector("#new-layer-button")!.addEventListener("click", () => {
             const layer = new Layer();
-            System.pushLayer(layer);
+            System.world.addLayer(layer);
             this.update();
         });
 
@@ -119,7 +119,7 @@ export default class Hierarchy {
         this.selectedElement = selection[0];
         const id = selection[0]!.dataset.id! as UUID;
 
-        this.selection = System.getById(id);
+        this.selection = System.world.getById(id);
 
         if (!this.selection) {
             throw new Error("Failed to get 'selection'");
@@ -137,12 +137,12 @@ export default class Hierarchy {
             }
         }
         else {
-            if (System.layers.length === 0) {
+            if (System.world.getLayers().length === 0) {
                 Notifier.notify("GameObject can be created only inside a Layer.", "danger");
                 return;
             }
 
-            const layer = System.layers[0]!;
+            const layer = System.world.getLayers()[0]!;
             layer.addObject(new GameObject());
         }
         this.update();
@@ -154,7 +154,7 @@ export default class Hierarchy {
                 this.selection.layer.removeObject(this.selection);
             }
             else {
-                System.removeLayer(this.selection);
+                System.world.removeLayer(this.selection);
             }
             Editor.hierarchyWindow.update();
         }
@@ -164,8 +164,8 @@ export default class Hierarchy {
         this.layers.clear();
         this.element.innerHTML = "";
 
-        for (let layerIndex = System.layers.length - 1; layerIndex >= 0; layerIndex--) {
-            const layer = System.layers[layerIndex]!;
+        for (let layerIndex = System.world.getLayers().length - 1; layerIndex >= 0; --layerIndex) {
+            const layer = System.world.getLayers()[layerIndex]!;
             if (layer instanceof EditorLayer) {
                 continue;
             }
@@ -230,7 +230,7 @@ export default class Hierarchy {
 
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const id = (item as any).dataset.id;
-                    const found = System.getById(id);
+                    const found = System.world.getById(id);
 
                     if (found) {
                         Metadata.setClass(found, MetadataKeys.EditorName, textNode.textContent);
@@ -263,7 +263,7 @@ export default class Hierarchy {
         item.draggable = true;
 
         function dragstartHandler(ev: DragEvent) {
-            const go = System.getGameObjectById(id);
+            const go = System.world.getGameObjectById(id);
 
             if (!go) {
                 return;
