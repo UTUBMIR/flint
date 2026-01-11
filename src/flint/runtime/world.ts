@@ -3,10 +3,11 @@ import type Layer from "./layer";
 import { System, type UUID } from "./system";
 import type GameObject from "./game-object";
 
+
 export class World {
-    private layers: Layer[] = [];
-    private systems: GameSystem[] = [];
-    private running = false;
+    protected layers: Layer[] = [];
+    protected systems: GameSystem[] = [];
+    protected running = false;
 
     public addLayer(layer: Layer, init = true): void {
         if (init) {
@@ -125,7 +126,11 @@ export class World {
         for (const l of this.layers) {
             l.update();
         }
+
+        this.updateStep();
     }
+
+    public updateStep(): void {}
 
     public render(): void {
         for (const s of this.systems) {
@@ -135,7 +140,10 @@ export class World {
         for (const l of this.layers) {
             l.render();
         }
+        this.renderStep();
     }
+
+    public renderStep(): void {}
 
     public stop(): void {
         if (!this.running) return;

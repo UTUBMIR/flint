@@ -3,3 +3,4 @@ dist/
 types/
 .vs/
 .vscode/
+src/flint/public/

@@ -60,10 +60,14 @@ export default class Bundler {
             });
 
 
-            build.onLoad({ filter: /.*/, namespace: "virtual" }, (args: { path: string }) => {
+            build.onLoad({ filter: /.*/, namespace: "virtual" }, async (args: { path: string }) => {
                 if (args.path.startsWith("@flint")) {
-                    const flintPath = "flint/" + args.path.replace("@flint/", "");
-                    const content = Bundler.flintFiles.get(flintPath);
+                    let flintPath = "flint/" + args.path.replace("@flint/", "");
+                    let content = Bundler.flintFiles.get(flintPath);
+                    if (!content) {
+                        flintPath = flintPath.replace(".ts", ".js");
+                        content = Bundler.flintFiles.get(flintPath);
+                    }
 
                     if (!content) {
                         console.warn("Missing virtual flint file:", flintPath);
@@ -73,7 +77,7 @@ export default class Bundler {
 
                     return {
                         contents: content,
-                        loader: flintPath.endsWith(".ts") ? "ts" : "json"
+                        loader: flintPath.endsWith(".ts") ? "ts" : flintPath.endsWith(".js") ? "js" : "json"
                     };
                 }
 
@@ -84,7 +88,7 @@ export default class Bundler {
                     const content = Bundler.flintFiles.get(normalizedPath);
                     if (content) {
                         return {
-                            contents: content, loader: normalizedPath.endsWith(".ts") ? "ts" : "json"
+                            contents: content, loader: normalizedPath.endsWith(".ts") ? "ts" : normalizedPath.endsWith(".js") ? "js" : "json"
                         };
                     }
 
@@ -127,6 +131,7 @@ export default class Bundler {
             target: ["esnext"],
             plugins: [Bundler.virtualFsPlugin],
             external: ["@flint/"],
+            platform: "browser",
             minify: true,
             keepNames: true,
             tsconfigRaw: ProjectConfig.tsConfig

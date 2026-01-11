@@ -27,15 +27,16 @@
 
 ## Installation
 
-Install dependencies:
+Install and build dependencies:
 
 ```bash
 npm install
+npm run build:libs
 ```
 
 ## Build
 
-Once dependencies are installed, build the engine:
+Once dependencies are ready, build the engine:
 
 ```bash
 npm run build
