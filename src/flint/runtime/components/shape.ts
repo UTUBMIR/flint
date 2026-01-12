@@ -24,9 +24,17 @@ export default class Shape extends RendererComponent {
     public override render(renderer: IRenderer): void {
         renderer.fillColor = this.fillColor;
         renderer.lineColor = this.lineColor;
-        renderer.lineWidth = 4.5;
+        const line = 4.5;
+        renderer.lineWidth = line;
         renderer.lineJoin = "bevel";
 
+        const pos = this.transform.position.copy();
+        pos.x += line;
+        pos.y += line;
+
+        const size = this.transform.size.copy();
+        size.x -= line * 2;
+        size.y -= line * 2;
 
         renderer.translate(this.transform.position);
         renderer.rotate(this.transform.rotation);
@@ -35,10 +43,9 @@ export default class Shape extends RendererComponent {
         renderer.shadowColor = this.shadowColor;
         renderer.shadowBlur = 20;
 
-        renderer.fillRect(this.transform.position.copy().subtract(this.transform.size.copy().divide(2)), this.transform.size);
+        renderer.fillRect(pos.copy().subtract(size.copy().divide(2)), size);
 
-        renderer.strokeRect(this.transform.position.copy().subtract(this.transform.size.copy().divide(2)), this.transform.size);
-
+        renderer.strokeRect(pos.copy().subtract(size.copy().divide(2)), size);
 
         renderer.translate(this.transform.position);
         renderer.rotate(-this.transform.rotation);

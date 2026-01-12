@@ -10,12 +10,15 @@ import type Component from "./component";
 import Camera from "./components/camera";
 import Shape from "./components/shape";
 import type RendererComponent from "./renderer-component";
-import { type AbstractFileSystem } from "../shared/file-system";
 import Image from "./components/image";
+import Label from "./components/label";
+import PhysicsBody from "./components/physics/physics-body";
+
+import { type AbstractFileSystem } from "../shared/file-system";
 import { TimerSystem } from "./timers";
 import Vector2 from "../shared/vector2";
-import Label from "./components/label";
 import { PhysicsWorld } from "./physics-world";
+import { BoxCollider } from "./components/physics/box-collider";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -120,6 +123,8 @@ export class System {
         this.components.set("Shape", Shape);
         this.components.set("Image", Image);
         this.components.set("Label", Label);
+        this.components.set("PhysicsBody", PhysicsBody);
+        this.components.set("BoxCollider", BoxCollider);
     }
 
     public static init(options: {

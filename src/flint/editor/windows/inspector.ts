@@ -81,7 +81,6 @@ export default class Inspector {
         });
 
         this.dropTarget.addEventListener("drop", (ev) => {
-
             const componentName = ev.dataTransfer!.getData("application/x-component-name");
 
             if (componentName.length > 0) {
