@@ -5,7 +5,7 @@ import { defineConfig } from "eslint/config";
 
 export default defineConfig([
     {
-        files: ["**/*.{js,ts,mjs,cjs,ts,mts,cts}"], plugins: { js }, languageOptions: {
+        files: ["*/*.{js,ts,mjs,cjs,ts,mts,cts}"], plugins: { js }, languageOptions: {
             globals: globals.browser,
             parser: tseslint.parser,
             parserOptions: {

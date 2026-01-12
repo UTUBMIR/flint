@@ -21,13 +21,15 @@ function getAllFiles(dir, allowedExt = [], baseDir = dir) {
 
 const typesDir = path.resolve("./types");
 const srcDir = path.resolve("./src");
+const libraryDir = path.resolve("./src/flint/public/libs");
 
 const typeFiles = getAllFiles(typesDir, [".d.ts"]);
+const libraryFiles = getAllFiles(libraryDir, [".js"], srcDir)
 
 const jsonFiles = getAllFiles(srcDir, [".json"]);
 
 const output = {
-    types: typeFiles,
+    types: [...typeFiles, ...libraryFiles],
     json: jsonFiles
 };
 

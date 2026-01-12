@@ -24,7 +24,6 @@
     },
     "include": [
         "src",
-        "eslint.config.js"
     ],
     "exclude": [
         "dist",

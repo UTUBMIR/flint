@@ -15,7 +15,7 @@ import Image from "./components/image";
 import { TimerSystem } from "./timers";
 import Vector2 from "../shared/vector2";
 import Label from "./components/label";
-import { World } from "./world";
+import { PhysicsWorld } from "./physics-world";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -57,10 +57,10 @@ export class RenderSystem {
 
 
 export class System {
-    private static _world: World;
+    private static _world: PhysicsWorld;
 
     public static get world() {
-        return this._world ??= new World();
+        return this._world ??= new PhysicsWorld();
     }
 
     public static components = new Map<string, typeof Component>();
@@ -127,7 +127,7 @@ export class System {
         fileSystem?: AbstractFileSystem,
         playConfig?: PlayConfig
     }): void {
-        System._world = new World();
+        System._world = new PhysicsWorld();
         this.initRootDiv();
         this._renderer = options.renderer;
         Input.init(System.rootDiv);

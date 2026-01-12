@@ -256,7 +256,7 @@ export default class Editor {
 
         for (const filePath of allFiles) {
             tasks.push((async () => {
-                const thisFile = filePath.replace("d.ts", "ts");
+                const thisFile = filePath.replace("d.", "");
                 const url = fileBaseUrl + thisFile;
                 const content = await fetch(url).then(r => r.text());
 
