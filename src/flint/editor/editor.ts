@@ -224,6 +224,8 @@ export default class Editor {
         Editor.loadEngineFiles();
 
         Editor._defaultLayer = new Layer();
+        EditorName("Main Layer")(Editor._defaultLayer);
+        
         const rect = new GameObject([
             new Shape()
         ], new Transform(
