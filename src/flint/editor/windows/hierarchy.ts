@@ -138,7 +138,9 @@ export default class Hierarchy {
         }
         else {
             if (System.world.getLayers().length === 0) {
-                Notifier.notify("GameObject can be created only inside a Layer.", "danger");
+                const layer = new Layer();
+                System.world.addLayer(layer);
+                this.update();
                 return;
             }
 
