@@ -9,6 +9,11 @@ export class World {
     protected systems: GameSystem[] = [];
     protected running = false;
 
+    /**
+     * Registers and initializes layer
+     * @param layer layer to register
+     * @param init if `true` -> initialize layer
+     */
     public addLayer(layer: Layer, init = true): void {
         if (init) {
             layer.canvas = System.createCanvas();
@@ -27,6 +32,12 @@ export class World {
         }
     }
 
+
+    /**
+     * Unregisters and destroys layer
+     * @param layer layer to remove
+     * @param destroy if `true` -> destroy layer
+     */
     public removeLayer(layer: Layer, destroy = true) {
         const index = this.layers.indexOf(layer);
         if (index === -1) return;
@@ -36,9 +47,26 @@ export class World {
         if (destroy) {
             layer.destroy();
         }
-        else {
-            return layer;
-        }
+    }
+
+    /**
+     * Push layer to registry without any initialization.
+     * 
+     * **Use this method only when you know what you do, if not -> use {@link addLayer}**
+     * @param layer 
+     */
+    public pushLayer(layer: Layer) {
+        this.layers.push(layer);
+    }
+
+    /**
+     * Unshift layer to registry without any initialization.
+     * 
+     * **Use this method only when you know what you do, if not -> use {@link addLayer}**
+     * @param layer 
+     */
+    public unshiftLayer(layer: Layer) {
+        this.layers.unshift(layer);
     }
 
     public getLayers(): readonly Layer[] {
@@ -77,6 +105,16 @@ export class World {
 
     private sortSystems(): void {
         this.systems.sort((a, b) => a.order - b.order);
+    }
+
+    /**
+     * @deprecated
+     */
+    public sortLayers() {
+        for (let i = 0; i < this.layers.length; ++i) {
+            const layer = this.layers[i]!;
+            layer.canvas.element.style.zIndex = (-i+100).toString();
+        }
     }
 
 
@@ -130,7 +168,7 @@ export class World {
         this.updateStep();
     }
 
-    public updateStep(): void {}
+    public updateStep(): void { }
 
     public render(): void {
         for (const s of this.systems) {
@@ -143,7 +181,7 @@ export class World {
         this.renderStep();
     }
 
-    public renderStep(): void {}
+    public renderStep(): void { }
 
     public stop(): void {
         if (!this.running) return;

@@ -207,7 +207,8 @@ export class Project {
             await ProjectLoader.load(projectData);
 
             if (editorLayer) {
-                System.world.addLayer(editorLayer);
+                System.world.unshiftLayer(editorLayer);
+                System.world.sortLayers();
             }
             else {
                 System.world.addLayer(new EditorLayer());
