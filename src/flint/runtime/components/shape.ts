@@ -36,9 +36,9 @@ export default class Shape extends RendererComponent {
         size.x -= line * 2;
         size.y -= line * 2;
 
-        renderer.translate(this.transform.position);
+        renderer.translate(pos);
         renderer.rotate(this.transform.rotation);
-        renderer.translate(Vector2.zero.subtract(this.transform.position));
+        renderer.translate(Vector2.zero.subtract(pos));
 
         renderer.shadowColor = this.shadowColor;
         renderer.shadowBlur = 20;
@@ -47,8 +47,8 @@ export default class Shape extends RendererComponent {
 
         renderer.strokeRect(pos.copy().subtract(size.copy().divide(2)), size);
 
-        renderer.translate(this.transform.position);
+        renderer.translate(pos);
         renderer.rotate(-this.transform.rotation);
-        renderer.translate(Vector2.zero.subtract(this.transform.position));
+        renderer.translate(Vector2.zero.subtract(pos));
     }
 }

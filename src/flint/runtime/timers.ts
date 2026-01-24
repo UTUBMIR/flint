@@ -6,7 +6,7 @@ export class Timer {
     public constructor(
         public readonly duration: number,
         private readonly callback: TimerCallback,
-        private readonly repeat: boolean = false,
+        public repeat: boolean = false,
         private active = false
     ) { }
 

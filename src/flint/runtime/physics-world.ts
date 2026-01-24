@@ -1,4 +1,5 @@
-import Planck, * as P from "../public/planck";
+import Planck from "../public/planck";
+import type * as P from "../public/planck";
 
 import { World } from './world';
 import { System } from './system';

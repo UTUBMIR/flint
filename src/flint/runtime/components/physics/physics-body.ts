@@ -1,4 +1,4 @@
-import Planck, * as P from "../../../public/planck";
+import * as P from "../../../public/planck";
 import { NonSerialized } from "../../../shared/metadata";
 
 import Component from "../../component";
@@ -8,9 +8,9 @@ export default class PhysicsBody extends Component {
     @NonSerialized()
     public body!: P.Body;
 
-    private type: "dynamic" | "static" | "kinematic" = "dynamic";
+    public type: "dynamic" | "static" | "kinematic" = "dynamic";
 
-    private mass: number = 1;
+    public mass: number = 1;
 
     public override attach(): void {
         const pos = this.transform.position;

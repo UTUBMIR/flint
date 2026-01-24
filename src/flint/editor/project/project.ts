@@ -158,6 +158,7 @@ export class Project {
         }
 
         await Project.saveProject();
+        System.world.addLayer(new EditorLayer());
         Editor.hierarchyWindow.update();
 
         // setInterval(async () => {

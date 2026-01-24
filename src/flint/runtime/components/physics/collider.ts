@@ -1,4 +1,4 @@
-import Planck, * as P from "../../../public/planck";
+import * as P from "../../../public/planck";
 import { NonSerialized } from "../../../shared/metadata";
 
 import Component from "../../component";

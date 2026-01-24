@@ -119,12 +119,12 @@ export class System {
     }
 
     private static addBasicComponents() {
-        this.components.set("Camera", Camera);
-        this.components.set("Shape", Shape);
-        this.components.set("Image", Image);
-        this.components.set("Label", Label);
         this.components.set("PhysicsBody", PhysicsBody);
         this.components.set("BoxCollider", BoxCollider);
+        this.components.set("Camera", Camera);
+        this.components.set("Label", Label);
+        this.components.set("Shape", Shape);
+        this.components.set("Image", Image);
     }
 
     public static init(options: {

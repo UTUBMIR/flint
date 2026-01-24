@@ -40,6 +40,7 @@ export default class Input {
 
 
     public static init(root: HTMLElement) {
+        root = document.body;
         root.addEventListener("keydown", this.onKeyDown.bind(this), true);
         root.addEventListener("keyup", this.onKeyUp.bind(this), true);
 

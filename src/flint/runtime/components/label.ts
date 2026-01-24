@@ -1,5 +1,5 @@
 import type { IRenderer } from "../../shared/irenderer";
-import type { ColorString } from "../../shared/graphics";
+import type { ColorString, TextAlign, TextBaseLine } from "../../shared/graphics";
 import { FieldRenderer } from "../../editor/component-builder";
 import Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
@@ -14,7 +14,12 @@ export default class Label extends RendererComponent {
     @FieldRenderer("color")
     protected shadowColor: ColorString;
 
+    public TextBaseLine: TextBaseLine = "hanging";
+    public textAlign: TextAlign = "left";
+
     public text: string = "Label text";
+
+    public fontSize = 18;
 
     public constructor(fillColor?: ColorString, lineColor?: ColorString, shadowColor?: ColorString) {
         super();
@@ -36,6 +41,10 @@ export default class Label extends RendererComponent {
 
         renderer.shadowColor = this.shadowColor;
         renderer.shadowBlur = 20;
+
+        renderer.fontSize = this.fontSize;
+        renderer.textAlign = this.textAlign;
+        renderer.textBaseLine = this.TextBaseLine;
 
         renderer.fillText(this.transform.position.copy().subtract(this.transform.size.copy().divide(2)), this.text);
 

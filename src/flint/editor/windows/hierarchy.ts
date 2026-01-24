@@ -2,7 +2,7 @@ import GameObject from "../../runtime/game-object";
 import Layer from "../../runtime/layer";
 import { System, type UUID } from "../../runtime/system";
 import Metadata, { MetadataKeys } from "../../shared/metadata";
-import Editor, { Notifier } from "../editor";
+import Editor from "../editor";
 import { type DropdownType } from "../editor";
 import { EditorLayer } from "../editor-layer";
 

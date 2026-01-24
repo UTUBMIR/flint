@@ -3,4 +3,4 @@ dist/
 types/
 .vs/
 .vscode/
-src/flint/public/
+src/flint/public/libs/
