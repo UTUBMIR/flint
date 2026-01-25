@@ -1,9 +1,10 @@
 import { System } from "../../runtime/system";
 
 type ConfigType = {
-    components: {name: string, file: string}[]
-    assets: {name: string, file: string}[]
-    rootPath?: string
+    components: { name: string, file: string }[]
+    assets: { name: string, file: string }[]
+    rootPath?: string,
+    usePhysics: boolean
 }
 
 export default class ProjectConfig {
@@ -37,7 +38,8 @@ export default class ProjectConfig {
 
     private static defaultConfig: ConfigType = {
         components: [],
-        assets: []
+        assets: [],
+        usePhysics: true
     };
 
     public static async save() {
@@ -47,7 +49,7 @@ export default class ProjectConfig {
     public static async load() {
         try {
             const content = await System.fileSystem.readTextFile(ProjectConfig.configFileName);
-            
+
             this.config = JSON.parse(content);
 
             ProjectConfig.tsConfig = await System.fileSystem.readTextFile("tsconfig.json");

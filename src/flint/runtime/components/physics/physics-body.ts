@@ -2,6 +2,7 @@ import * as P from "../../../public/planck";
 import { NonSerialized } from "../../../shared/metadata";
 
 import Component from "../../component";
+import type { PhysicsWorld } from "../../physics-world";
 import { System } from "../../system";
 
 export default class PhysicsBody extends Component {
@@ -15,7 +16,7 @@ export default class PhysicsBody extends Component {
     public override attach(): void {
         const pos = this.transform.position;
 
-        this.body = System.world.physicsWorld.createBody({
+        this.body = (System.world as PhysicsWorld).physicsWorld.createBody({
             type: this.type,
             position: pos.copy(),
             angle: this.transform.rotation
@@ -47,6 +48,6 @@ export default class PhysicsBody extends Component {
     }
 
     public override detach(): void {
-        System.world.physicsWorld.destroyBody(this.body);
+        (System.world as PhysicsWorld).physicsWorld.destroyBody(this.body);
     }
 }

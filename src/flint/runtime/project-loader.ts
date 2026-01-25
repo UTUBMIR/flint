@@ -376,6 +376,20 @@ export class ProjectLoader {
         return JSON.stringify(raw);
     }
 
+    public static getUsedComponents(project: RawProjectData) {
+        const usedComponents = new Set<string>();
+
+        for (const layer of project.layers) {
+            for (const go of layer.objects) {
+                for (const component of go.components) {
+                    usedComponents.add(component.name);
+                }
+            }
+        }
+
+        return [...usedComponents];
+    }
+
     public static async load(project: ProjectData) {
         for (const layer of System.world.getLayers()) {
             System.world.removeLayer(layer);

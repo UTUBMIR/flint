@@ -20,7 +20,12 @@
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
-        "noImplicitOverride": true
+        "noImplicitOverride": true,
+        "paths": {
+            "@flint/*": [
+                "./src/flint/*"
+            ]
+        }
     },
     "include": [
         "src",

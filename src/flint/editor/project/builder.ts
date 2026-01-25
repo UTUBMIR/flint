@@ -8,6 +8,7 @@ import ProjectConfig from "./project-config";
 import { AbstractFileSystem } from "../../shared/file-system";
 import type { AssetData } from "../windows/assets";
 import { AssetRegistry } from "../../runtime/assets";
+import { ProjectLoader } from "@flint/runtime/project-loader";
 
 export class Builder {
     private static tab: Window;
@@ -147,9 +148,13 @@ export class Builder {
     }
 
     private static makeMainTs(data: string, preview: boolean) {
-        return `import * as gameIndex from "./index";
+        return `import { System } from "@flint/runtime/system";
+import * as basicComponents from "@flint/runtime/components/index";
+import * as gameIndex from "./index";
 import { Runtime } from "@flint/runtime/runtime";
 ${preview ? `import { EditorBridge } from "@flint/editor/editor-bridge";` : ""}
+${ProjectConfig.config.usePhysics ? 'import { PhysicsWorld as World } from "./flint/runtime/physics-world";' : 'import { World } from "./flint/runtime/world";'}
+import { ProjectLoader } from "@flint/runtime/project-loader";
 
 (async () => {
     const projectData = ${data};
@@ -157,13 +162,27 @@ ${preview ? `import { EditorBridge } from "@flint/editor/editor-bridge";` : ""}
     const runtime = new Runtime({
         components: gameIndex,
         projectData,
-        enableMetadata: false
+        enableMetadata: false,
+        world: new World()
     });
     
     ${preview ? `if (window.__FLINT_PREVIEW__) {
         console.warn("Launched in preview mode.");
         await EditorBridge.attach(projectData);
     }` : ""}
+
+    ${
+        (function () {
+            const usedComponents = ProjectLoader.getUsedComponents(JSON.parse(data));
+            const lines: string[] = [];
+
+            for (const c of usedComponents) {
+                lines.push(`System.registerComponent("${c}", basicComponents.${c});`);
+            }
+
+            return lines.join("");
+        })()
+    }
 
     await runtime.start();
 })();`;

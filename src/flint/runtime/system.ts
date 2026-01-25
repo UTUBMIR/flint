@@ -7,18 +7,12 @@ import InputAxis from "../shared/input-axis";
 import type Component from "./component";
 
 //default components
-import Camera from "./components/camera";
-import Shape from "./components/shape";
 import type RendererComponent from "./renderer-component";
-import Image from "./components/image";
-import Label from "./components/label";
-import PhysicsBody from "./components/physics/physics-body";
 
 import { type AbstractFileSystem } from "../shared/file-system";
 import { TimerSystem } from "./timers";
 import Vector2 from "../shared/vector2";
-import { PhysicsWorld } from "./physics-world";
-import { BoxCollider } from "./components/physics/box-collider";
+import type { World } from "./world";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -60,10 +54,11 @@ export class RenderSystem {
 
 
 export class System {
-    private static _world: PhysicsWorld;
+    private static _world: World;
+
 
     public static get world() {
-        return this._world ??= new PhysicsWorld();
+        return System._world;
     }
 
     public static components = new Map<string, typeof Component>();
@@ -118,21 +113,14 @@ export class System {
         System.components.set(name, component);
     }
 
-    private static addBasicComponents() {
-        this.components.set("PhysicsBody", PhysicsBody);
-        this.components.set("BoxCollider", BoxCollider);
-        this.components.set("Camera", Camera);
-        this.components.set("Label", Label);
-        this.components.set("Shape", Shape);
-        this.components.set("Image", Image);
-    }
 
     public static init(options: {
         renderer: IRenderer,
         fileSystem?: AbstractFileSystem,
-        playConfig?: PlayConfig
+        playConfig?: PlayConfig,
+        world: World
     }): void {
-        System._world = new PhysicsWorld();
+        System._world = options.world;
         this.initRootDiv();
         this._renderer = options.renderer;
         Input.init(System.rootDiv);
@@ -142,8 +130,6 @@ export class System {
         if (options.fileSystem) {
             this.fileSystem = options.fileSystem;
         }
-
-        this.addBasicComponents();
 
         this.rootDiv.addEventListener('contextmenu', event => event.preventDefault());
 
@@ -246,16 +232,16 @@ export class System {
 
     public static createCanvas(): Canvas {
         const canvas = document.createElement("canvas");
-        const ctxName = this.getContextName(this.renderingContext.name);
+        const ctxName = System.getContextName(System.renderingContext.name);
         const ctx = canvas.getContext(ctxName);
 
         if (!ctx) {
             throw new Error(`Rendering context ${ctxName} was not found!`);
         }
 
-        this.addResizing(canvas, ctx);
+        System.addResizing(canvas, ctx);
 
-        this.rootDiv.appendChild(canvas);
+        System.rootDiv.appendChild(canvas);
 
         return { element: canvas, ctx: ctx };
     }
@@ -275,8 +261,8 @@ export class System {
 
     private static addResizing(canvas: HTMLCanvasElement, ctx: RenderingContext) {
         const resize = () => {
-            const width = this.rootDiv.clientWidth;
-            const height = this.rootDiv.clientHeight;
+            const width = System.rootDiv.clientWidth;
+            const height = System.rootDiv.clientHeight;
 
             canvas.width = Math.floor(width * System.dpr);
             canvas.height = Math.floor(height * System.dpr);

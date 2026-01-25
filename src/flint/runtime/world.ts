@@ -1,6 +1,6 @@
 import type { GameSystem } from "./game-system";
 import type Layer from "./layer";
-import { System, type UUID } from "./system";
+import { System, type UUID } from "@flint/runtime/system";
 import type GameObject from "./game-object";
 
 

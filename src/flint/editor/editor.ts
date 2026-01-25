@@ -12,6 +12,10 @@ import Shape from "../runtime/components/shape";
 import Transform from "../runtime/transform";
 import { System } from "../runtime/system";
 import { Builder } from "./project/builder";
+import PhysicsBody from "@flint/runtime/components/physics/physics-body";
+import { BoxCollider } from "@flint/runtime/components/physics/box-collider";
+import Label from "@flint/runtime/components/label";
+import Image from "@flint/runtime/components/image";
 
 export type DropdownType = HTMLElement & {
     show: () => void;
@@ -155,8 +159,17 @@ export default class Editor {
 
     private constructor() { }
 
+    private static addBasicComponents() {
+        System.registerComponent("PhysicsBody", PhysicsBody);
+        System.registerComponent("BoxCollider", BoxCollider);
+        System.registerComponent("Camera", Camera);
+        System.registerComponent("Label", Label);
+        System.registerComponent("Shape", Shape);
+        System.registerComponent("Image", Image);
+    }
 
     public static init(): void {
+        Editor.addBasicComponents();
         Bundler.init();
 
         try {
@@ -225,7 +238,7 @@ export default class Editor {
 
         Editor._defaultLayer = new Layer();
         EditorName("Main Layer")(Editor._defaultLayer);
-        
+
         const rect = new GameObject([
             new Shape()
         ], new Transform(

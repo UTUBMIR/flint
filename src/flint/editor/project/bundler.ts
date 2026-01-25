@@ -85,7 +85,9 @@ export default class Bundler {
 
                 const content = Bundler.files.get(normalizedPath);
                 if (!content) {
-                    const content = Bundler.flintFiles.get(normalizedPath);
+                    const content =
+                        Bundler.flintFiles.get(normalizedPath) ??
+                        Bundler.flintFiles.get(normalizedPath.replace(".ts", ".js"));
                     if (content) {
                         return {
                             contents: content, loader: normalizedPath.endsWith(".ts") ? "ts" : normalizedPath.endsWith(".js") ? "js" : "json"
@@ -134,7 +136,8 @@ export default class Bundler {
             platform: "browser",
             minify: true,
             keepNames: true,
-            tsconfigRaw: ProjectConfig.tsConfig
+            tsconfigRaw: ProjectConfig.tsConfig,
+            treeShaking: true
         });
     }
 }

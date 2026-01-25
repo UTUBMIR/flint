@@ -3,21 +3,25 @@ import { ProjectLoader, type RawProjectData } from "./project-loader";
 import { Renderer2D } from "../shared/renderer2d";
 import type Component from "./component";
 import Metadata from "../shared/metadata";
+import type { World } from "./world";
 
 export class Runtime {
     public constructor(private options: {
         components: Record<string, typeof Component>;
         projectData: RawProjectData;
         enableMetadata: boolean;
+        world: World
     }) {
         Metadata.enabled = options.enableMetadata;
+        
+        System.init({
+            renderer: new Renderer2D(),
+            world: this.options.world
+        });
     }
 
-    public async start() {
-        System.init({
-            renderer: new Renderer2D()
-        });
 
+    public async start() {
         this.registerComponents();
         await this.loadProject();
 
