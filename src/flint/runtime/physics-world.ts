@@ -1,8 +1,8 @@
-import Planck from "../public/planck";
-import type * as P from "../public/planck";
+import Planck from "@flint/public/planck";
+import type * as P from "@flint/public/planck";
 
-import { World } from './world';
-import { System } from './system';
+import { World } from '@flint/runtime/world';
+import { System } from '@flint/runtime/system';
 
 export class PhysicsWorld extends World {
     private _physicsWorld: P.World;

@@ -1,13 +1,13 @@
-import type Component from "../..//runtime/component";
-import { System } from "../../runtime/system";
-import Editor, { Notifier } from "../../editor/editor";
+import type Component from "@flint//runtime/component";
+import { System } from "@flint/runtime/system";
+import Editor, { Notifier } from "@flint/editor/editor";
 import Bundler from "./bundler";
 import ModuleLoader from "./module-loader";
 import { Project } from "./project";
 import ProjectConfig from "./project-config";
-import { AbstractFileSystem } from "../../shared/file-system";
+import { AbstractFileSystem } from "@flint/shared/file-system";
 import type { AssetData } from "../windows/assets";
-import { AssetRegistry } from "../../runtime/assets";
+import { AssetRegistry } from "@flint/runtime/assets";
 import { ProjectLoader } from "@flint/runtime/project-loader";
 
 export class Builder {
@@ -159,6 +159,18 @@ import { ProjectLoader } from "@flint/runtime/project-loader";
 (async () => {
     const projectData = ${data};
 
+    ${(function () {
+            const usedComponents = ProjectLoader.getUsedComponents(JSON.parse(data));
+            const lines: string[] = [];
+
+            for (const c of usedComponents) {
+                lines.push(`System.registerComponent("${c}", basicComponents.${c});`);
+            }
+
+            return lines.join("");
+        })()
+    }
+
     const runtime = new Runtime({
         components: gameIndex,
         projectData,
@@ -170,19 +182,6 @@ import { ProjectLoader } from "@flint/runtime/project-loader";
         console.warn("Launched in preview mode.");
         await EditorBridge.attach(projectData);
     }` : ""}
-
-    ${
-        (function () {
-            const usedComponents = ProjectLoader.getUsedComponents(JSON.parse(data));
-            const lines: string[] = [];
-
-            for (const c of usedComponents) {
-                lines.push(`System.registerComponent("${c}", basicComponents.${c});`);
-            }
-
-            return lines.join("");
-        })()
-    }
 
     await runtime.start();
 })();`;
