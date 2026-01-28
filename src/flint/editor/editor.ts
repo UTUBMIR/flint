@@ -16,6 +16,7 @@ import PhysicsBody from "@flint/runtime/components/physics/physics-body";
 import { BoxCollider } from "@flint/runtime/components/physics/box-collider";
 import Label from "@flint/runtime/components/label";
 import Image from "@flint/runtime/components/image";
+import { CodeEditor } from "./code-editor";
 
 export type DropdownType = HTMLElement & {
     show: () => void;
@@ -256,6 +257,7 @@ export default class Editor {
 
         EditorName("New Layer")(Layer); // Adding here because we don`t want this in game
         EditorName("New GameObject")(GameObject);
+        CodeEditor.openVirtualEditor("project-config.json");
     }
 
     public static async loadEngineFiles() {

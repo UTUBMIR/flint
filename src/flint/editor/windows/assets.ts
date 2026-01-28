@@ -152,6 +152,9 @@ export default class Assets {
         document.getElementById("new-component-button")!.addEventListener("click", () => {
             Project.showCreateComponentWindow();
         });
+        document.getElementById("new-component-general-button")!.addEventListener("click", () => {
+            Project.showCreateComponentWindow();
+        });
 
         this.backButton.addEventListener("click", () => {
             this.goBack();

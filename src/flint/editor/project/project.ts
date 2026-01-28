@@ -11,6 +11,7 @@ import { EditorLayer as EditorLayer } from "../editor-layer";
 
 import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
 import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
+import { CodeEditor } from "../code-editor";
 // export class FileTracker {
 //     private constructor() { }
 
@@ -294,17 +295,20 @@ export class Project {
     }
 
 
-    public static async openInFileEditor(path: string) {
+    public static async openInFileEditor(pathToOpen: string) {
+        if (ProjectConfig.config.rootPath === "virtual") { 
+            CodeEditor.openVirtualEditor(pathToOpen);
+            return;
+        }
         if (!ProjectConfig.config.rootPath) {
-            const path = prompt("Due to browser restrictions - to open file in VSCode enter absolute path to your project folder:", "C:/path/to/your/project/folder");
+            const path = prompt("Due to browser restrictions - to open file in VSCode enter absolute path to your project folder\n(for example: C:/path/to/your/project/folder):", "");
             if (!path) {
                 return;
             }
             ProjectConfig.config.rootPath = path;
             await ProjectConfig.save();
         }
-
-        window.location.href = "vscode://file/" + ProjectConfig.config.rootPath + path;
+        window.location.href = "vscode://file/" + ProjectConfig.config.rootPath + pathToOpen;
     }
 
     public static showCreateComponentWindow() {

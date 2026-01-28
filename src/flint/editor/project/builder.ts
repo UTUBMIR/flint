@@ -10,6 +10,8 @@ import type { AssetData } from "../windows/assets";
 import { AssetRegistry } from "@flint/runtime/assets";
 import { ProjectLoader } from "@flint/runtime/project-loader";
 
+import * as basicComponents from "@flint/runtime/components/index";
+
 export class Builder {
     private static tab: Window;
     private static tabUrl: string = "";
@@ -160,16 +162,18 @@ import { ProjectLoader } from "@flint/runtime/project-loader";
     const projectData = ${data};
 
     ${(function () {
-            const usedComponents = ProjectLoader.getUsedComponents(JSON.parse(data));
-            const lines: string[] = [];
+                const usedComponents = ProjectLoader.getUsedComponents(JSON.parse(data));
+                const lines: string[] = [];
 
-            for (const c of usedComponents) {
-                lines.push(`System.registerComponent("${c}", basicComponents.${c});`);
+                for (const c of usedComponents) {
+                    if (c in basicComponents) {
+                        lines.push(`System.registerComponent("${c}", basicComponents.${c});`);
+                    }
+                }
+
+                return lines.join("");
+            })()
             }
-
-            return lines.join("");
-        })()
-    }
 
     const runtime = new Runtime({
         components: gameIndex,
