@@ -113,6 +113,10 @@ export class System {
         System.components.set(name, component);
     }
 
+    private static setupAudio() {
+        document.addEventListener("click", () => System.audioContext.resume());
+    }
+
 
     public static init(options: {
         renderer: IRenderer,
@@ -161,6 +165,8 @@ export class System {
                 }
             }
         });
+
+        System.setupAudio();
     }
 
     public static run(sendStart = true) {
