@@ -114,7 +114,11 @@ export class System {
     }
 
     private static setupAudio() {
-        document.addEventListener("click", () => System.audioContext.resume());
+        function listener() {
+            System.audioContext.resume();
+            document.removeEventListener("click", listener);
+        }
+        document.addEventListener("click", listener);
     }
 
 
