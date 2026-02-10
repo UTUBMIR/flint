@@ -71,16 +71,16 @@ export default class Layer {
         this.renderer.setCanvas(this.canvas.element, this.canvas.ctx); //FIXME: make it work with more than one camera
         this.renderer.clearCanvas();
 
+        const canvasHalf = new Vector2(this.canvas.ctx.canvas.width, this.canvas.ctx.canvas.height).divide(2).round();
+        
         for (const camera of this.cameras) {
             if (camera.enabled) {
                 this.renderer.fillColor = camera.backgroundColor;
                 this.renderer.fillCanvas();
                 this.renderer.resetTransform();
 
-                const canvasHalf = new Vector2(this.canvas.ctx.canvas.width, this.canvas.ctx.canvas.height).divide(2).round();
-
                 this.renderer.translate(canvasHalf);
-                this.renderer.rotate(camera.angle);
+                this.renderer.rotate(-camera.angle);
                 this.renderer.translate(Vector2.zero.subtract(camera.position));
 
                 this.renderSystem.render(this.renderer);
