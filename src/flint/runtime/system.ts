@@ -71,8 +71,9 @@ export class System {
 
     private static rootDiv: HTMLDivElement;
 
+    private static _rootSize = new Vector2();
     public static get rootSize(): Vector2 {
-        return new Vector2(this.rootDiv.clientWidth, this.rootDiv.clientHeight);
+        return System._rootSize.set(this.rootDiv.clientWidth, this.rootDiv.clientHeight);
     }
 
     private static readonly renderingContext = CanvasRenderingContext2D; //TODO: move this to a config file

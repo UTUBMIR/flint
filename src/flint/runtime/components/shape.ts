@@ -24,13 +24,13 @@ export default class Shape extends RendererComponent {
     public override render(renderer: IRenderer): void {
         renderer.fillColor = this.fillColor;
         renderer.lineColor = this.lineColor;
-        const line = 4.5;
+        const line = 4;
         renderer.lineWidth = line;
         renderer.lineJoin = "bevel";
 
         const pos = this.transform.position.copy();
-        pos.x += line;
-        pos.y += line;
+        // pos.x += line;
+        // pos.y += line;
 
         const size = this.transform.size.copy();
         size.x -= line * 2;
