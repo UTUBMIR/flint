@@ -13,7 +13,7 @@ import Transform from "../runtime/transform";
 import { System } from "../runtime/system";
 import { Builder } from "./project/builder";
 import PhysicsBody from "@flint/runtime/components/physics/physics-body";
-import { BoxCollider } from "@flint/runtime/components/physics/box-collider";
+import BoxCollider from "@flint/runtime/components/physics/box-collider";
 import Label from "@flint/runtime/components/label";
 import Image from "@flint/runtime/components/image";
 import { CodeEditor } from "./code-editor";

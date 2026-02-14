@@ -2,7 +2,7 @@ import Planck from "../../../public/planck";
 
 import Collider from "./collider";
 
-export class BoxCollider extends Collider {
+export default class BoxCollider extends Collider {
     public override attach(): void {
         this.fixture = this.body.createFixture(
             Planck.Box(

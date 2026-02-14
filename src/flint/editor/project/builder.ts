@@ -11,6 +11,7 @@ import { AssetRegistry } from "@flint/runtime/assets";
 import { ProjectLoader } from "@flint/runtime/project-loader";
 
 import * as basicComponents from "@flint/runtime/components/index";
+import * as physicsComponents from "@flint/runtime/components/index";
 
 export class Builder {
     private static tab: Window;
@@ -155,7 +156,7 @@ import * as basicComponents from "@flint/runtime/components/index";
 import * as gameIndex from "./index";
 import { Runtime } from "@flint/runtime/runtime";
 ${preview ? `import { EditorBridge } from "@flint/editor/editor-bridge";` : ""}
-${ProjectConfig.config.usePhysics ? 'import { PhysicsWorld as World } from "./flint/runtime/physics-world";' : 'import { World } from "./flint/runtime/world";'}
+${ProjectConfig.config.usePhysics ? 'import { PhysicsWorld as World } from "./flint/runtime/physics-world"; import * as physicsComponents from "@flint/runtime/components/physics-index";' : 'import { World } from "./flint/runtime/world";'}
 import { ProjectLoader } from "@flint/runtime/project-loader";
 
 (async () => {
@@ -168,6 +169,9 @@ import { ProjectLoader } from "@flint/runtime/project-loader";
                 for (const c of usedComponents) {
                     if (c in basicComponents) {
                         lines.push(`System.registerComponent("${c}", basicComponents.${c});`);
+                    }
+                    else if (c in physicsComponents) {
+                        lines.push(`System.registerComponent("${c}", physicsComponents.${c});`);
                     }
                 }
 
