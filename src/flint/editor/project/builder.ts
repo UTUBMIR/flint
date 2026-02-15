@@ -54,7 +54,7 @@ export class Builder {
                 Builder.tab.postMessage({
                     type: "FLINT_ASSET_LIST",
                     assets: await Promise.all(
-                        AssetRegistry.meta.values()
+                        [...AssetRegistry.meta.values()]
                             .map(async v => ({ id: v.id, url: await prepareUrl(v.url) }))
                     )
                 }, "*");
