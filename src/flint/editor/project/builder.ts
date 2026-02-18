@@ -205,6 +205,17 @@ html {
     height: 100%;
     width: 100%;
 }
+:root {
+    touch-action: none;
+    height: 100%;
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
 body {
     margin: 0;
     padding: 0;

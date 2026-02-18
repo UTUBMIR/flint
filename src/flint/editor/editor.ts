@@ -17,6 +17,8 @@ import BoxCollider from "@flint/runtime/components/physics/box-collider";
 import Label from "@flint/runtime/components/label";
 import Image from "@flint/runtime/components/image";
 import { CodeEditor } from "./code-editor";
+import { SettingsWindow } from "./settings/settings-window";
+import type SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog.component.js";
 
 export type DropdownType = HTMLElement & {
     show: () => void;
@@ -138,6 +140,7 @@ export default class Editor {
     public static hierarchyWindow: HierarchyWindow;
     public static inspectorWindow: InspectorWindow;
     public static assetsWindow: Assets;
+    public static settingsWindow: SettingsWindow;
 
     public static runButton: HTMLButtonElement;
     public static runButtonIcon: { name: string };
@@ -169,9 +172,65 @@ export default class Editor {
         System.registerComponent("Image", Image);
     }
 
+    private static enableLongPressContextMenu(element: EventTarget, delay = 400) {
+        let timer: number | null = null;
+        let startX = 0;
+        let startY = 0;
+
+        element.addEventListener("pointerdown", e => {
+            if ((e as PointerEvent).button !== 0 || (e as PointerEvent).pointerType === "mouse") return;
+
+            startX = (e as PointerEvent).clientX;
+            startY = (e as PointerEvent).clientY;
+
+            function contextMenu() {
+                e.preventDefault();
+                const contextEvent = new MouseEvent("contextmenu", {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: startX,
+                    clientY: startY,
+                    button: 2
+                });
+
+                e.target?.dispatchEvent(contextEvent);
+            }
+
+            timer = setTimeout(() => {
+                contextMenu();
+                setTimeout(contextMenu, 350);
+            }, delay);
+        });
+
+        element.addEventListener("pointerup", () => {
+            clearTimeout(timer ?? 0);
+        });
+
+        element.addEventListener("pointercancel", () => {
+            clearTimeout(timer ?? 0);
+        });
+
+        element.addEventListener("pointermove", e => {
+            if (!timer) return;
+
+            const dx = Math.abs((e as PointerEvent).clientX - startX);
+            const dy = Math.abs((e as PointerEvent).clientY - startY);
+
+            if (dx > 10 || dy > 10) {
+                clearTimeout(timer);
+            }
+        });
+    }
+
+
     public static init(): void {
         Editor.addBasicComponents();
         Bundler.init();
+
+        document.addEventListener("dblclick", e => {
+            e.preventDefault();
+        });
+        Editor.enableLongPressContextMenu(document);
 
         try {
             const addComponentDialog = document.getElementById("add-component-dialog")!;
@@ -179,6 +238,7 @@ export default class Editor {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             Editor.hierarchyWindow = new HierarchyWindow(document.getElementById("hierarchy-tree")! as any);
             Editor.inspectorWindow = new InspectorWindow(document.getElementById("inspector-body")! as HTMLDivElement, addComponentDialog);
+            Editor.settingsWindow = new SettingsWindow(document.getElementById("settings-window")! as SlDialog);
 
             Editor.assetsWindow = new Assets(document.getElementById("assets-window")! as HTMLDivElement, document.getElementById("assets-grid")! as HTMLDivElement);
 
