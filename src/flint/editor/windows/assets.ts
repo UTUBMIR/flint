@@ -186,8 +186,10 @@ export default class Assets {
             }
         });
 
-        this.element.addEventListener("contextmenu", (e) => {
+        this.gridElement.addEventListener("contextmenu", (e) => {
             e.preventDefault();
+            if (e.target !== this.gridElement) return;
+
             this.contextDropdownElement.show();
 
             if (this.cachedWidth === 0) {
@@ -197,7 +199,8 @@ export default class Assets {
                     () => this.positionDropdown(e),
                     { once: true }
                 );
-            } else {
+            }
+            else {
                 this.positionDropdown(e);
             }
         });

@@ -49,6 +49,10 @@
                             Save Project
                             <span slot="suffix" class="shortcut">Ctrl+S</span>
                         </sl-menu-item>
+                        <sl-menu-item id="project-settings-button" value="project-settings">
+                            <sl-icon slot="prefix" name="gear"></sl-icon>
+                            Project Settings
+                        </sl-menu-item>
 
                         <sl-menu-label>Export</sl-menu-label>
                         <sl-menu-item id="compile-button" value="compile">
@@ -91,6 +95,13 @@
                 <sl-button size="small">Help</sl-button>
             </sl-button-group>
         </div>
+
+        <sl-dialog id="settings-window" label="Settings" style="--width: 50vw;">
+            <sl-tab-group placement="start">
+                
+            </sl-tab-group>
+
+        </sl-dialog>
 
         <div class="toolbar-center">
             <sl-button-group>

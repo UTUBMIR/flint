@@ -1,0 +1,17 @@
+{
+    "performance": {
+        "physics": {
+            "usePhysicsWorld": {
+                "type": "boolean",
+                "default": true
+            },
+            "engine": {
+                "type": "select",
+                "options": [
+                    "Planck JS"
+                ],
+                "default": "Planck JS"
+            }
+        }
+    }
+}

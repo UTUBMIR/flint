@@ -184,7 +184,6 @@ export default class Editor {
             startY = (e as PointerEvent).clientY;
 
             function contextMenu() {
-                e.preventDefault();
                 const contextEvent = new MouseEvent("contextmenu", {
                     bubbles: true,
                     cancelable: true,
