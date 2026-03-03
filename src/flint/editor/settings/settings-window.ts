@@ -19,11 +19,13 @@ async function updateFlintFiles() {
 
         await Project.loadFlintTypes();
 
-        Editor.loadingDialog.hide();
         Notifier.notify("Flint types successfully.", "success");
     }
     catch (e: unknown) {
         Notifier.notify("Could not load Flint types: " + e, "warning");
+    }
+    finally {
+        Editor.loadingDialog.hide();
     }
 }
 
