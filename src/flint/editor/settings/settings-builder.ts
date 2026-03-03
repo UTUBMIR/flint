@@ -1,4 +1,5 @@
 import { ComponentBuilder } from "../component-builder";
+import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.component.js";
 
 export type SettingsSchema = {
     [name: string]: SettingsSchemaField | SettingsSchema;
@@ -22,11 +23,20 @@ type SelectField<T> = BaseField<"select", T> & {
     options: T[];
 };
 
+type ButtonField = BaseField<"button", never> & {
+    buttonId: string;
+    label?: string;
+};
+
+export type ButtonAction = (event: MouseEvent, button: SlButton) => void | Promise<void>;
+export type ButtonActions = Record<string, ButtonAction>;
+
 export type SettingsSchemaField<T = unknown> =
     | NumberField
     | StringField
     | BooleanField
-    | SelectField<T>;
+    | SelectField<T>
+    | ButtonField;
 
 
 export class SettingsBuilder {
@@ -36,7 +46,7 @@ export class SettingsBuilder {
         return "type" in obj;
     }
 
-    public static field(name: string, schema: SettingsSchemaField) {
+    public static field(name: string, schema: SettingsSchemaField, buttonActions: ButtonActions) {
         function el(
             tag: string,
             assign?: Record<string, unknown>,
@@ -95,16 +105,34 @@ export class SettingsBuilder {
 
                 return select;
             }
+
+            case "button": {
+                const button = el("sl-button", {}, schema.label ?? name) as SlButton;
+
+                const action = buttonActions[schema.buttonId];
+                if (action) {
+                    button.addEventListener("click", event => {
+                        void action(event as MouseEvent, button);
+                    });
+                }
+                else {
+                    button.disabled = true;
+                    button.title = `No action registered for buttonId "${schema.buttonId}"`;
+                    console.warn(`No button action found for buttonId "${schema.buttonId}".`);
+                }
+
+                return button;
+            }
         }
     }
 
-    private static buildRecursive(schema: SettingsSchema, parent: HTMLElement) {
+    private static buildRecursive(schema: SettingsSchema, parent: HTMLElement, buttonActions: ButtonActions) {
         for (const key in schema) {
             const value = schema[key]!;
 
             if (this.isField(value)) {
                 const div = document.createElement("div");
-                div.append(this.field(key, value));
+                div.append(this.field(key, value, buttonActions));
 
                 parent.append(
                     div,
@@ -119,17 +147,17 @@ export class SettingsBuilder {
 
                 fieldset.append(legend);
 
-                this.buildRecursive(value, fieldset);
+                this.buildRecursive(value, fieldset, buttonActions);
 
                 parent.append(fieldset);
             }
         }
     }
 
-    public static build(schema: SettingsSchema) {
+    public static build(schema: SettingsSchema, buttonActions: ButtonActions = {}) {
         const form = document.createElement("form");
 
-        this.buildRecursive(schema, form);
+        this.buildRecursive(schema, form, buttonActions);
 
         return form;
     }

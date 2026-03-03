@@ -13,5 +13,14 @@
                 "default": "Planck JS"
             }
         }
+    },
+    "project": {
+        "engine": {
+            "updateFlintTypes": {
+                "type": "button",
+                "buttonId": "updateFlintTypes",
+                "label": "Update Flint Types"
+            }
+        }
     }
 }

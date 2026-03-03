@@ -225,6 +225,12 @@ export class Project {
         }
     }
 
+    public static loadFlintTypes() {
+        return Project.copyTypesToProject(window.location.href.replace(/index\.html$/, "") + "/types/", (total, loaded) => {
+            Editor.loadingDialogProgressBar.value = (loaded / total) * 100;
+        });
+    }
+
     private static async startupProject(handle: FileSystemDirectoryHandle): Promise<boolean> {
         System.fileSystem.setRootHandle(handle);
         const wasCreated = await ProjectConfig.ensureLoaded();
@@ -235,9 +241,7 @@ export class Project {
             Editor.loadingDialogProgressBar.value = 0;
             Editor.loadingDialogProgressBar.indeterminate = false;
             Editor.loadingDialog.show();
-            await Project.copyTypesToProject(window.location.href.replace(/index\.html$/, "") + "/types/", (total, loaded) => {
-                Editor.loadingDialogProgressBar.value = (loaded / total) * 100;
-            });
+            await Project.loadFlintTypes();
         }
         await System.fileSystem.createDir("assets");
 
@@ -296,7 +300,7 @@ export class Project {
 
 
     public static async openInFileEditor(pathToOpen: string) {
-        if (ProjectConfig.config.rootPath === "virtual") { 
+        if (ProjectConfig.config.rootPath === "virtual") {
             CodeEditor.openVirtualEditor(pathToOpen);
             return;
         }

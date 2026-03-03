@@ -2,13 +2,39 @@ import type SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialo
 import type SlTab from "@shoelace-style/shoelace/dist/components/tab/tab.component.js";
 import type SlTabPanel from "@shoelace-style/shoelace/dist/components/tab-panel/tab-panel.component.js";
 import type SlTabGroup from "@shoelace-style/shoelace/dist/components/tab-group/tab-group.component.js";
-import { SettingsBuilder, type SettingsSchema } from "./settings-builder";
+import { SettingsBuilder, type ButtonActions, type SettingsSchema } from "./settings-builder";
 import settingsSchema from "./settings-schema.json" with { type: 'json' };
+import Editor, { Notifier } from "../editor";
+import { Project } from "../project/project";
+
+export const enum ButtonId {
+    UpdateFlintTypes = "updateFlintTypes"
+}
+
+async function updateFlintFiles() {
+    try {
+        Editor.loadingDialogProgressBar.value = 0;
+        Editor.loadingDialogProgressBar.indeterminate = false;
+        Editor.loadingDialog.show();
+
+        await Project.loadFlintTypes();
+
+        Editor.loadingDialog.hide();
+        Notifier.notify("Flint types successfully.", "success");
+    }
+    catch (e: unknown) {
+        Notifier.notify("Could not load Flint types: " + e, "warning");
+    }
+}
+
+const defaultButtonActions: Record<ButtonId, () => void> = {
+    [ButtonId.UpdateFlintTypes]: updateFlintFiles
+};
 
 export class SettingsWindow {
     private tabGroup: SlTabGroup;
 
-    public constructor(private windowElement: SlDialog) {
+    public constructor(private windowElement: SlDialog, private readonly buttonActions: ButtonActions = defaultButtonActions) {
         this.tabGroup = this.windowElement.querySelector("sl-tab-group")!;
         document.getElementById("project-settings-button")!.addEventListener("click", () => {
             this.windowElement.show();
@@ -35,8 +61,8 @@ export class SettingsWindow {
     private buildTabs() {
         for (const [name, schema] of Object.entries(settingsSchema)) {
             const capitalized = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-            
-            this.addTab(name, capitalized, SettingsBuilder.build(schema as SettingsSchema));
+
+            this.addTab(name, capitalized, SettingsBuilder.build(schema as SettingsSchema, this.buttonActions));
         }
     }
 }
