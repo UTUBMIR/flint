@@ -5,6 +5,9 @@ type ConfigType = {
     assets: { name: string, file: string }[]
     rootPath?: string,
     usePhysics: boolean
+    physicsPixelsPerMeter: number
+    physicsGravityX: number
+    physicsGravityY: number
 }
 
 export default class ProjectConfig {
@@ -39,7 +42,10 @@ export default class ProjectConfig {
     private static defaultConfig: ConfigType = {
         components: [],
         assets: [],
-        usePhysics: true
+        usePhysics: true,
+        physicsPixelsPerMeter: 100,
+        physicsGravityX: 0,
+        physicsGravityY: 9.8
     };
 
     public static async save() {
@@ -50,7 +56,11 @@ export default class ProjectConfig {
         try {
             const content = await System.fileSystem.readTextFile(ProjectConfig.configFileName);
 
-            this.config = JSON.parse(content);
+            const parsed = JSON.parse(content) as Partial<ConfigType>;
+            this.config = {
+                ...ProjectConfig.defaultConfig,
+                ...parsed
+            };
 
             ProjectConfig.tsConfig = await System.fileSystem.readTextFile("tsconfig.json");
 

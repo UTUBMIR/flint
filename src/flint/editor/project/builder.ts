@@ -179,11 +179,16 @@ import { ProjectLoader } from "@flint/runtime/project-loader";
             })()
             }
 
+    const world = ${ProjectConfig.config.usePhysics
+                ? `new World({ x: ${ProjectConfig.config.physicsGravityX}, y: ${ProjectConfig.config.physicsGravityY} }, ${ProjectConfig.config.physicsPixelsPerMeter})`
+                : "new World()"
+            };
+
     const runtime = new Runtime({
         components: gameIndex,
         projectData,
         enableMetadata: false,
-        world: new World()
+        world
     });
     
     ${preview ? `if (window.__FLINT_PREVIEW__) {

@@ -20,6 +20,7 @@ import { CodeEditor } from "./code-editor";
 import { SettingsWindow, type SettingsChangedEventDetail, type SettingsValue } from "./settings/settings-window";
 import type SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog.component.js";
 import ProjectConfig from "./project/project-config";
+import { AbstractFileSystem } from "../shared/file-system";
 
 export type DropdownType = HTMLElement & {
     show: () => void;
@@ -93,6 +94,57 @@ class ToolBarActions {
         }
         catch (e: unknown) {
             Notifier.notify("Could not save the project: " + e, "warning");
+        }
+    }
+
+    private static async pickArchiveFile() {
+        return await new Promise<File | null>((resolve) => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".gz,application/gzip";
+
+            input.addEventListener("change", () => {
+                resolve(input.files?.[0] ?? null);
+            }, { once: true });
+
+            input.click();
+        });
+    }
+
+    public static async exportProjectArchive() {
+        try {
+            const compressed = await Project.exportProjectArchive();
+            const blob = new Blob([AbstractFileSystem.toArrayBuffer(compressed)], { type: "application/gzip" });
+            const fileName = `flint-project-${new Date().toISOString().slice(0, 10)}.gz`;
+            const url = URL.createObjectURL(blob);
+
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = fileName;
+            anchor.click();
+
+            URL.revokeObjectURL(url);
+            Notifier.notify("Project archive exported.", "success");
+        }
+        catch (e: unknown) {
+            Notifier.notify("Could not export project archive: " + e, "warning");
+        }
+    }
+
+    public static async importProjectArchive() {
+        try {
+            const file = await ToolBarActions.pickArchiveFile();
+            if (!file) {
+                return;
+            }
+
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            await Project.importProjectArchive(bytes);
+            Editor.onProjectLoad();
+            Notifier.notify("Project archive imported.", "success");
+        }
+        catch (e: unknown) {
+            Notifier.notify("Could not import project archive: " + e, "warning");
         }
     }
 
@@ -172,6 +224,42 @@ export default class Editor {
                 getValue: () => ProjectConfig.config.usePhysics,
                 setValue: async ({ value }) => {
                     ProjectConfig.config.usePhysics = value as boolean;
+                    await ProjectConfig.save();
+                }
+            },
+            "performance.physics.pixelsPerMeter": {
+                getValue: () => ProjectConfig.config.physicsPixelsPerMeter,
+                setValue: async ({ value }) => {
+                    const numericValue = Number(value);
+                    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+                        return;
+                    }
+
+                    ProjectConfig.config.physicsPixelsPerMeter = numericValue;
+                    await ProjectConfig.save();
+                }
+            },
+            "performance.physics.gravityX": {
+                getValue: () => ProjectConfig.config.physicsGravityX,
+                setValue: async ({ value }) => {
+                    const numericValue = Number(value);
+                    if (!Number.isFinite(numericValue)) {
+                        return;
+                    }
+
+                    ProjectConfig.config.physicsGravityX = numericValue;
+                    await ProjectConfig.save();
+                }
+            },
+            "performance.physics.gravityY": {
+                getValue: () => ProjectConfig.config.physicsGravityY,
+                setValue: async ({ value }) => {
+                    const numericValue = Number(value);
+                    if (!Number.isFinite(numericValue)) {
+                        return;
+                    }
+
+                    ProjectConfig.config.physicsGravityY = numericValue;
                     await ProjectConfig.save();
                 }
             }
@@ -293,6 +381,8 @@ export default class Editor {
             document.getElementById("open-project-button")!.addEventListener("click", ToolBarActions.openProject);
 
             document.getElementById("save-project-button")!.addEventListener("click", ToolBarActions.saveProject);
+            document.getElementById("export-project-gz-button")!.addEventListener("click", ToolBarActions.exportProjectArchive);
+            document.getElementById("import-project-gz-button")!.addEventListener("click", ToolBarActions.importProjectArchive);
             document.addEventListener("keydown", async function (event) {
                 if (event.ctrlKey && event.code === "KeyS") {
                     event.preventDefault();

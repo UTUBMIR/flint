@@ -2,6 +2,7 @@ import { Project } from "../project/project";
 import { type DropdownType } from "../editor";
 import ProjectConfig from "../project/project-config";
 import { AssetRegistry, AssetType } from "../../runtime/assets";
+import { System } from "../../runtime/system";
 
 import type SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox.js";
 import type SlCopyButton from "@shoelace-style/shoelace/dist/components/copy-button/copy-button.js";
@@ -13,7 +14,7 @@ import type SlSelect from "@shoelace-style/shoelace/dist/components/select/selec
 export type AssetData = {
     id: string;
     name: string;
-    type: "folder" | "component" | "json";
+    type: "folder" | "component" | "json" | "file";
     path: string; // Full path, e.g., "/Folder 1/Component 1"
     data: string;
 };
@@ -155,6 +156,9 @@ export default class Assets {
         document.getElementById("new-component-general-button")!.addEventListener("click", () => {
             Project.showCreateComponentWindow();
         });
+        document.getElementById("upload-file-button")!.addEventListener("click", () => {
+            this.uploadFileToCurrentFolder();
+        });
 
         this.backButton.addEventListener("click", () => {
             this.goBack();
@@ -175,6 +179,36 @@ export default class Assets {
         this.currentPath = "/" + parts.join("/");
         if (this.currentPath === "") this.currentPath = "/";
         this.renderCurrentFolder();
+    }
+
+    private async uploadFileToCurrentFolder() {
+        const file = await new Promise<File | null>((resolve) => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.addEventListener("change", () => {
+                resolve(input.files?.[0] ?? null);
+            }, { once: true });
+            input.click();
+        });
+
+        if (!file) {
+            return;
+        }
+
+        const relativeFolderPath = this.currentPath.replace(/^\/+/, "");
+        const relativeFilePath = relativeFolderPath ? `${relativeFolderPath}/${file.name}` : file.name;
+        const fullAssetPath = "/" + relativeFilePath;
+
+        await System.fileSystem.writeFile(relativeFilePath, new Uint8Array(await file.arrayBuffer()));
+
+        this.removeAsset(fullAssetPath);
+        this.addAsset({
+            id: crypto.randomUUID(),
+            name: file.name,
+            type: file.name.endsWith(".ts") ? "component" : file.name.endsWith(".json") ? "json" : "file",
+            path: fullAssetPath,
+            data: ""
+        });
     }
 
 
@@ -245,8 +279,9 @@ export default class Assets {
             .sort((a, b) => {
                 const typeOrder = (asset: AssetData) => {
                     if (asset.type === "folder") return 0;
-                    if (asset.path.endsWith(".json")) return 2;
-                    return 1; // components
+                    if (asset.type === "component") return 1;
+                    if (asset.type === "json") return 2;
+                    return 3;
                 };
 
                 const typeDiff = typeOrder(a) - typeOrder(b);
@@ -272,7 +307,7 @@ export default class Assets {
     private renderAsset(asset: AssetData) {
         const card = document.createElement("div");
         card.className = "asset-card";
-        card.draggable = true;
+        card.draggable = asset.type === "component";
         card.dataset.path = asset.path;
 
         card.innerHTML = `
@@ -284,16 +319,15 @@ export default class Assets {
 
         const nameEl = card.querySelector(".asset-name") as HTMLSpanElement;
 
-        if (asset.type !== "folder") {
-            if (asset.type === "component" && asset.data === undefined) {
+        if (asset.type === "component") {
+            if (asset.data === undefined) {
                 const found = ProjectConfig.config.components.find(c => c.file === asset.path)?.name;
-                asset.data = found!; // its already undefined so it doesn`t matter
-            }
-            function dragstartHandler(ev: DragEvent) {
-                ev.dataTransfer!.items.add(asset.data, "application/x-component-name");
+                asset.data = found!;
             }
 
-            card.addEventListener("dragstart", dragstartHandler);
+            card.addEventListener("dragstart", (ev: DragEvent) => {
+                ev.dataTransfer!.items.add(asset.data, "application/x-component-name");
+            });
         }
 
         card.addEventListener("dblclick", async () => {

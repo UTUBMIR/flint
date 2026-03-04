@@ -12,6 +12,22 @@ import { EditorLayer as EditorLayer } from "../editor-layer";
 import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
 import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
 import { CodeEditor } from "../code-editor";
+
+type ProjectArchiveEntry = {
+    kind: "directory";
+    path: string;
+} | {
+    kind: "file";
+    path: string;
+    data: string;
+};
+
+type ProjectArchive = {
+    format: "flint-project-archive";
+    version: 1;
+    createdAt: string;
+    entries: ProjectArchiveEntry[];
+};
 // export class FileTracker {
 //     private constructor() { }
 
@@ -169,6 +185,60 @@ export class Project {
 
     public static async buildAndRun() {
         return !!(+await Builder.build() & +await Builder.preview());
+    }
+
+    public static async exportProjectArchive(): Promise<Uint8Array> {
+        if (!System.fileSystem.started) {
+            throw new Error("Open project first.");
+        }
+
+        const archive: ProjectArchive = {
+            format: "flint-project-archive",
+            version: 1,
+            createdAt: new Date().toISOString(),
+            entries: await Project.collectArchiveEntries()
+        };
+
+        const archiveBlob = new Blob([JSON.stringify(archive)], { type: "application/json" });
+        const compressedStream = archiveBlob.stream().pipeThrough(new CompressionStream("gzip"));
+        const compressedData = await new Response(compressedStream).arrayBuffer();
+
+        return new Uint8Array(compressedData);
+    }
+
+    public static async importProjectArchive(compressedData: Uint8Array): Promise<void> {
+        if (!System.fileSystem.started) {
+            throw new Error("Open project first.");
+        }
+
+        const compressedBuffer = AbstractFileSystem.toArrayBuffer(compressedData);
+        const decompressedStream = new Blob([compressedBuffer]).stream().pipeThrough(new DecompressionStream("gzip"));
+        const decodedJson = new TextDecoder().decode(await new Response(decompressedStream).arrayBuffer());
+
+        const parsed = JSON.parse(decodedJson) as Partial<ProjectArchive>;
+        if (parsed.format !== "flint-project-archive" || parsed.version !== 1 || !Array.isArray(parsed.entries)) {
+            throw new Error("Invalid archive format.");
+        }
+
+        await Project.clearDirectoryRecursive("");
+
+        const directories = parsed.entries
+            .filter((entry): entry is Extract<ProjectArchiveEntry, { kind: "directory"; }> => entry.kind === "directory")
+            .sort((a, b) => a.path.split("/").length - b.path.split("/").length);
+        for (const directory of directories) {
+            await System.fileSystem.createDir(directory.path);
+        }
+
+        const files = parsed.entries
+            .filter((entry): entry is Extract<ProjectArchiveEntry, { kind: "file"; }> => entry.kind === "file");
+        for (const file of files) {
+            await System.fileSystem.writeFile(file.path, Project.base64ToBytes(file.data));
+        }
+
+        await ProjectConfig.ensureLoaded();
+        await Builder.buildForEditor();
+        await Project.loadProject();
+        Editor.hierarchyWindow.update();
     }
 
     public static async saveProject() {
@@ -436,5 +506,74 @@ export class ${name} extends Component {
 
         await Promise.all(tasks);
         console.log("All type/json files copied!");
+    }
+
+    private static async collectArchiveEntries(path = "", entries: ProjectArchiveEntry[] = []) {
+        const names = await System.fileSystem.listDir(path).catch(() => []);
+
+        for (const name of names) {
+            const fullPath = path ? `${path}/${name}` : name;
+            const isDirectory = await Project.isDirectory(fullPath);
+
+            if (isDirectory) {
+                entries.push({
+                    kind: "directory",
+                    path: fullPath
+                });
+                await Project.collectArchiveEntries(fullPath, entries);
+                continue;
+            }
+
+            entries.push({
+                kind: "file",
+                path: fullPath,
+                data: Project.bytesToBase64(await System.fileSystem.readFile(fullPath))
+            });
+        }
+
+        return entries;
+    }
+
+    private static async clearDirectoryRecursive(path = "") {
+        const names = await System.fileSystem.listDir(path).catch(() => []);
+
+        for (const name of names) {
+            const fullPath = path ? `${path}/${name}` : name;
+            const isDirectory = await Project.isDirectory(fullPath);
+
+            if (isDirectory) {
+                await Project.clearDirectoryRecursive(fullPath);
+                await System.fileSystem.deleteDir(fullPath).catch(() => undefined);
+            } else {
+                await System.fileSystem.delete(fullPath).catch(() => undefined);
+            }
+        }
+    }
+
+    private static async isDirectory(path: string) {
+        return System.fileSystem.listDir(path).then(() => true).catch(() => false);
+    }
+
+    private static bytesToBase64(bytes: Uint8Array) {
+        let binary = "";
+        const chunkSize = 0x8000;
+
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.subarray(i, i + chunkSize);
+            binary += String.fromCharCode(...chunk);
+        }
+
+        return btoa(binary);
+    }
+
+    private static base64ToBytes(base64: string) {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+
+        return bytes;
     }
 }
