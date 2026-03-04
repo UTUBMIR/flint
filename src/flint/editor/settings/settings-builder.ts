@@ -78,12 +78,13 @@ export class SettingsBuilder {
             case "number":
                 return el("sl-input", {
                     type: "number",
-                    label: name
+                    label: name,
+                    value: schema.default?.toString() ?? ""
                 });
 
             case "string":
                 return el("sl-input", {
-                    checked: schema.default ?? false,
+                    value: schema.default ?? "",
                     label: name
                 });
 
@@ -126,13 +127,26 @@ export class SettingsBuilder {
         }
     }
 
-    private static buildRecursive(schema: SettingsSchema, parent: HTMLElement, buttonActions: ButtonActions) {
+    private static annotateSettingControl(element: HTMLElement, schema: SettingsSchemaField, path: string) {
+        if (schema.type === "button") {
+            return;
+        }
+
+        element.dataset.settingPath = path;
+        element.dataset.settingType = schema.type;
+    }
+
+    private static buildRecursive(schema: SettingsSchema, parent: HTMLElement, buttonActions: ButtonActions, pathPrefix = "") {
         for (const key in schema) {
             const value = schema[key]!;
+            const settingPath = pathPrefix ? `${pathPrefix}.${key}` : key;
 
             if (this.isField(value)) {
+                const field = this.field(key, value, buttonActions);
+                this.annotateSettingControl(field, value, settingPath);
+
                 const div = document.createElement("div");
-                div.append(this.field(key, value, buttonActions));
+                div.append(field);
 
                 parent.append(
                     div,
@@ -147,17 +161,17 @@ export class SettingsBuilder {
 
                 fieldset.append(legend);
 
-                this.buildRecursive(value, fieldset, buttonActions);
+                this.buildRecursive(value, fieldset, buttonActions, settingPath);
 
                 parent.append(fieldset);
             }
         }
     }
 
-    public static build(schema: SettingsSchema, buttonActions: ButtonActions = {}) {
+    public static build(schema: SettingsSchema, buttonActions: ButtonActions = {}, name?: string | undefined) {
         const form = document.createElement("form");
 
-        this.buildRecursive(schema, form, buttonActions);
+        this.buildRecursive(schema, form, buttonActions, name??"");
 
         return form;
     }

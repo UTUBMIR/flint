@@ -17,8 +17,9 @@ import BoxCollider from "@flint/runtime/components/physics/box-collider";
 import Label from "@flint/runtime/components/label";
 import Image from "@flint/runtime/components/image";
 import { CodeEditor } from "./code-editor";
-import { SettingsWindow } from "./settings/settings-window";
+import { SettingsWindow, type SettingsChangedEventDetail, type SettingsValue } from "./settings/settings-window";
 import type SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog.component.js";
+import ProjectConfig from "./project/project-config";
 
 export type DropdownType = HTMLElement & {
     show: () => void;
@@ -163,6 +164,19 @@ export default class Editor {
 
     private constructor() { }
 
+    private static readonly settingsMapping: Record<string, {
+        getValue: () => SettingsValue;
+        setValue: (event: SettingsChangedEventDetail) => Promise<void>;
+    }> = {
+            "performance.physics.usePhysicsWorld": {
+                getValue: () => ProjectConfig.config.usePhysics,
+                setValue: async ({ value }) => {
+                    ProjectConfig.config.usePhysics = value as boolean;
+                    await ProjectConfig.save();
+                }
+            }
+        };
+
     private static addBasicComponents() {
         System.registerComponent("PhysicsBody", PhysicsBody);
         System.registerComponent("BoxCollider", BoxCollider);
@@ -221,6 +235,27 @@ export default class Editor {
         });
     }
 
+    private static initSettingsWindow() {
+        Editor.settingsWindow.onSettingsChanged(async (event) => {
+            const mapping = Editor.settingsMapping[event.path];
+            if (!mapping) {
+                console.error("Unexpected settings path: " + event.path);
+                return;
+            }
+
+            await mapping.setValue(event);
+        });
+    }
+
+    public static syncSettingsFromProjectConfig() {
+        if (!ProjectConfig.config) {
+            return;
+        }
+
+        for (const [path, mapping] of Object.entries(Editor.settingsMapping)) {
+            Editor.settingsWindow.setSettingValue(path, mapping.getValue());
+        }
+    }
 
     public static init(): void {
         Editor.addBasicComponents();
@@ -238,6 +273,7 @@ export default class Editor {
             Editor.hierarchyWindow = new HierarchyWindow(document.getElementById("hierarchy-tree")! as any);
             Editor.inspectorWindow = new InspectorWindow(document.getElementById("inspector-body")! as HTMLDivElement, addComponentDialog);
             Editor.settingsWindow = new SettingsWindow(document.getElementById("settings-window")! as SlDialog);
+            Editor.initSettingsWindow();
 
             Editor.assetsWindow = new Assets(document.getElementById("assets-window")! as HTMLDivElement, document.getElementById("assets-grid")! as HTMLDivElement);
 
@@ -351,6 +387,7 @@ export default class Editor {
 
     public static onProjectLoad() {
         Editor.runButton.disabled = false;
+        Editor.syncSettingsFromProjectConfig();
         // Editor.hierarchy.onUpdate();
     }
 }

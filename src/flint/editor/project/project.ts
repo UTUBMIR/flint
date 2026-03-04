@@ -235,6 +235,8 @@ export class Project {
         System.fileSystem.setRootHandle(handle);
         const wasCreated = await ProjectConfig.ensureLoaded();
 
+        Editor.syncSettingsFromProjectConfig();
+
         await Project.getAllTextFiles();
 
         if (!await System.fileSystem.dirExists("flint")) {
