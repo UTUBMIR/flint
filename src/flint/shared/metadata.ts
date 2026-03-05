@@ -44,9 +44,9 @@ export function NonSerialized() {
 type SaveType = {
     layers: {
         id: UUID;
-        editorName: string;
+        editorName?: string;
         objects: {
-            id: UUID, editorName: string;
+            id: UUID, editorName?: string;
         }[]
     }[]
 };
@@ -204,7 +204,7 @@ export default class Metadata {
     }
 
     public static async loadFromFile() {
-        if (!System.fileSystem.fileExists("metadata.json")) {
+        if (!await System.fileSystem.fileExists("metadata.json")) {
             return;
         }
 
@@ -212,13 +212,13 @@ export default class Metadata {
 
         for (const layer of save.layers) {
             const foundLayer = System.world.getLayers().find(l => l.id === layer.id);
-            if (layer.id && foundLayer) {
+            if (layer.id && foundLayer && layer.editorName !== undefined) {
                 Metadata.setClass(foundLayer, MetadataKeys.EditorName, layer.editorName);
             }
 
             for (const object of layer.objects) {
                 const go = System.world.getGameObjectById(object.id);
-                if (go) {
+                if (go && object.editorName !== undefined) {
                     Metadata.setClass(go, MetadataKeys.EditorName, object.editorName);
                 }
             }

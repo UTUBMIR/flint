@@ -391,7 +391,7 @@ export class ProjectLoader {
     }
 
     public static async load(project: ProjectData) {
-        for (const layer of System.world.getLayers()) {
+        for (const layer of [...System.world.getLayers()]) {
             System.world.removeLayer(layer);
         }
 
