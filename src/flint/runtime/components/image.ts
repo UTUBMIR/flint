@@ -2,7 +2,8 @@ import type { IRenderer } from "../../shared/irenderer";
 import Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
 import { AssetHandle } from "../assets";
-import type { UUID } from "../system";
+import { System, type UUID } from "../system";
+import type { PhysicsWorld } from "../physics-world";
 
 export default class Image extends RendererComponent {
     private texture = new AssetHandle<ImageBitmap>("" as UUID);
@@ -23,12 +24,31 @@ export default class Image extends RendererComponent {
 
         renderer.shadowColor = "#fff0";
 
-        renderer.translate(this.transform.position);
+        const world = System.world as Partial<PhysicsWorld>;
+        const toPixels = typeof world.toPixels === "function"
+            ? world.toPixels.bind(world)
+            : (value: number) => value;
+        const pos = this.transform.position.copy().set(
+            toPixels(this.transform.position.x),
+            toPixels(this.transform.position.y)
+        );
+        const size = this.transform.size.copy().set(
+            toPixels(this.transform.size.x),
+            toPixels(this.transform.size.y)
+        );
+
+        renderer.translate(pos);
         renderer.rotate(this.transform.rotation);
 
-        renderer.drawImage(image, Math.round(-image.width / 2), Math.round(-image.height / 2));
+        renderer.drawImage(
+            image,
+            Math.round(-size.x / 2),
+            Math.round(-size.y / 2),
+            Math.round(size.x),
+            Math.round(size.y)
+        );
 
         renderer.rotate(-this.transform.rotation);
-        renderer.translate(Vector2.zero.subtract(this.transform.position));
+        renderer.translate(Vector2.zero.subtract(pos));
     }
 }

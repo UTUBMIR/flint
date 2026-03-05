@@ -3,6 +3,8 @@ import type { ColorString } from "../../shared/graphics";
 import { FieldRenderer } from "../../editor/component-builder";
 import Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
+import { System } from "../system";
+import type { PhysicsWorld } from "@flint/runtime/physics-world";
 
 export default class Shape extends RendererComponent {
     @FieldRenderer("color")
@@ -28,11 +30,22 @@ export default class Shape extends RendererComponent {
         renderer.lineWidth = line;
         renderer.lineJoin = "bevel";
 
-        const pos = this.transform.position.copy();
+        const world = System.world as Partial<PhysicsWorld>;
+        const toPixels = typeof world.toPixels === "function"
+            ? world.toPixels.bind(world)
+            : (value: number) => value;
+
+        const pos = this.transform.position.copy().set(
+            toPixels(this.transform.position.x),
+            toPixels(this.transform.position.y)
+        );
         // pos.x += line;
         // pos.y += line;
 
-        const size = this.transform.size.copy();
+        const size = this.transform.size.copy().set(
+            toPixels(this.transform.size.x),
+            toPixels(this.transform.size.y)
+        );
         size.x -= line * 2;
         size.y -= line * 2;
 

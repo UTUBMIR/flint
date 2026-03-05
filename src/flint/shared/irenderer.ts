@@ -42,5 +42,5 @@ export interface IRenderer {
     fillPolygon(vertices: {x: number, y: number}[]): void;
     strokePolygon(vertices: {x: number, y: number}[]): void;
 
-    drawImage(image: DrawableImage, dx: number, dy: number): void;
+    drawImage(image: DrawableImage, dx: number, dy: number, dw?: number, dh?: number): void;
 }

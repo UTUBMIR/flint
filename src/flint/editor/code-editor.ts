@@ -55,6 +55,7 @@ monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
   moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
   strict: true,
   allowNonTsExtensions: true,
+  experimentalDecorators: true,
   baseUrl: "./",
   paths: {
     "@flint/*": ["@flint/*"]

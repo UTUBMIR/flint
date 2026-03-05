@@ -1,4 +1,5 @@
 import { System } from "../runtime/system";
+import { World } from "../runtime/world";
 import type InputAxis from "./input-axis";
 import Vector2 from "./vector2";
 
@@ -7,6 +8,10 @@ export default class Input {
     public static pressedMouseButtons = new Set<number>();
 
     public static inputAxes: InputAxis[] = []; //TODO: make private
+
+    // `mousePositionPixels` is the raw pointer position in renderer coordinates (device pixels).
+    // `mousePosition` is the same position in world units (meters), derived using `pixelsPerMeter`.
+    public static mousePositionPixels: Vector2 = new Vector2(window.innerWidth / 2, window.innerHeight / 2);
     public static mousePosition: Vector2 = new Vector2(window.innerWidth / 2, window.innerHeight / 2);
 
     private constructor() { }
@@ -50,6 +55,25 @@ export default class Input {
         root.addEventListener("pointermove", this.onPointerMove.bind(this), { passive: true, capture: true });
     }
 
+    private static pixelsPerMeter(): number {
+        const world = System.world as Partial<{ pixelsPerMeter: number }>;
+        return typeof world.pixelsPerMeter === "number" && world.pixelsPerMeter > 0 ? world.pixelsPerMeter : 1;
+    }
+
+    private static setMouseFromEvent(event: PointerEvent): void {
+        const canvasHalf = System.rootSize.divide(2).round();
+
+        this.mousePositionPixels.set(event.offsetX, event.offsetY)
+            .subtract(canvasHalf)
+            .multiply(System.dpr);
+
+        const ppm = this.pixelsPerMeter();
+        this.mousePosition.set(
+            World.toPhysicsUnits(this.mousePositionPixels.x, ppm),
+            World.toPhysicsUnits(this.mousePositionPixels.y, ppm)
+        );
+    }
+
     private static onKeyDown(event: KeyboardEvent) {
         this.pressedKeys.add(event.code);
         this.updateInputAxes();
@@ -61,33 +85,21 @@ export default class Input {
     }
 
     private static onPointerDown(event: PointerEvent) {
-        const canvasHalf = System.rootSize.divide(2).round();
-
         this.pressedMouseButtons.add(event.button);
-        this.mousePosition.set(event.offsetX, event.offsetY)
-            .subtract(canvasHalf)
-            .multiply(System.dpr);
+        this.setMouseFromEvent(event);
 
         this.updateInputAxes();
     }
 
     private static onPointerUp(event: PointerEvent) {
-        const canvasHalf = System.rootSize.divide(2).round();
-
         this.pressedMouseButtons.delete(event.button);
-        this.mousePosition.set(event.offsetX, event.offsetY)
-            .subtract(canvasHalf)
-            .multiply(System.dpr);
+        this.setMouseFromEvent(event);
 
         this.updateInputAxes();
     }
 
     private static onPointerMove(event: PointerEvent) {
-        const canvasHalf = System.rootSize.divide(2).round();
-
-        this.mousePosition.set(event.offsetX, event.offsetY)
-            .subtract(canvasHalf)
-            .multiply(System.dpr);
+        this.setMouseFromEvent(event);
     }
 
     private static updateInputAxes() {

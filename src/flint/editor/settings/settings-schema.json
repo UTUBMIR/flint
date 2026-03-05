@@ -26,6 +26,14 @@
             }
         }
     },
+    "debugging": {
+        "code": {
+            "generateJsMap": {
+                "type": "boolean",
+                "default": false
+            }
+        }
+    },
     "project": {
         "engine": {
             "updateFlintTypes": {

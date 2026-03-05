@@ -20,7 +20,7 @@ import { CodeEditor } from "./code-editor";
 import { SettingsWindow, type SettingsChangedEventDetail, type SettingsValue } from "./settings/settings-window";
 import type SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog.component.js";
 import ProjectConfig from "./project/project-config";
-import { AbstractFileSystem } from "../shared/file-system";
+import { AbstractFileSystem } from "@flint/shared/file-system";
 
 export type DropdownType = HTMLElement & {
     show: () => void;
@@ -262,6 +262,13 @@ export default class Editor {
                     ProjectConfig.config.physicsGravityY = numericValue;
                     await ProjectConfig.save();
                 }
+            },
+            "debugging.code.generateJsMap": {
+                getValue: () => ProjectConfig.config.generateJsMap,
+                setValue: async ({ value }) => {
+                    ProjectConfig.config.generateJsMap = value as boolean;
+                    await ProjectConfig.save();
+                }
             }
         };
 
@@ -429,7 +436,7 @@ export default class Editor {
             new Shape()
         ], new Transform(
             undefined,
-            new Vector2(100, 100)
+            new Vector2(1, 1)
         ));
         EditorName("Rect")(rect);
 

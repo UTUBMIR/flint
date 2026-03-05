@@ -4,6 +4,7 @@ import { RenderSystem, RunningState, System, type Canvas, type UUID } from "./sy
 import { SystemEventEmitter, SystemEvent } from "./system-event";
 import type Camera from "./components/camera";
 import Vector2 from "../shared/vector2";
+import type { PhysicsWorld } from "./physics-world";
 
 export default class Layer {
     public canvas!: Canvas;
@@ -75,13 +76,22 @@ export default class Layer {
         
         for (const camera of this.cameras) {
             if (camera.enabled) {
+                const world = System.world as Partial<PhysicsWorld>;
+                const toPixels = typeof world.toPixels === "function"
+                    ? world.toPixels.bind(world)
+                    : (value: number) => value;
+                const cameraPos = camera.position.copy().set(
+                    toPixels(camera.position.x),
+                    toPixels(camera.position.y)
+                );
+
                 this.renderer.fillColor = camera.backgroundColor;
                 this.renderer.fillCanvas();
                 this.renderer.resetTransform();
 
                 this.renderer.translate(canvasHalf);
                 this.renderer.rotate(-camera.angle);
-                this.renderer.translate(Vector2.zero.subtract(camera.position));
+                this.renderer.translate(Vector2.zero.subtract(cameraPos));
 
                 this.renderSystem.render(this.renderer);
             }

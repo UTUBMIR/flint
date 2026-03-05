@@ -9,6 +9,32 @@ export class World {
     protected systems: GameSystem[] = [];
     protected running = false;
 
+    private readonly _pixelsPerMeter: number;
+
+    public get pixelsPerMeter(): number {
+        return this._pixelsPerMeter;
+    }
+
+    public constructor(pixelsPerMeter = 100) {
+        this._pixelsPerMeter = pixelsPerMeter > 0 ? pixelsPerMeter : 100;
+    }
+
+    public static toPhysicsUnits(value: number, pixelsPerMeter: number): number {
+        return value / pixelsPerMeter;
+    }
+
+    public static toPixels(value: number, pixelsPerMeter: number): number {
+        return value * pixelsPerMeter;
+    }
+
+    public toPhysicsUnits(value: number): number {
+        return World.toPhysicsUnits(value, this._pixelsPerMeter);
+    }
+
+    public toPixels(value: number): number {
+        return World.toPixels(value, this._pixelsPerMeter);
+    }
+
     /**
      * Registers and initializes layer
      * @param layer layer to register
@@ -52,7 +78,7 @@ export class World {
     /**
      * Push layer to registry without any initialization.
      * 
-     * **Use this method only when you know what you do, if not -> use {@link addLayer}**
+     * **Use this method only when you know what you you`re doing, if not -> use {@link addLayer}**
      * @param layer 
      */
     public pushLayer(layer: Layer) {
@@ -62,7 +88,7 @@ export class World {
     /**
      * Unshift layer to registry without any initialization.
      * 
-     * **Use this method only when you know what you do, if not -> use {@link addLayer}**
+     * **Use this method only when you know what you you`re doing, if not -> use {@link addLayer}**
      * @param layer 
      */
     public unshiftLayer(layer: Layer) {

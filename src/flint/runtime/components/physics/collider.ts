@@ -1,5 +1,5 @@
-import * as P from "../../../public/planck";
-import { NonSerialized } from "../../../shared/metadata";
+import * as P from "@flint/public/planck";
+import { NonSerialized } from "@flint/shared/metadata";
 
 import Component from "../../component";
 import PhysicsBody from "./physics-body";

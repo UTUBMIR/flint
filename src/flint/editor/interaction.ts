@@ -55,10 +55,10 @@ export class Drag {
         const isUp = event.type === "pointerup";
         this.hovered = false;
 
-        const fixedMouse = Input.mousePosition.copy().add(new Vector2(this.size.x/2, this.size.y/2));
+        const fixedMouse = Input.mousePositionPixels.copy().add(new Vector2(this.size.x/2, this.size.y/2));
 
         if (isDown && Input.isMouseButtonPressed(0) && this.rect.contains(fixedMouse)) {
-            this.dragOffset.assign(this.position.copy().subtract(Input.mousePosition));
+            this.dragOffset.assign(this.position.copy().subtract(Input.mousePositionPixels));
 
             Editor.draggedItem = this;
             this.hovered = true;
@@ -78,7 +78,7 @@ export class Drag {
         }
 
         if (isMove && this.isDragged()) {
-            this.position.assign(Input.mousePosition.copy().add(this.dragOffset));
+            this.position.assign(Input.mousePositionPixels.copy().add(this.dragOffset));
 
             // this.rect.clamp(
             //     new Rect(
@@ -148,7 +148,7 @@ export class Click {
         const isMove = event.type === "pointermove";
         const isUp = event.type === "pointerup";
 
-        if (isDown && Input.isMouseButtonPressed(0) && this.rect.contains(Input.mousePosition)) {
+        if (isDown && Input.isMouseButtonPressed(0) && this.rect.contains(Input.mousePositionPixels)) {
             this.pressed = true;
 
             System.setCursor(this.holdCursor);
@@ -158,7 +158,7 @@ export class Click {
         }
 
         if (isMove) {
-            const mouseHovered = this.rect.contains(Input.mousePosition);
+            const mouseHovered = this.rect.contains(Input.mousePositionPixels);
             if (mouseHovered != this.hovered) {
                 if (mouseHovered) {
                     this.onHover();
@@ -176,7 +176,7 @@ export class Click {
             }
         }
 
-        if (isUp && this.pressed && this.rect.contains(Input.mousePosition)) {
+        if (isUp && this.pressed && this.rect.contains(Input.mousePositionPixels)) {
             this.pressed = false;
 
             this.onMouseUp();

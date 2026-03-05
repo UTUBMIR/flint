@@ -11,7 +11,7 @@ import { AssetRegistry } from "@flint/runtime/assets";
 import { ProjectLoader } from "@flint/runtime/project-loader";
 
 import * as basicComponents from "@flint/runtime/components/index";
-import * as physicsComponents from "@flint/runtime/components/index";
+import * as physicsComponents from "@flint/runtime/components/physics-index";
 
 export class Builder {
     private static tab: Window;
@@ -62,7 +62,7 @@ export class Builder {
         });
     }
 
-    public static async compile(emitErrorMessages: boolean = true, entryPoint?: string): Promise<boolean> {
+    public static async compile(emitErrorMessages: boolean = true, entryPoint?: string, sourceMap?: boolean): Promise<boolean> {
         const textFilesResult = await Project.getAllTextFiles();
         const textFiles = textFilesResult.files;
         const textAssets = textFilesResult.assets;
@@ -74,7 +74,8 @@ export class Builder {
             Bundler.files.set(path, text);
         }
         try {
-            const result = (await Bundler.bundle(entryPoint)).outputFiles[0]?.text;
+            const enableSourceMap = sourceMap ?? ProjectConfig.config?.generateJsMap ?? false;
+            const result = (await Bundler.bundle(entryPoint, enableSourceMap)).outputFiles[0]?.text;
 
             if (!result) return false;
 
@@ -156,7 +157,7 @@ import * as basicComponents from "@flint/runtime/components/index";
 import * as gameIndex from "./index";
 import { Runtime } from "@flint/runtime/runtime";
 ${preview ? `import { EditorBridge } from "@flint/editor/editor-bridge";` : ""}
-${ProjectConfig.config.usePhysics ? 'import { PhysicsWorld as World } from "./flint/runtime/physics-world"; import * as physicsComponents from "@flint/runtime/components/physics-index";' : 'import { World } from "./flint/runtime/world";'}
+${ProjectConfig.config.usePhysics ? 'import { PhysicsWorld as World } from "@flint/runtime/physics-world";\nimport * as physicsComponents from "@flint/runtime/components/physics-index";' : 'import { World } from "./flint/runtime/world";'}
 import { ProjectLoader } from "@flint/runtime/project-loader";
 
 (async () => {

@@ -138,7 +138,12 @@ export class Renderer2D implements IRenderer {
         this.ctx.stroke();
     }
 
-    public drawImage(image: DrawableImage, dx: number = 0, dy: number = 0) {
-        this.ctx.drawImage(image, dx, dy);
+    public drawImage(image: DrawableImage, dx: number = 0, dy: number = 0, dw?: number, dh?: number) {
+        if (dw === undefined || dh === undefined) {
+            this.ctx.drawImage(image, dx, dy);
+            return;
+        }
+
+        this.ctx.drawImage(image, dx, dy, dw, dh);
     }
 }

@@ -1,9 +1,9 @@
-import Planck, * as P from "../../../public/planck";
-import { NonSerialized } from "../../../shared/metadata";
+import Planck, * as P from "@flint/public/planck";
+import { NonSerialized } from "@flint/shared/metadata";
 
-import Component from "../../component";
-import type { PhysicsWorld } from "../../physics-world";
-import { System } from "../../system";
+import Component from "@flint/runtime/component";
+import type { PhysicsWorld } from "@flint/runtime/physics-world";
+import { System } from "@flint/runtime/system";
 
 export default class PhysicsBody extends Component {
     @NonSerialized()
@@ -29,8 +29,8 @@ export default class PhysicsBody extends Component {
         this.body = world.physicsWorld.createBody({
             type: this.type,
             position: Planck.Vec2(
-                world.toPhysicsUnits(pos.x),
-                world.toPhysicsUnits(pos.y)
+                pos.x,
+                pos.y
             ),
             angle: this.transform.rotation
         });
@@ -49,11 +49,10 @@ export default class PhysicsBody extends Component {
     public override update(): void {
         if (this.type !== "dynamic") return;
 
-        const world = this.world;
         const p = this.body.getPosition();
         this.transform.position.set(
-            world.toPixels(p.x),
-            world.toPixels(p.y)
+            p.x,
+            p.y
         );
         this.transform.rotation = this.body.getAngle();
 
@@ -65,12 +64,12 @@ export default class PhysicsBody extends Component {
     }
 
     /**
-     * Moves the physics body to an absolute position in pixels.
+     * Moves the physics body to an absolute world-space position in meters.
      * This updates both the Planck body transform and the game object transform.
      */
     public moveTo(x: number, y: number): void {
         this.body.setTransform(
-            this.toPhysicsVector(x, y),
+            Planck.Vec2(x, y),
             this.body.getAngle()
         );
         this.transform.position.set(x, y);
@@ -78,10 +77,11 @@ export default class PhysicsBody extends Component {
     }
 
     /**
-     * Moves the physics body by an offset in pixels.
+     * Moves the physics body by a world-space offset in meters.
      */
     public moveBy(x: number, y: number): void {
-        this.moveTo(this.transform.position.x + x, this.transform.position.y + y);
+        const pos = this.body.getPosition();
+        this.moveTo(pos.x + x, pos.y + y);
     }
 
     /**
@@ -94,24 +94,31 @@ export default class PhysicsBody extends Component {
     }
 
     /**
-     * Applies an instant throw velocity in pixels per second.
+     * Sets the body's linear velocity in meters per second.
      * Static bodies ignore this call.
      */
-    public ["throw"](velocityX: number, velocityY: number): void {
+    public setVelocity(velocityX: number, velocityY: number): void {
         if (this.type === "static") {
             return;
         }
 
         this.body.setLinearVelocity(
-            this.toPhysicsVector(velocityX, velocityY)
+            Planck.Vec2(velocityX, velocityY)
         );
         this.body.setAwake(true);
     }
 
     /**
+     * @deprecated Use {@link setVelocity}.
+     */
+    public ["throw"](velocityX: number, velocityY: number): void {
+        this.setVelocity(velocityX, velocityY);
+    }
+
+    /**
      * Applies a continuous force to the body.
-     * `forceX`/`forceY` are provided in pixel-scaled units and converted to physics units.
-     * `pointX`/`pointY` are optional world-space pixel coordinates where the force is applied.
+     * `forceX`/`forceY` are expected in physics units (newtons in Planck world scale).
+     * `pointX`/`pointY` are optional world-space coordinates in meters where the force is applied.
      * If point is omitted, force is applied at the center of mass.
      */
     public applyForce(forceX: number, forceY: number, pointX?: number, pointY?: number): void {
@@ -119,14 +126,14 @@ export default class PhysicsBody extends Component {
             return;
         }
 
-        const force = this.toPhysicsVector(forceX, forceY);
+        const force = Planck.Vec2(forceX, forceY);
 
         if (pointX === undefined || pointY === undefined) {
             this.body.applyForceToCenter(force, true);
             return;
         }
 
-        this.body.applyForce(force, this.toPhysicsVector(pointX, pointY), true);
+        this.body.applyForce(force, Planck.Vec2(pointX, pointY), true);
     }
 
     public override detach(): void {

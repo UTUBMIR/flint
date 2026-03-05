@@ -124,7 +124,7 @@ export default class Bundler {
     }
 
 
-    public static async bundle(entryPoint: string = "/index.ts") {
+    public static async bundle(entryPoint: string = "/index.ts", sourceMap?: boolean) {
         return await Bundler.esbuild.build({
             entryPoints: [entryPoint],
             bundle: true,
@@ -137,7 +137,8 @@ export default class Bundler {
             minify: true,
             keepNames: true,
             tsconfigRaw: ProjectConfig.tsConfig,
-            treeShaking: true
+            treeShaking: true,
+            ...(sourceMap ? {sourcemap: "inline"} : {})
         });
     }
 }

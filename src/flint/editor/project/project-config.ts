@@ -8,6 +8,7 @@ type ConfigType = {
     physicsPixelsPerMeter: number
     physicsGravityX: number
     physicsGravityY: number
+    generateJsMap: boolean
 }
 
 export default class ProjectConfig {
@@ -45,7 +46,8 @@ export default class ProjectConfig {
         usePhysics: true,
         physicsPixelsPerMeter: 100,
         physicsGravityX: 0,
-        physicsGravityY: 9.8
+        physicsGravityY: 9.8,
+        generateJsMap: false
     };
 
     public static async save() {

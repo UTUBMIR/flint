@@ -9,13 +9,83 @@ import { Rect } from "../shared/primitives";
 import Vector2 from "../shared/vector2";
 import Editor from "./editor";
 import { Drag } from "./interaction";
+import { System } from "../runtime/system";
+import type { PhysicsWorld } from "@flint/runtime/physics-world";
+import PhysicsBody from "../runtime/components/physics/physics-body";
 
 class DragComponent extends Shape {
     private drag: Drag | undefined;
 
+    private getWorldConverters() {
+        const world = System.world as Partial<PhysicsWorld>;
+        const toPixels = typeof world.toPixels === "function"
+            ? world.toPixels.bind(world)
+            : (value: number) => value;
+        const toMeters = typeof world.toPhysicsUnits === "function"
+            ? world.toPhysicsUnits.bind(world)
+            : (value: number) => value;
+
+        return { toPixels, toMeters };
+    }
+
+    private syncDraggedPositionToSelectedObject(): void {
+        const current = Editor.inspectorWindow.currentObject;
+        if (!current || !this.drag) return;
+
+        const { toMeters } = this.getWorldConverters();
+        const newPosMeters = new Vector2(
+            toMeters(this.drag.position.x),
+            toMeters(this.drag.position.y)
+        );
+
+        const physicsBody = current.getComponent(PhysicsBody);
+        if (physicsBody) {
+            physicsBody.moveTo(newPosMeters.x, newPosMeters.y);
+        } else {
+            current.transform.position.assign(newPosMeters);
+        }
+
+        this.transform.position.assign(newPosMeters);
+    }
+
+    private ensureDrag(targetPositionMeters: Vector2): void {
+        const { toPixels } = this.getWorldConverters();
+
+        if (!this.drag) {
+            const posPx = targetPositionMeters.copy().set(
+                toPixels(targetPositionMeters.x),
+                toPixels(targetPositionMeters.y)
+            );
+            const sizePx = this.transform.size.copy().set(
+                toPixels(this.transform.size.x),
+                toPixels(this.transform.size.y)
+            );
+
+            this.drag = new Drag(new Rect(posPx, sizePx));
+            this.drag.onGrabbing = this.syncDraggedPositionToSelectedObject.bind(this);
+            return;
+        }
+
+        if (this.drag.isDragged()) {
+            return;
+        }
+
+        const targetPosPx = targetPositionMeters.copy().set(
+            toPixels(targetPositionMeters.x),
+            toPixels(targetPositionMeters.y)
+        );
+        this.drag.position.assign(targetPosPx);
+
+        const targetSizePx = this.transform.size.copy().set(
+            toPixels(this.transform.size.x),
+            toPixels(this.transform.size.y)
+        );
+        this.drag.size.assign(targetSizePx);
+    }
+
     public override attach(): void {
         super.attach();
-        this.drag = new Drag(new Rect(this.transform.position, this.transform.size));
+        this.ensureDrag(this.transform.position);
     }
 
     public event(event: SystemEvent): void {
@@ -24,18 +94,25 @@ class DragComponent extends Shape {
 
     public override render(renderer: IRenderer): void {
         if (Editor.inspectorWindow.currentObject) {
-            const newPosition = Editor.inspectorWindow.currentObject.transform.position;
+            const current = Editor.inspectorWindow.currentObject;
+            const newPosition = current.transform.position; // meters
 
-            if (!this.drag || this.drag.position !== newPosition) {
-                const targetCamera = Editor.inspectorWindow.currentObject.layer.cameras[0]!.transform;
-                this.gameObject.layer.cameras[0]!.transform.position = targetCamera.position;
-                this.gameObject.layer.cameras[0]!.transform.size = targetCamera.size;
+            const targetCamera = current.layer.cameras[0]!.transform;
+            this.gameObject.layer.cameras[0]!.transform.position = targetCamera.position;
+            this.gameObject.layer.cameras[0]!.transform.size = targetCamera.size;
 
-                this.transform.position = newPosition;
-                this.drag = new Drag(new Rect(newPosition, this.transform.size));
+            // Keep the handle object at the selected object's position (meters).
+            this.transform.position = newPosition;
+
+            this.ensureDrag(newPosition);
+
+            const drag = this.drag;
+            if (!drag) {
+                super.render(renderer);
+                return;
             }
 
-            if (this.drag.isHovered) {
+            if (drag.isHovered) {
                 this.fillColor = "rgba(0, 118, 255, 0.5)";
                 this.lineColor = "rgba(0, 118, 255, 0.75)";
             }
@@ -61,7 +138,7 @@ export class EditorLayer extends Layer {
         this.addObjects([
             new GameObject([
                 positionDrag
-            ], new Transform(new Vector2(), new Vector2(35, 35))),
+            ], new Transform(new Vector2(), new Vector2(0.35, 0.35))),
             new GameObject([new Camera("rgba(0, 0, 0, 0)")])
         ]);
     }
