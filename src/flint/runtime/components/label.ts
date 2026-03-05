@@ -8,13 +8,13 @@ import type { PhysicsWorld } from "../physics-world";
 
 export default class Label extends RendererComponent {
     @FieldRenderer("color")
-    protected fillColor: ColorString;
+    public fillColor: ColorString;
 
     @FieldRenderer("color")
-    protected lineColor: ColorString;
+    public lineColor: ColorString;
 
     @FieldRenderer("color")
-    protected shadowColor: ColorString;
+    public shadowColor: ColorString;
 
     public TextBaseLine: TextBaseLine = "hanging";
     public textAlign: TextAlign = "left";
