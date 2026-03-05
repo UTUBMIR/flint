@@ -136,6 +136,44 @@ export default class PhysicsBody extends Component {
         this.body.applyForce(force, Planck.Vec2(pointX, pointY), true);
     }
 
+    /**
+     * Sets the body's angular velocity in radians per second.
+     * Static bodies ignore this call.
+     */
+    public setAngularVelocity(angularVelocity: number): void {
+        if (this.type === "static") {
+            return;
+        }
+
+        this.body.setAngularVelocity(angularVelocity);
+        this.body.setAwake(true);
+    }
+
+    /**
+     * Applies a continuous torque to the body.
+     * `torque` is expected in physics units (usually N-m in Planck world scale).
+     * Static bodies ignore this call.
+     */
+    public applyTorque(torque: number): void {
+        if (this.type === "static") {
+            return;
+        }
+
+        this.body.applyTorque(torque, true);
+    }
+
+    /**
+     * Applies an instantaneous angular impulse to the body.
+     * Static bodies ignore this call.
+     */
+    public applyAngularImpulse(impulse: number): void {
+        if (this.type === "static") {
+            return;
+        }
+
+        this.body.applyAngularImpulse(impulse, true);
+    }
+
     public override detach(): void {
         this.world.physicsWorld.destroyBody(this.body);
     }
