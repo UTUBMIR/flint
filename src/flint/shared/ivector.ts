@@ -18,5 +18,7 @@ export interface IVector {
 
     clamp(min: IVector, max: IVector): IVector;
 
+    equal(other: IVector): boolean;
+
     round(): IVector;
 };

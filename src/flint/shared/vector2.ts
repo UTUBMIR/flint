@@ -77,6 +77,10 @@ export default class Vector2 implements IVector {
         );
     }
 
+    public equal(other: Vector2): boolean {
+        return this.x === other.x && this.y === other.y;
+    }
+
     public round(): Vector2 {
         return this.set(Math.round(this.x), Math.round(this.y));
     }

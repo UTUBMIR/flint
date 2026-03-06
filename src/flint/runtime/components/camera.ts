@@ -14,6 +14,10 @@ export default class Camera extends RendererComponent {
         return Camera.screenPhysicsToWorldAt(screenPosition, camera.position, camera.angle);
     }
 
+    public screenPhysicsToWorld(screenPosition: Vector2) {
+        return Camera.screenPhysicsToWorld(screenPosition, this);
+    }
+
     public static screenPhysicsToWorldAt(screenPosition: Vector2, cameraPosition: Vector2, cameraAngle: number): Vector2 {
         const cos = Math.cos(cameraAngle);
         const sin = Math.sin(cameraAngle);

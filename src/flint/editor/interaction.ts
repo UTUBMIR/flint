@@ -26,7 +26,8 @@ export class Drag {
 
     public cameraProvider?: () => Camera | undefined;
 
-    private dragCameraSnapshot: { position: Vector2; angle: number } | undefined;
+    // private dragCameraSnapshot: { position: Vector2; angle: number } | undefined;
+    private lastRenderPosition = new Vector2();
 
     public get position(): Vector2 {
         return this.rect.position;
@@ -58,19 +59,28 @@ export class Drag {
 
     private pointerWorldPixels(): Vector2 {
         const toPixels = getToPixelsConverter();
-        const snapshot = this.dragCameraSnapshot;
-        if (snapshot) {
-            const worldPosition = Camera.screenPhysicsToWorldAt(Input.mousePosition, snapshot.position, snapshot.angle);
+        // const snapshot = this.dragCameraSnapshot;
+        const camera = this.cameraProvider?.();
+        if (camera) {
+            const worldPosition = Camera.screenPhysicsToWorldAt(Input.mousePosition, camera.position, camera.angle);
             return worldPosition.copy().set(toPixels(worldPosition.x), toPixels(worldPosition.y));
         }
 
-        const camera = this.cameraProvider?.();
         if (!camera) {
             return Input.mousePositionPixels.copy();
         }
 
         const worldPosition = Camera.screenPhysicsToWorld(Input.mousePosition, camera);
         return worldPosition.copy().set(toPixels(worldPosition.x), toPixels(worldPosition.y));
+    }
+
+    public update() {
+        const current = this.pointerWorldPixels().add(this.dragOffset);
+        if (this.isDragged() && !this.lastRenderPosition.equal(current)) {
+            this.onGrabbing();
+            this.position.assign(current);
+            this.lastRenderPosition.assign(this.position);
+        }
     }
 
     public render(r: IRenderer) {
@@ -88,11 +98,6 @@ export class Drag {
         const fixedMouse = mouseWorldPixels.copy().add(new Vector2(this.size.x / 2, this.size.y / 2));
 
         if (isDown && Input.isMouseButtonPressed(0) && this.rect.contains(fixedMouse)) {
-            const camera = this.cameraProvider?.();
-            if (camera) {
-                this.dragCameraSnapshot = { position: camera.position.copy(), angle: camera.angle };
-            }
-
             this.dragOffset.assign(this.position.copy().subtract(mouseWorldPixels));
 
             Editor.draggedItem = this;
@@ -114,7 +119,7 @@ export class Drag {
 
         if (isMove && this.isDragged()) {
             this.position.assign(mouseWorldPixels.copy().add(this.dragOffset));
-
+            this.lastRenderPosition.assign(this.position);
             // this.rect.clamp(
             //     new Rect(
             //         new Vector2(0, 0),
@@ -131,7 +136,6 @@ export class Drag {
 
         if (isUp && this.isDragged()) {
             Editor.draggedItem = undefined;
-            this.dragCameraSnapshot = undefined;
             this.onRelease();
             System.setCursor(this.hoveredCursor);
             this.hovered = true;
@@ -286,7 +290,7 @@ export class Button extends Click {
 
 export class Tree {
     public readonly button: Button;
-    public items: (Click | Drag | Tree | {rect: Rect, render: (r: IRenderer) => void, onEvent: (e: SystemEvent) => void})[] = [];
+    public items: (Click | Drag | Tree | { rect: Rect, render: (r: IRenderer) => void, onEvent: (e: SystemEvent) => void })[] = [];
 
     private _contentHeight: number = 0;
     public open: boolean = false;

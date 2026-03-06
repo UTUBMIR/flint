@@ -15,6 +15,8 @@ import PhysicsBody from "../runtime/components/physics/physics-body";
 
 class DragComponent extends Shape {
     private drag: Drag | undefined;
+    private draggedPhysicsBody: PhysicsBody | undefined;
+    private draggedOriginalBodyType: PhysicsBody["type"] | undefined;
 
     private getWorldConverters() {
         const world = System.world as Partial<PhysicsWorld>;
@@ -26,6 +28,49 @@ class DragComponent extends Shape {
             : (value: number) => value;
 
         return { toPixels, toMeters };
+    }
+
+    private setDraggedBodyStatic(): void {
+        const current = Editor.inspectorWindow.currentObject;
+        if (!current) return;
+
+        const physicsBody = current.getComponent(PhysicsBody);
+        if (!physicsBody) return;
+
+        this.draggedPhysicsBody = physicsBody;
+        this.draggedOriginalBodyType = physicsBody.type;
+
+        if (physicsBody.type === "static") {
+            return;
+        }
+
+        try {
+            physicsBody.setVelocity(0, 0);
+            physicsBody.setAngularVelocity(0);
+            physicsBody.type = "static";
+        } catch {
+            // ignore - body may be detached/destroyed while dragging in editor
+        }
+    }
+
+    private restoreDraggedBodyType(): void {
+        const physicsBody = this.draggedPhysicsBody;
+        const originalType = this.draggedOriginalBodyType;
+
+        this.draggedPhysicsBody = undefined;
+        this.draggedOriginalBodyType = undefined;
+
+        if (!physicsBody || !originalType || originalType === "static") {
+            return;
+        }
+
+        try {
+            physicsBody.type = originalType;
+            physicsBody.setVelocity(0, 0);
+            physicsBody.setAngularVelocity(0);
+        } catch {
+            // ignore - body may be detached/destroyed while dragging in editor
+        }
     }
 
     private syncDraggedPositionToSelectedObject(): void {
@@ -63,7 +108,9 @@ class DragComponent extends Shape {
 
             this.drag = new Drag(new Rect(posPx, sizePx));
             this.drag.cameraProvider = () => this.gameObject.layer.cameras[0];
+            this.drag.onGrab = this.setDraggedBodyStatic.bind(this);
             this.drag.onGrabbing = this.syncDraggedPositionToSelectedObject.bind(this);
+            this.drag.onRelease = this.restoreDraggedBodyType.bind(this);
             return;
         }
 
@@ -127,6 +174,10 @@ class DragComponent extends Shape {
         else {
             this.drag = undefined;
         }
+    }
+
+    public override update(): void {
+        this.drag?.update();
     }
 }
 

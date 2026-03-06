@@ -13,6 +13,24 @@ export default class PhysicsBody extends Component {
 
     public mass: number = 1;
 
+    @NonSerialized()
+    private attachedWorld: PhysicsWorld | undefined;
+
+    @NonSerialized()
+    private lastPulledX: number = Number.NaN;
+
+    @NonSerialized()
+    private lastPulledY: number = Number.NaN;
+
+    @NonSerialized()
+    private lastPulledAngle: number = Number.NaN;
+
+    @NonSerialized()
+    private lastAppliedType: PhysicsBody["type"] = this.type;
+
+    @NonSerialized()
+    private lastAppliedMass: number = this.mass;
+
     private get world(): PhysicsWorld {
         return System.world as PhysicsWorld;
     }
@@ -22,8 +40,75 @@ export default class PhysicsBody extends Component {
         return Planck.Vec2(world.toPhysicsUnits(x), world.toPhysicsUnits(y));
     }
 
+    private pullStateFromBody(): void {
+        const p = this.body.getPosition();
+        const angle = this.body.getAngle();
+
+        this.transform.position.set(p.x, p.y);
+        this.transform.rotation = angle;
+
+        this.lastPulledX = p.x;
+        this.lastPulledY = p.y;
+        this.lastPulledAngle = angle;
+
+        const bodyType = this.body.getType() as PhysicsBody["type"];
+        if (bodyType !== this.type) {
+            this.type = bodyType;
+        }
+        this.lastAppliedType = this.type;
+
+        if (this.type === "dynamic") {
+            const bodyMass = this.body.getMass();
+            if (bodyMass !== this.mass && this.mass === this.lastAppliedMass) {
+                this.mass = bodyMass;
+            }
+            this.lastAppliedMass = this.mass;
+        }
+    }
+
+    private applyFieldsToBody(): void {
+        const typeChanged = this.type !== this.lastAppliedType;
+
+        if (typeChanged) {
+            this.body.setType(this.type);
+            this.lastAppliedType = this.type;
+        }
+
+        if (this.type === "dynamic") {
+            const shouldApplyMass = typeChanged || this.mass !== this.lastAppliedMass;
+            if (shouldApplyMass) {
+                this.body.setMassData({
+                    mass: this.mass,
+                    center: this.body.getLocalCenter(),
+                    I: this.body.getInertia()
+                });
+                this.lastAppliedMass = this.mass;
+            }
+        }
+    }
+
+    private applyTransformToBodyIfChanged(): void {
+        const { position, rotation } = this.transform;
+        const x = position.x;
+        const y = position.y;
+        const angle = rotation;
+
+        // If something else modified the transform since the last physics pull,
+        // treat the transform as authoritative and push it into the physics body.
+        if (x !== this.lastPulledX || y !== this.lastPulledY || angle !== this.lastPulledAngle) {
+            this.body.setTransform(Planck.Vec2(x, y), angle);
+            this.body.setAwake(true);
+
+            // Prevent re-applying the same transform every frame until the next pull.
+            this.lastPulledX = x;
+            this.lastPulledY = y;
+            this.lastPulledAngle = angle;
+        }
+    }
+
     public override attach(): void {
         const world = this.world;
+        this.attachedWorld = world;
         const pos = this.transform.position;
 
         this.body = world.physicsWorld.createBody({
@@ -44,23 +129,27 @@ export default class PhysicsBody extends Component {
         }
 
         this.body.setUserData(this);
+
+        this.lastAppliedType = this.type;
+        this.lastAppliedMass = this.mass;
+        this.lastPulledX = pos.x;
+        this.lastPulledY = pos.y;
+        this.lastPulledAngle = this.transform.rotation;
+
+        world.registerPhysicsBody(this);
     }
 
     public override update(): void {
-        if (this.type !== "dynamic") return;
+        this.applyTransformToBodyIfChanged();
+        this.applyFieldsToBody();
+    }
 
-        const p = this.body.getPosition();
-        this.transform.position.set(
-            p.x,
-            p.y
-        );
-        this.transform.rotation = this.body.getAngle();
-
-        this.body.setMassData({
-            mass: this.mass,
-            center: this.body.getLocalCenter(),
-            I: this.body.getInertia()
-        });
+    /**
+     * Called by {@link PhysicsWorld} after stepping the physics simulation.
+     * Do not call directly.
+     */
+    public __physicsSyncFromBody(): void {
+        this.pullStateFromBody();
     }
 
     /**
@@ -74,6 +163,8 @@ export default class PhysicsBody extends Component {
         );
         this.transform.position.set(x, y);
         this.body.setAwake(true);
+        this.lastPulledX = x;
+        this.lastPulledY = y;
     }
 
     /**
@@ -91,6 +182,7 @@ export default class PhysicsBody extends Component {
     public withBody(action: (body: P.Body) => void): void {
         action(this.body);
         this.body.setAwake(true);
+        this.pullStateFromBody();
     }
 
     /**
@@ -175,6 +267,9 @@ export default class PhysicsBody extends Component {
     }
 
     public override detach(): void {
-        this.world.physicsWorld.destroyBody(this.body);
+        const world = this.attachedWorld ?? this.world;
+        world.unregisterPhysicsBody(this);
+        world.physicsWorld.destroyBody(this.body);
+        this.attachedWorld = undefined;
     }
 }
