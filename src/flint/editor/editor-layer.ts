@@ -62,6 +62,7 @@ class DragComponent extends Shape {
             );
 
             this.drag = new Drag(new Rect(posPx, sizePx));
+            this.drag.cameraProvider = () => this.gameObject.layer.cameras[0];
             this.drag.onGrabbing = this.syncDraggedPositionToSelectedObject.bind(this);
             return;
         }

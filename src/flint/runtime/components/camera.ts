@@ -1,10 +1,30 @@
 import { FieldRenderer } from "../../editor/component-builder";
 import type { ColorString } from "../../shared/graphics";
-import type Vector2 from "../../shared/vector2";
+import Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
 
 export default class Camera extends RendererComponent {
     public enabled: boolean = true;
+
+    /**
+     * Converts a screen-space position (in world/physics units, relative to the screen center)
+     * into a world-space position (in world/physics units) using the given camera transform.
+     */
+    public static screenPhysicsToWorld(screenPosition: Vector2, camera: Camera): Vector2 {
+        return Camera.screenPhysicsToWorldAt(screenPosition, camera.position, camera.angle);
+    }
+
+    public static screenPhysicsToWorldAt(screenPosition: Vector2, cameraPosition: Vector2, cameraAngle: number): Vector2 {
+        const cos = Math.cos(cameraAngle);
+        const sin = Math.sin(cameraAngle);
+
+        const rotated = new Vector2(
+            screenPosition.x * cos - screenPosition.y * sin,
+            screenPosition.x * sin + screenPosition.y * cos
+        );
+
+        return cameraPosition.copy().add(rotated);
+    }
 
     public constructor(backgroundColor?: ColorString) {
         super();

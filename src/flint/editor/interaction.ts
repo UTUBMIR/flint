@@ -7,6 +7,14 @@ import Editor from "./editor";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
 import type { ColorString } from "../shared/graphics";
 import { System } from "../runtime/system";
+import Camera from "../runtime/components/camera";
+
+function getToPixelsConverter(): (value: number) => number {
+    const world = System.world as Partial<{ toPixels: (value: number) => number }>;
+    return typeof world.toPixels === "function"
+        ? world.toPixels.bind(world)
+        : (value: number) => value;
+}
 
 
 export class Drag {
@@ -15,6 +23,10 @@ export class Drag {
 
     public hoveredCursor: string = "grab";
     public draggedCursor: string = "grabbing";
+
+    public cameraProvider?: () => Camera | undefined;
+
+    private dragCameraSnapshot: { position: Vector2; angle: number } | undefined;
 
     public get position(): Vector2 {
         return this.rect.position;
@@ -44,6 +56,23 @@ export class Drag {
         this.rect = rect ?? new Rect();
     }
 
+    private pointerWorldPixels(): Vector2 {
+        const toPixels = getToPixelsConverter();
+        const snapshot = this.dragCameraSnapshot;
+        if (snapshot) {
+            const worldPosition = Camera.screenPhysicsToWorldAt(Input.mousePosition, snapshot.position, snapshot.angle);
+            return worldPosition.copy().set(toPixels(worldPosition.x), toPixels(worldPosition.y));
+        }
+
+        const camera = this.cameraProvider?.();
+        if (!camera) {
+            return Input.mousePositionPixels.copy();
+        }
+
+        const worldPosition = Camera.screenPhysicsToWorld(Input.mousePosition, camera);
+        return worldPosition.copy().set(toPixels(worldPosition.x), toPixels(worldPosition.y));
+    }
+
     public render(r: IRenderer) {
         r.fillColor = "#f88";
         r.fillRect(this.position, this.size);
@@ -55,10 +84,16 @@ export class Drag {
         const isUp = event.type === "pointerup";
         this.hovered = false;
 
-        const fixedMouse = Input.mousePositionPixels.copy().add(new Vector2(this.size.x/2, this.size.y/2));
+        const mouseWorldPixels = this.pointerWorldPixels();
+        const fixedMouse = mouseWorldPixels.copy().add(new Vector2(this.size.x / 2, this.size.y / 2));
 
         if (isDown && Input.isMouseButtonPressed(0) && this.rect.contains(fixedMouse)) {
-            this.dragOffset.assign(this.position.copy().subtract(Input.mousePositionPixels));
+            const camera = this.cameraProvider?.();
+            if (camera) {
+                this.dragCameraSnapshot = { position: camera.position.copy(), angle: camera.angle };
+            }
+
+            this.dragOffset.assign(this.position.copy().subtract(mouseWorldPixels));
 
             Editor.draggedItem = this;
             this.hovered = true;
@@ -78,7 +113,7 @@ export class Drag {
         }
 
         if (isMove && this.isDragged()) {
-            this.position.assign(Input.mousePositionPixels.copy().add(this.dragOffset));
+            this.position.assign(mouseWorldPixels.copy().add(this.dragOffset));
 
             // this.rect.clamp(
             //     new Rect(
@@ -96,6 +131,7 @@ export class Drag {
 
         if (isUp && this.isDragged()) {
             Editor.draggedItem = undefined;
+            this.dragCameraSnapshot = undefined;
             this.onRelease();
             System.setCursor(this.hoveredCursor);
             this.hovered = true;
@@ -119,6 +155,8 @@ export class Click {
     public pressed: boolean = false;
     public hovered: boolean = false;
 
+    public cameraProvider?: () => Camera | undefined;
+
     public get position(): Vector2 {
         return this.rect.position;
     }
@@ -138,6 +176,17 @@ export class Click {
         this.rect = rect ?? new Rect();
     }
 
+    private pointerWorldPixels(): Vector2 {
+        const camera = this.cameraProvider?.();
+        if (!camera) {
+            return Input.mousePositionPixels.copy();
+        }
+
+        const worldPosition = Camera.screenPhysicsToWorld(Input.mousePosition, camera);
+        const toPixels = getToPixelsConverter();
+        return worldPosition.copy().set(toPixels(worldPosition.x), toPixels(worldPosition.y));
+    }
+
     public render(r: IRenderer) {
         r.fillColor = "#8f8";
         r.fillRect(this.position, this.size);
@@ -148,7 +197,9 @@ export class Click {
         const isMove = event.type === "pointermove";
         const isUp = event.type === "pointerup";
 
-        if (isDown && Input.isMouseButtonPressed(0) && this.rect.contains(Input.mousePositionPixels)) {
+        const mouseWorldPixels = this.pointerWorldPixels();
+
+        if (isDown && Input.isMouseButtonPressed(0) && this.rect.contains(mouseWorldPixels)) {
             this.pressed = true;
 
             System.setCursor(this.holdCursor);
@@ -158,7 +209,7 @@ export class Click {
         }
 
         if (isMove) {
-            const mouseHovered = this.rect.contains(Input.mousePositionPixels);
+            const mouseHovered = this.rect.contains(mouseWorldPixels);
             if (mouseHovered != this.hovered) {
                 if (mouseHovered) {
                     this.onHover();
@@ -176,7 +227,7 @@ export class Click {
             }
         }
 
-        if (isUp && this.pressed && this.rect.contains(Input.mousePositionPixels)) {
+        if (isUp && this.pressed && this.rect.contains(mouseWorldPixels)) {
             this.pressed = false;
 
             this.onMouseUp();
