@@ -7,7 +7,7 @@ import Editor from "./editor";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
 import type { ColorString } from "../shared/graphics";
 import { System } from "../runtime/system";
-import Camera from "../runtime/components/camera";
+import type Camera from "../runtime/components/camera";
 
 function getToPixelsConverter(): (value: number) => number {
     const world = System.world as Partial<{ toPixels: (value: number) => number }>;
@@ -62,16 +62,11 @@ export class Drag {
         // const snapshot = this.dragCameraSnapshot;
         const camera = this.cameraProvider?.();
         if (camera) {
-            const worldPosition = Camera.screenPhysicsToWorldAt(Input.mousePosition, camera.position, camera.angle);
-            return worldPosition.copy().set(toPixels(worldPosition.x), toPixels(worldPosition.y));
+            const worldPosition = camera.screenPhysicsToWorld(Input.mousePosition);
+            return worldPosition.set(toPixels(worldPosition.x), toPixels(worldPosition.y));
         }
 
-        if (!camera) {
-            return Input.mousePositionPixels.copy();
-        }
-
-        const worldPosition = Camera.screenPhysicsToWorld(Input.mousePosition, camera);
-        return worldPosition.copy().set(toPixels(worldPosition.x), toPixels(worldPosition.y));
+        return Input.mousePositionPixels.copy();
     }
 
     public update() {
@@ -186,9 +181,9 @@ export class Click {
             return Input.mousePositionPixels.copy();
         }
 
-        const worldPosition = Camera.screenPhysicsToWorld(Input.mousePosition, camera);
+        const worldPosition = camera.screenPhysicsToWorld(Input.mousePosition);
         const toPixels = getToPixelsConverter();
-        return worldPosition.copy().set(toPixels(worldPosition.x), toPixels(worldPosition.y));
+        return worldPosition.set(toPixels(worldPosition.x), toPixels(worldPosition.y));
     }
 
     public render(r: IRenderer) {

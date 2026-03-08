@@ -10,12 +10,8 @@ export default class Camera extends RendererComponent {
      * Converts a screen-space position (in world/physics units, relative to the screen center)
      * into a world-space position (in world/physics units) using the given camera transform.
      */
-    public static screenPhysicsToWorld(screenPosition: Vector2, camera: Camera): Vector2 {
-        return Camera.screenPhysicsToWorldAt(screenPosition, camera.position, camera.angle);
-    }
-
     public screenPhysicsToWorld(screenPosition: Vector2) {
-        return Camera.screenPhysicsToWorld(screenPosition, this);
+        return Camera.screenPhysicsToWorldAt(screenPosition, this.position, this.angle);
     }
 
     public static screenPhysicsToWorldAt(screenPosition: Vector2, cameraPosition: Vector2, cameraAngle: number): Vector2 {
