@@ -1,5 +1,71 @@
 import { System } from "@flint/runtime/system";
 
+type ExportResult = {
+    defaultExport?: string;
+    exports?: string[];
+};
+
+type ModuleExports = ExportResult & {
+    path: string;
+};
+
+function parseExports(code: string): ExportResult {
+    const result: ExportResult = { exports: [] };
+    const tokens = code.split(/\s+/);
+    let i = 0;
+
+    while (i < tokens.length) {
+        const token = tokens[i];
+
+        // default export
+        if (token === 'export' && tokens[i + 1] === 'default') {
+            i += 2;
+            const nextToken = tokens[i];
+            if (nextToken) {
+                // handle "export default function Foo" or "export default class Bar" or "export default expression"
+                if (nextToken === 'function' || nextToken === 'class' || nextToken === 'const' || nextToken === 'let' || nextToken === 'var') {
+                    const nameToken = tokens[i + 1];
+                    if (nameToken) {
+                        result.defaultExport = nameToken.replace(/[({]/g, ''); // remove any '(' or '{' in the name
+                        i += 1;
+                    }
+                } else {
+                    // inline default export (e.g., export default MyVar;)
+                    result.defaultExport = nextToken.replace(/;/, '');
+                }
+            }
+        }
+        // named export
+        else if (token === 'export') {
+            const nextToken = tokens[i + 1];
+            if (nextToken === '{') {
+                // export { a, b, c }
+                i += 2;
+                while (i < tokens.length && tokens[i] !== '}') {
+                    const name = tokens[i]!.replace(/,/, '');
+                    if (name) result.exports!.push(name);
+                    i++;
+                }
+            } else if (nextToken === 'function' || nextToken === 'class' || nextToken === 'const' || nextToken === 'let' || nextToken === 'var') {
+                const nameToken = tokens[i + 2];
+                if (nameToken) result.exports!.push(nameToken.replace(/[({;]/g, ''));
+                i += 2;
+            }
+        }
+        i++;
+    }
+
+    if (result.exports!.length === 0) delete result.exports;
+    return result;
+}
+
+function toModuleSpecifier(filePath: string): string {
+    const normalized = filePath.replace(/\\/g, "/");
+    if (normalized.endsWith(".d.ts")) return normalized.slice(0, -".d.ts".length);
+    return normalized.replace(/\.(ts|tsx|js|jsx|json)$/i, "");
+}
+
+
 export class CodeEditor {
     private static readonly html =
         `<!DOCTYPE html>
@@ -42,12 +108,11 @@ export class CodeEditor {
 
   <!-- <button>Run</button> -->
   <script type="module">
-let editor = monaco.editor.create(document.getElementById("container"), {
-value: "",
-language: "typescript",
-automaticLayout: true
+const editor = monaco.editor.create(document.getElementById("container"), {
+  value: "",
+  language: "typescript",
+  automaticLayout: true
 });
-
 
 monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
   target: monaco.languages.typescript.ScriptTarget.ESNext,
@@ -69,47 +134,222 @@ monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
 });
 
 monaco.languages.typescript.typescriptDefaults.setMaximumWorkerIdleTime(2 * 60 * 1000);
-
 monaco.editor.setTheme("vs-dark");
 
-document.addEventListener("keydown", async function (event) {
-    if (event.ctrlKey && event.code === "KeyS") {
-        event.preventDefault();
-        save();
-    }
+document.addEventListener("keydown", function (event) {
+  if (event.ctrlKey && event.code === "KeyS") {
+    event.preventDefault();
+    save();
+  }
 }, true);
 
 const loadedFiles = new Map();
+const modulesByPath = new Map();
+
+let completionsInstalled = false;
 
 function addExtraLib(path, text) {
-    loadedFiles.set(path, text);
-    monaco.languages.typescript.typescriptDefaults.addExtraLib(text, path);
-    monaco.languages.typescript.javascriptDefaults.addExtraLib(text, path);
+  loadedFiles.set(path, text);
+  monaco.languages.typescript.typescriptDefaults.addExtraLib(text, path);
+  monaco.languages.typescript.javascriptDefaults.addExtraLib(text, path);
 }
 
 function addExtraLibs(files) {
-    files.forEach(file => {
-        addExtraLib(file.path, file.text);
-    });
+  for (const file of files) addExtraLib(file.path, file.text);
 }
 
-window.addEventListener("message", async (e) => {
-    if (e.data.type === "FLINT_SEND_TEXT_FILE") {
-        editor.setValue(e.data.text);
+function upsertModules(modules) {
+  if (!Array.isArray(modules)) return;
+  for (const mod of modules) {
+    if (!mod || typeof mod.path !== "string") continue;
+    modulesByPath.set(mod.path, mod);
+  }
+}
 
-        const model = editor.getModel();
-        monaco.editor.setModelLanguage(model, e.data.language);
+function isInImportPath(model, position) {
+  const line = model.getLineContent(position.lineNumber);
+  const prefix = line.slice(0, Math.max(0, position.column - 1));
+  return /(?:\\bfrom\\s*|\\bimport\\s*)(["'])([^"']*)$/.test(prefix);
+}
+
+function computeImportInsertRange(model) {
+  const lineCount = model.getLineCount();
+  let lineNumber = 1;
+
+  while (lineNumber <= lineCount) {
+    const line = model.getLineContent(lineNumber);
+    if (/^\\s*$/.test(line) || /^\\s*\\/\\//.test(line)) {
+      lineNumber++;
+      continue;
     }
-    else if (e.data.type === "FLINT_ADD_EXTRA_LIBS") {
-        addExtraLibs(e.data.files);
+    if (/^\\s*import\\b/.test(line)) {
+      lineNumber++;
+      continue;
     }
+    break;
+  }
+
+  return { startLineNumber: lineNumber, startColumn: 1, endLineNumber: lineNumber, endColumn: 1 };
+}
+
+function hasImport(model, modulePath, kind, name) {
+  const head = model.getValueInRange({
+    startLineNumber: 1,
+    startColumn: 1,
+    endLineNumber: Math.min(200, model.getLineCount()),
+    endColumn: 1
+  });
+
+  if (kind === "module") {
+    const escapedPath = escapeRegExp(modulePath);
+    return new RegExp("\\bfrom\\s*[\\x27\\x22]" + escapedPath + "[\\x27\\x22]").test(head)
+      || new RegExp("\\bimport\\s*[\\x27\\x22]" + escapedPath + "[\\x27\\x22]").test(head);
+  }
+
+  if (kind === "default") {
+    const escapedName = escapeRegExp(name);
+    const escapedPath = escapeRegExp(modulePath);
+    return new RegExp("\\bimport\\s+" + escapedName + "\\s*(,\\s*\\{[^}]*\\}\\s*)?from\\s*[\\x27\\x22]" + escapedPath + "[\\x27\\x22]").test(head);
+  }
+
+  // named
+  {
+    const escapedName = escapeRegExp(name);
+    const escapedPath = escapeRegExp(modulePath);
+    return new RegExp("\\bimport\\s*\\{[^}]*\\b" + escapedName + "\\b[^}]*\\}\\s*from\\s*[\\x27\\x22]" + escapedPath + "[\\x27\\x22]").test(head);
+  }
+}
+
+function escapeRegExp(text) {
+  return String(text).replace(/[.*+?^{}$()|[\\]\\\\]/g, "\\\\$&");
+}
+
+function ensureCompletionsInstalled() {
+  if (completionsInstalled) return;
+  completionsInstalled = true;
+
+  const languages = ["typescript", "javascript"];
+
+  for (const language of languages) {
+    // Import path completions
+    monaco.languages.registerCompletionItemProvider(language, {
+      triggerCharacters: ["'", '"', "/", "\\\\"],
+      provideCompletionItems(model, position) {
+        const line = model.getLineContent(position.lineNumber);
+        const prefix = line.slice(0, Math.max(0, position.column - 1));
+        const match = prefix.match(/(?:\\bfrom\\s*|\\bimport\\s*)(["'])([^"']*)$/);
+        if (!match) return { suggestions: [] };
+
+        const typed = match[2] ?? "";
+        const normalizedTyped = typed.replace(/\\\\\\\\/g, "/");
+        const startColumn = position.column - typed.length;
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn,
+          endColumn: position.column
+        };
+
+        const seen = new Set();
+        const suggestions = [];
+
+        for (const mod of modulesByPath.values()) {
+          const modulePath = mod.path;
+          if (typeof modulePath !== "string") continue;
+          if (normalizedTyped && !modulePath.startsWith(normalizedTyped)) continue;
+          if (seen.has(modulePath)) continue;
+          seen.add(modulePath);
+
+          suggestions.push({
+            label: modulePath,
+            kind: monaco.languages.CompletionItemKind.Module,
+            insertText: modulePath,
+            range,
+            detail: hasImport(model, modulePath, "module") ? "Already imported" : "Module"
+          });
+        }
+
+        return { suggestions };
+      }
+    });
+
+    // Auto import completions for exported symbols
+    monaco.languages.registerCompletionItemProvider(language, {
+      provideCompletionItems(model, position) {
+        if (isInImportPath(model, position)) return { suggestions: [] };
+
+        const word = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn
+        };
+
+        const insertRange = computeImportInsertRange(model);
+        const suggestions = [];
+
+        for (const mod of modulesByPath.values()) {
+          if (!mod || typeof mod.path !== "string") continue;
+          const modulePath = mod.path;
+
+          if (typeof mod.defaultExport === "string" && mod.defaultExport.length > 0) {
+            const name = mod.defaultExport;
+            suggestions.push({
+              label: name,
+              kind: monaco.languages.CompletionItemKind.Class,
+              insertText: name,
+              detail: "Auto import default from '" + modulePath + "'",
+              range,
+              additionalTextEdits: hasImport(model, modulePath, "default", name)
+                ? []
+                : [{ range: insertRange, text: "import " + name + " from \\"" + modulePath + "\\";\\n" }]
+            });
+          }
+
+          if (Array.isArray(mod.exports)) {
+            for (const name of mod.exports) {
+              if (typeof name !== "string" || name.length === 0) continue;
+              suggestions.push({
+                label: name,
+                kind: monaco.languages.CompletionItemKind.Class,
+                insertText: name,
+                detail: "Auto import from '" + modulePath + "'",
+                range,
+                additionalTextEdits: hasImport(model, modulePath, "named", name)
+                  ? []
+                  : [{ range: insertRange, text: "import { " + name + " } from \\"" + modulePath + "\\";\\n" }]
+              });
+            }
+          }
+        }
+
+        return { suggestions };
+      }
+    });
+  }
+}
+
+ensureCompletionsInstalled();
+
+window.addEventListener("message", async (e) => {
+  if (e.data.type === "FLINT_SEND_TEXT_FILE") {
+    editor.setValue(e.data.text);
+
+    const model = editor.getModel();
+    monaco.editor.setModelLanguage(model, e.data.language);
+  }
+  else if (e.data.type === "FLINT_ADD_EXTRA_LIBS") {
+    addExtraLibs(e.data.files ?? []);
+    upsertModules(e.data.modules ?? []);
+    ensureCompletionsInstalled();
+  }
 });
 
-
-window.opener?.postMessage({type: "FLINT_READ_TEXT_FILE"}, "*");
+window.opener?.postMessage({ type: "FLINT_READ_TEXT_FILE" }, "*");
 
 function save() {
-    window.opener?.postMessage({type: "FLINT_WRITE_TEXT_FILE", text: editor.getValue()}, "*");
+  window.opener?.postMessage({ type: "FLINT_WRITE_TEXT_FILE", text: editor.getValue() }, "*");
 }
   </script>
 </body>
@@ -156,9 +396,15 @@ function save() {
     }
 
     public static addExtraLibs(files: { path: string; text: string }[]) {
+        const modules: ModuleExports[] = files.map((file) => ({
+            path: toModuleSpecifier(file.path),
+            ...parseExports(file.text)
+        }));
+
         this.tab?.postMessage({
             type: "FLINT_ADD_EXTRA_LIBS",
-            files: files
+            files: files,
+            modules
         }, "*");
     }
 
