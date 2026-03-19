@@ -131,6 +131,26 @@ class ToolBarActions {
         }
     }
 
+    public static async downloadtBuild() {
+        try {
+            const build = await System.fileSystem.readTextFile("build/index.html");
+            const blob = new Blob([build], {type: "text/html"});
+            const fileName = "index.html";
+            const url = URL.createObjectURL(blob);
+
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = fileName;
+            anchor.click();
+
+            URL.revokeObjectURL(url);
+            Notifier.notify("Build downloaded", "success");
+        }
+        catch(e: unknown) {
+            Notifier.notify("Could not download build: " + e, "warning");
+        }
+    }
+
     public static async importProjectArchive() {
         try {
             const file = await ToolBarActions.pickArchiveFile();
@@ -396,6 +416,7 @@ export default class Editor {
                     await ToolBarActions.saveProject();
                 }
             }, true);
+            document.getElementById("download-build-button")!.addEventListener("click", ToolBarActions.downloadtBuild);
 
             document.getElementById("build-and-run-button")!.addEventListener("click", ToolBarActions.buildAndRun);
             document.addEventListener("keydown", async function (event) {
