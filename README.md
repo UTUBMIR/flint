@@ -12,12 +12,6 @@
 
 ## Features
 
-* **Built-in TypeScript transpiler**
-
-  * Watch mode: automatically retranspiles code when changes are detected
-* **Entity-Component-System (ECS)**
-
-  * Organize your game objects and logic efficiently
 * **File and Asset Management**
 
   * Easily load and track assets for your game
@@ -25,6 +19,7 @@
 
   * Runs directly in modern browsers without additional setup
 
+# Run locally
 ## Installation
 
 Install and build dependencies:
