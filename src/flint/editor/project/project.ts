@@ -512,6 +512,10 @@ export class ${name} extends Component {
         const names = await System.fileSystem.listDir(path).catch(() => []);
 
         for (const name of names) {
+            if (!path && (name === "build" || name === "flint")) {
+                continue;
+            }
+
             const fullPath = path ? `${path}/${name}` : name;
             const isDirectory = await Project.isDirectory(fullPath);
 
