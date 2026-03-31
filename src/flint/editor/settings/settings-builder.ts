@@ -1,4 +1,4 @@
-import { ComponentBuilder } from "../component-builder";
+import { CasingHandler } from "../casing-handler";
 import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.component.js";
 
 export type SettingsSchema = {
@@ -67,7 +67,7 @@ export class SettingsBuilder {
 
             return element;
         }
-        name = ComponentBuilder.splitPascalCase(name);
+        name = CasingHandler.splitPascalCase(name);
 
         switch (schema.type) {
             case "boolean":

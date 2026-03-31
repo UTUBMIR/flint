@@ -12,6 +12,7 @@ import { AngleRenderer } from "./fields/renderers/angle-renderer";
 import { BooleanRenderer } from "./fields/renderers/boolean-renderer";
 import { GameObjectRenderer } from "./fields/renderers/game-object-renderer";
 import { ComponentRenderer } from "./fields/renderers/component-renderer";
+import { CasingHandler } from "./casing-handler";
 
 
 /**
@@ -134,29 +135,6 @@ export class ComponentBuilder {
         return value !== null && typeof value === "object" && !Array.isArray(value);
     }
 
-    public static splitPascalCase(pascalCaseString: string, joiner: " " | "-" = " "): string {
-        const regex = /[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g;
-        const words = pascalCaseString.match(regex);
-        return words ? words.join(joiner).toLowerCase() : pascalCaseString;
-    }
-
-    public static joinToPascalCase(str: string): string {
-        if (!str) return str;
-
-        const normalized = str
-            .replace(/[-_]+/g, " ")
-            .replace(/\s+/g, " ")
-            .trim();
-
-        return normalized
-            .split(" ")
-            .map(word =>
-                word.length === 0
-                    ? word
-                    : word[0]!.toUpperCase() + word.slice(1).toLowerCase()
-            )
-            .join("");
-    }
 
 
     private static wrapField(labelText: string, input: HTMLElement) {
@@ -164,7 +142,7 @@ export class ComponentBuilder {
         wrapper.classList.add("inspector-field");
         const label = document.createElement("label");
         label.classList.add("inspector-label");
-        label.textContent = this.splitPascalCase(labelText);
+        label.textContent = CasingHandler.splitPascalCase(labelText);
 
         wrapper.appendChild(label);
         wrapper.appendChild(input);

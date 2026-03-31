@@ -5,6 +5,7 @@ import Editor, { Notifier } from "../editor";
 import type Component from "../../runtime/component";
 import { ComponentBuilder } from "../component-builder";
 import { System, type UUID } from "../../runtime/system";
+import { CasingHandler } from "../casing-handler";
 class InspectorComponent {
     public readonly element: HTMLElement;
     private allowDrag = false;
@@ -130,7 +131,7 @@ export default class Inspector {
 
             this.dialogSelect.append(Object.assign(document.createElement("sl-option"), {
                 value: component.name,
-                textContent: ComponentBuilder.splitPascalCase(component.name)
+                textContent: CasingHandler.splitPascalCase(component.name)
             }));
         }
 

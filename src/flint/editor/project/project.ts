@@ -1,6 +1,5 @@
 import Editor from "../editor";
 import ProjectConfig from "./project-config";
-import { ComponentBuilder } from "../component-builder";
 import { Builder } from "./builder";
 import { System, type UUID } from "../../runtime/system";
 import Metadata from "../../shared/metadata";
@@ -12,6 +11,7 @@ import { EditorLayer as EditorLayer } from "../editor-layer";
 import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
 import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
 import { CodeEditor } from "../code-editor";
+import { CasingHandler } from "../casing-handler";
 
 type ProjectArchiveEntry = {
     kind: "directory";
@@ -394,8 +394,8 @@ export class Project {
     }
 
     public static async createComponent(name: string) {
-        name = ComponentBuilder.joinToPascalCase(name);
-        const fileBaseName = ComponentBuilder.splitPascalCase(name, "-");
+        name = CasingHandler.joinToPascalCase(name);
+        const fileBaseName = CasingHandler.splitPascalCase(name, "-");
 
         const assetPath = Editor.assetsWindow.currentPath.replace(/^\//, "");
         const relativeFilePath = `${assetPath}/${fileBaseName}.ts`;
@@ -441,7 +441,7 @@ export class ${name} extends Component {
 
 
     public static async deleteComponent(name: string) {
-        const fileBaseName = ComponentBuilder.splitPascalCase(name, "-");
+        const fileBaseName = CasingHandler.splitPascalCase(name, "-");
         const assetPath = Editor.assetsWindow.currentPath.replace(/^\//, "");
         const relativeFilePath = `${assetPath}/${fileBaseName}.ts`;
 
