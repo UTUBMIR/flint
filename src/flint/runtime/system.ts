@@ -116,8 +116,7 @@ export class System {
     }
 
     public static getComponentName(component: typeof Component | Component) {
-        const base = typeof component === "function" ? component : Object.getPrototypeOf(component);
-
+        const base = typeof component === "function" ? component : component.constructor;
         for (const [name, value] of System.components) {
             if (value === base) {
                 return name;
@@ -127,6 +126,8 @@ export class System {
         if (base === Transform) {
             return "Transform";
         }
+
+        return "Transform"; // FIXME: Add an actual fallback
     }
 
     private static setupAudio() {
