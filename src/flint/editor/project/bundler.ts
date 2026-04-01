@@ -135,7 +135,7 @@ export default class Bundler {
             external: ["@flint/"],
             platform: "browser",
             minify: true,
-            keepNames: true,
+            keepNames: false,
             tsconfigRaw: ProjectConfig.tsConfig,
             treeShaking: true,
             ...(sourceMap ? {sourcemap: "inline"} : {})

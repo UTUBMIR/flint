@@ -1,4 +1,4 @@
-import { FieldRenderer } from "../../editor/component-builder";
+import { FieldRenderer } from "@flint/shared/metadata";
 import type { ColorString } from "../../shared/graphics";
 import Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";

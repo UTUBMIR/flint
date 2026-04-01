@@ -7,47 +7,13 @@ import { WheelScrubBehavior } from "./fields/behaviours/wheel-scrub-behaviour";
 import { DragScrubBehavior } from "./fields/behaviours/drag-scrub-behaviour";
 import { ColorRenderer } from "./fields/renderers/color-renderer";
 import { StringRenderer } from "./fields/renderers/string-renderer";
-import Metadata, { MetadataKeys, metadataRequest } from "../shared/metadata";
+import Metadata, { MetadataKeys } from "../shared/metadata";
 import { AngleRenderer } from "./fields/renderers/angle-renderer";
 import { BooleanRenderer } from "./fields/renderers/boolean-renderer";
 import { GameObjectRenderer } from "./fields/renderers/game-object-renderer";
 import { ComponentRenderer } from "./fields/renderers/component-renderer";
 import { CasingHandler } from "./casing-handler";
 
-
-/**
- * Sets a custom renderer for a field
- * @param renderer - Renderer name
- */
-export function FieldRenderer(renderer: string) {
-    return (target: any, key: string) => {
-        metadataRequest(() => {
-            Metadata.setField(target, key, MetadataKeys.FieldRenderer, renderer);
-        });
-    };
-}
-
-/**
- * Explicitly hides field from inspector
- */
-export function HideInInspector() {
-    return (target: any, key: string) => {
-        metadataRequest(() => {
-            Metadata.setField(target, key, MetadataKeys.HideInInspector, true);
-        });
-    };
-}
-
-/**
- * Explicitly shows field to inspector
- */
-export function ShowInInspector() {
-    return (target: any, key: string) => {
-        metadataRequest(() => {
-            Metadata.setField(target, key, MetadataKeys.HideInInspector, false);
-        });
-    };
-}
 
 export class RendererRegistry {
     private static renderers: FieldRenderer[] = [];

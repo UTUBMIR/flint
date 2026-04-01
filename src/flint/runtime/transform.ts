@@ -1,6 +1,6 @@
 import Component from "./component";
 import Vector2 from "../shared/vector2";
-import { FieldRenderer } from "../editor/component-builder";
+import { FieldRenderer } from "@flint/shared/metadata";
 
 export default class Transform extends Component {
     public position: Vector2;

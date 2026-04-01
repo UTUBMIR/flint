@@ -21,6 +21,43 @@ export function NonSerialized() {
 }
 
 
+/**
+ * Sets a custom renderer for a field
+ * @param renderer - Renderer name
+ */
+
+
+export function FieldRenderer(renderer: string) {
+    return (target: any, key: string) => {
+        metadataRequest(() => {
+            Metadata.setField(target, key, MetadataKeys.FieldRenderer, renderer);
+        });
+    };
+}
+/**
+ * Explicitly hides field from inspector
+ */
+
+export function HideInInspector() {
+    return (target: any, key: string) => {
+        metadataRequest(() => {
+            Metadata.setField(target, key, MetadataKeys.HideInInspector, true);
+        });
+    };
+}
+/**
+ * Explicitly shows field to inspector
+ */
+
+export function ShowInInspector() {
+    return (target: any, key: string) => {
+        metadataRequest(() => {
+            Metadata.setField(target, key, MetadataKeys.HideInInspector, false);
+        });
+    };
+}
+
+
 // function deserializeMap(arr: any[]): Map<any, any> {
 //     return new Map(
 //         arr.map(([key, value]) => {
