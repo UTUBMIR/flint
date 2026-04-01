@@ -163,22 +163,27 @@ import { ProjectLoader } from "@flint/runtime/project-loader";
 (async () => {
     const projectData = ${data};
 
+    const components = {
     ${(function () {
                 const usedComponents = ProjectLoader.getUsedComponents(JSON.parse(data));
                 const lines: string[] = [];
 
                 for (const c of usedComponents) {
                     if (c in basicComponents) {
-                        lines.push(`System.registerComponent("${c}", basicComponents.${c});`);
+                        lines.push(`"${c}": basicComponents.${c},`);
                     }
                     else if (c in physicsComponents) {
-                        lines.push(`System.registerComponent("${c}", physicsComponents.${c});`);
+                        lines.push(`"${c}": physicsComponents.${c},`);
+                    }
+                    else { // It's in gameIndex
+                        lines.push(`"${c}": gameIndex.${c},`);
                     }
                 }
 
                 return lines.join("");
             })()
             }
+    }
 
     const world = ${ProjectConfig.config.usePhysics
                 ? `new World({ x: ${ProjectConfig.config.physicsGravityX}, y: ${ProjectConfig.config.physicsGravityY} }, ${ProjectConfig.config.physicsPixelsPerMeter})`
@@ -186,7 +191,7 @@ import { ProjectLoader } from "@flint/runtime/project-loader";
             };
 
     const runtime = new Runtime({
-        components: gameIndex,
+        components: components,
         projectData,
         enableMetadata: false,
         world
@@ -277,7 +282,7 @@ ${js}
 
 
                 const component = System.components.get(name);
-                if (!component) throw new Error("FLINT PANIC: CRITICAL SYSTEM FAILURE");
+                if (!component) throw new Error("FLINT PANIC: SYSTEM WAS CORRUPTED DURING BUILD");
 
                 for (const layer of System.world.getLayers()) {
                     for (const obj of layer.getObjects()) {

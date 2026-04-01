@@ -348,7 +348,7 @@ export class ProjectLoader {
 
                 for (const comp of components) {
                     const rawComp = {
-                        name: comp.constructor.name,
+                        name: System.getComponentName(comp),
                         data: {} as any
                     };
 
@@ -430,7 +430,7 @@ LoaderPlugins.addSerialize<Component>({
     serialize(comp: Component) {
         return {
             id: comp.gameObject?.id,
-            component: comp.constructor.name
+            component: System.getComponentName(comp)
         };
     }
 });

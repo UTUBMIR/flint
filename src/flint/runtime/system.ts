@@ -13,6 +13,7 @@ import { type AbstractFileSystem } from "../shared/file-system";
 import { TimerSystem } from "./timers";
 import Vector2 from "../shared/vector2";
 import type { World } from "./world";
+import Transform from "./transform";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -112,6 +113,20 @@ export class System {
 
     public static registerComponent(name: string, component: typeof Component) {
         System.components.set(name, component);
+    }
+
+    public static getComponentName(component: typeof Component | Component) {
+        const base = typeof component === "function" ? component : Object.getPrototypeOf(component);
+
+        for (const [name, value] of System.components) {
+            if (value === base) {
+                return name;
+            }
+        }
+
+        if (base === Transform) {
+            return "Transform";
+        }
     }
 
     private static setupAudio() {

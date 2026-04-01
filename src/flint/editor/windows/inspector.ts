@@ -14,7 +14,7 @@ class InspectorComponent {
         this.element = Object.assign(
             document.createElement("sl-details"),
             {
-                summary: component.constructor.name,
+                summary: System.getComponentName(Object.getPrototypeOf(component)),
                 open: true,
                 draggable: true
             }
@@ -40,7 +40,7 @@ class InspectorComponent {
             ev.dataTransfer!.setData(
                 "application/x-component-ref",
                 JSON.stringify({
-                    name: component.constructor.name,
+                    name: System.getComponentName(Object.getPrototypeOf(component)),
                     id: component.gameObject.id
                 })
             );
@@ -126,12 +126,12 @@ export default class Inspector {
 
         this.dialogSelect.innerHTML = "";
 
-        for (const [_key, component] of System.components) {
+        for (const [name, component] of System.components) {
             if (component.name === undefined) continue;
 
             this.dialogSelect.append(Object.assign(document.createElement("sl-option"), {
-                value: component.name,
-                textContent: CasingHandler.splitPascalCase(component.name)
+                value: name,
+                textContent: CasingHandler.splitPascalCase(name)
             }));
         }
 
