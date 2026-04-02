@@ -9,6 +9,7 @@ import { AbstractFileSystem } from "@flint/shared/file-system";
 import type { AssetData } from "../windows/assets";
 import { AssetRegistry } from "@flint/runtime/assets";
 import { ProjectLoader } from "@flint/runtime/project-loader";
+import { HotReload } from "@flint/runtime/hot-reload";
 
 import * as basicComponents from "@flint/runtime/components/index";
 import * as physicsComponents from "@flint/runtime/components/physics-index";
@@ -271,30 +272,9 @@ ${js}
             for (const { name } of ProjectConfig.config.components) {
                 const value = module[name];
 
-                const oldComponentType = System.components.get(name);
                 if (value as Component) {
-                    System.components.set(name, value as typeof Component);
+                    HotReload.reloadComponent(name, value as typeof Component);
                 }
-
-                if (!oldComponentType || !oldComponentType.prototype) {
-                    continue;
-                }
-
-
-                const component = System.components.get(name);
-                if (!component) throw new Error("FLINT PANIC: SYSTEM WAS CORRUPTED DURING BUILD");
-
-                for (const layer of System.world.getLayers()) {
-                    for (const obj of layer.getObjects()) {
-                        const objComponent = obj.getComponent(oldComponentType);
-                        if (!objComponent) {
-                            continue;
-                        }
-
-                        Object.setPrototypeOf(objComponent, component.prototype);
-                    }
-                }
-
             }
         }
         else {

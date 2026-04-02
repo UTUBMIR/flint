@@ -53,18 +53,4 @@ export default abstract class Component {
     public destroy(): void {
         (this.gameObject as GameObject | undefined) = undefined;
     }
-
-    /**
-     * Used for hot reload.
-     */
-    public swapClass<T extends Component>(newType: new () => T): T {
-        const newObject = new newType();
-
-        for (const key of Object.keys(this)) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (newObject as any)[key] = (this as any)[key];
-        }
-
-        return newObject;
-    }
 }
