@@ -102,8 +102,16 @@ export default class Hierarchy {
     }
 
     private positionDropdown(e: MouseEvent): void {
-        const x = Math.min(document.body.clientWidth - this.cachedWidth, e.pageX);
-        const y = Math.min(document.body.clientHeight - this.cachedHeight, e.pageY);
+        const container = this.contextDropdownElement.offsetParent instanceof HTMLElement
+            ? this.contextDropdownElement.offsetParent
+            : this.element.parentElement ?? document.body;
+        const rect = container.getBoundingClientRect();
+        const scrollLeft = container === document.body ? window.scrollX : container.scrollLeft;
+        const scrollTop = container === document.body ? window.scrollY : container.scrollTop;
+        const maxX = Math.max(scrollLeft, scrollLeft + container.clientWidth - this.cachedWidth);
+        const maxY = Math.max(scrollTop, scrollTop + container.clientHeight - this.cachedHeight);
+        const x = Math.min(maxX, Math.max(scrollLeft, e.clientX - rect.left + scrollLeft));
+        const y = Math.min(maxY, Math.max(scrollTop, e.clientY - rect.top + scrollTop));
 
         Object.assign(this.contextDropdownElement.style, { left: `${x}px`, top: `${y}px` });
         this.contextDropdownElement.reposition();

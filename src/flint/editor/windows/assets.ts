@@ -241,8 +241,16 @@ export default class Assets {
     }
 
     private positionDropdown(e: MouseEvent) {
-        const x = Math.min(document.body.clientWidth - this.cachedWidth, e.pageX);
-        const y = Math.min(document.body.clientHeight - this.cachedHeight, e.pageY);
+        const container = this.contextDropdownElement.offsetParent instanceof HTMLElement
+            ? this.contextDropdownElement.offsetParent
+            : this.element;
+        const rect = container.getBoundingClientRect();
+        const scrollLeft = container.scrollLeft;
+        const scrollTop = container.scrollTop;
+        const maxX = Math.max(scrollLeft, scrollLeft + container.clientWidth - this.cachedWidth);
+        const maxY = Math.max(scrollTop, scrollTop + container.clientHeight - this.cachedHeight);
+        const x = Math.min(maxX, Math.max(scrollLeft, e.clientX - rect.left + scrollLeft));
+        const y = Math.min(maxY, Math.max(scrollTop, e.clientY - rect.top + scrollTop));
 
         Object.assign(this.contextDropdownElement.style, { left: `${x}px`, top: `${y}px` });
         this.contextDropdownElement.reposition();

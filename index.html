@@ -21,6 +21,7 @@
     <meta property="og:site_name" content="Flint">
     <meta name="theme-color" content="#1a1a1e">
 
+    <link rel="stylesheet" href="./dist/main.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css">
 </head>
@@ -137,111 +138,85 @@
         <sl-progress-bar></sl-progress-bar>
     </sl-dialog>
 
-    <sl-split-panel position="80" style="height: 100%;">
-        <div slot="start">
+    <div id="layout-root">
+        <div id="layout-host"></div>
+    </div>
 
-            <sl-split-panel vertical position="75" style="height: 100%;" primary="start">
-                <sl-split-panel position="80" slot="start">
-                    <div slot="start" class="editor-window">
-                        <div class="window-header">
-                            <span class="window-title">Viewport</span>
-                        </div>
-
-                        <div class="window-body" style="padding: 1px;">
-                            <div id="root"></div>
-                        </div>
-                    </div>
-
-
-                    <div slot="end" class="editor-window" style="overflow: hidden;">
-                        <div class="window-header">
-                            <span class="window-title">Hierarchy</span>
-                            <sl-tooltip content="Create object">
-                                <sl-icon-button id="create-object-button" name="plus-square"></sl-icon-button>
-                            </sl-tooltip>
-                        </div>
-
-                        <div class="window-body">
-                            <sl-dropdown id="hierarchy-context-dropdown" style="position: absolute;">
-                                <sl-menu id="hierarchy-context-menu">
-                                    <sl-menu-label>Create</sl-menu-label>
-                                    <sl-menu-item id="new-layer-button" value="new-layer">
-                                        <sl-icon slot="prefix" name="layers"></sl-icon>
-                                        New Layer
-                                    </sl-menu-item>
-                                    <sl-menu-item id="new-gameobject-button" value="new-gameobject">
-                                        <sl-icon slot="prefix" name="box"></sl-icon>
-                                        New GameObject
-                                    </sl-menu-item>
-                                    <sl-menu-item class="danger-background danger-label danger-prefix"
-                                        id="delete-button" value="delete">
-                                        <sl-icon slot="prefix" name="trash"></sl-icon>
-                                        Delete
-                                    </sl-menu-item>
-                                </sl-menu>
-                            </sl-dropdown>
-                            <sl-tree id="hierarchy-tree" style="--indent-guide-width: 1px;">
-
-                            </sl-tree>
-                        </div>
-                    </div>
-                </sl-split-panel>
-                <div slot="end" class="editor-window">
-                    <div class="window-header">
-                        <span class="window-title">Assets</span>
-                        <sl-tooltip content="Go to previous folder">
-                            <sl-icon-button id="assets-back-button" name="arrow-90deg-left"></sl-icon-button>
-                        </sl-tooltip>
-                    </div>
-
-                    <div class="window-body" id="assets-window">
-                        <sl-dropdown id="assets-context-dropdown" style="position: absolute;">
-                            <sl-menu id="assets-context-menu">
-                                <sl-menu-label>Create</sl-menu-label>
-                                <sl-menu-item id="new-folder-button" value="new-folder">
-                                    <sl-icon slot="prefix" name="folder2"></sl-icon>
-                                    New folder
-                                </sl-menu-item>
-                                <sl-menu-item id="new-component-button" value="new-component">
-                                    <sl-icon slot="prefix" name="code-slash"></sl-icon>
-                                    New component
-                                </sl-menu-item>
-                                <sl-menu-item id="new-json-button" value="new-json">
-                                    <sl-icon slot="prefix" name="text-left"></sl-icon>
-                                    New JSON file
-                                </sl-menu-item>
-                            </sl-menu>
-                        </sl-dropdown>
-                        <div id="assets-grid">
-
-                        </div>
-                    </div>
-                    <sl-dialog id="create-component-dialog" label="Create component">
-                        <sl-input autofocus placeholder="Component name"></sl-input>
-                        <sl-button slot="footer" disabled>Create component</sl-button>
-                    </sl-dialog>
-                </div>
-            </sl-split-panel>
+    <div id="layout-templates" aria-hidden="true">
+        <div id="viewport-panel-template" class="panel-content viewport-panel">
+            <div id="root"></div>
         </div>
-        <div slot="end" class="editor-window">
-            <div class="window-header">
-                <span class="window-title">Inspector</span>
 
-            </div>
-
-            <div class="window-body" style="display: flex; flex-direction: column; align-items: center;"
-                id="inspector-drop-target">
-                <div id="inspector-body" style="width: 100%;"></div>
-                <sl-button id="add-component-button"
-                    style="font-size: var(--sl-font-size-large); margin-top: 1%; width: 50%; display: none;">Add
-                    component</sl-button>
-                <sl-dialog id="add-component-dialog" label="Add component">
-                    <sl-select autofocus value="" hoist></sl-select>
-                    <sl-button slot="footer" disabled>Add component</sl-button>
-                </sl-dialog>
+        <div id="hierarchy-panel-template" class="panel-content">
+            <div class="panel-body hierarchy-panel-body">
+                <sl-dropdown id="hierarchy-context-dropdown" style="position: absolute;">
+                    <sl-menu id="hierarchy-context-menu">
+                        <sl-menu-label>Create</sl-menu-label>
+                        <sl-menu-item id="new-layer-button" value="new-layer">
+                            <sl-icon slot="prefix" name="layers"></sl-icon>
+                            New Layer
+                        </sl-menu-item>
+                        <sl-menu-item id="new-gameobject-button" value="new-gameobject">
+                            <sl-icon slot="prefix" name="box"></sl-icon>
+                            New GameObject
+                        </sl-menu-item>
+                        <sl-menu-item class="danger-background danger-label danger-prefix"
+                            id="delete-button" value="delete">
+                            <sl-icon slot="prefix" name="trash"></sl-icon>
+                            Delete
+                        </sl-menu-item>
+                    </sl-menu>
+                </sl-dropdown>
+                <sl-tooltip content="Create object">
+                    <sl-icon-button id="create-object-button" class="floating-panel-action" name="plus-square"></sl-icon-button>
+                </sl-tooltip>
+                <sl-tree id="hierarchy-tree" style="--indent-guide-width: 1px;"></sl-tree>
             </div>
         </div>
-    </sl-split-panel>
+
+        <div id="assets-panel-template" class="panel-content">
+            <div class="panel-body" id="assets-window">
+                <sl-dropdown id="assets-context-dropdown" style="position: absolute;">
+                    <sl-menu id="assets-context-menu">
+                        <sl-menu-label>Create</sl-menu-label>
+                        <sl-menu-item id="new-folder-button" value="new-folder">
+                            <sl-icon slot="prefix" name="folder2"></sl-icon>
+                            New folder
+                        </sl-menu-item>
+                        <sl-menu-item id="new-component-button" value="new-component">
+                            <sl-icon slot="prefix" name="code-slash"></sl-icon>
+                            New component
+                        </sl-menu-item>
+                        <sl-menu-item id="new-json-button" value="new-json">
+                            <sl-icon slot="prefix" name="text-left"></sl-icon>
+                            New JSON file
+                        </sl-menu-item>
+                    </sl-menu>
+                </sl-dropdown>
+                <sl-tooltip content="Go to previous folder">
+                    <sl-icon-button id="assets-back-button" class="floating-panel-action" name="arrow-90deg-left"></sl-icon-button>
+                </sl-tooltip>
+                <div id="assets-grid"></div>
+            </div>
+        </div>
+
+        <div id="inspector-panel-template" class="panel-content">
+            <div class="panel-body inspector-panel-body" id="inspector-drop-target">
+                <div id="inspector-body"></div>
+                <sl-button id="add-component-button">Add component</sl-button>
+            </div>
+        </div>
+    </div>
+
+    <sl-dialog id="create-component-dialog" label="Create component">
+        <sl-input autofocus placeholder="Component name"></sl-input>
+        <sl-button slot="footer" disabled>Create component</sl-button>
+    </sl-dialog>
+
+    <sl-dialog id="add-component-dialog" label="Add component">
+        <sl-select autofocus value="" hoist></sl-select>
+        <sl-button slot="footer" disabled>Add component</sl-button>
+    </sl-dialog>
 
     <sl-dialog id="create-asset-dialog" label="Create asset">
         <sl-input autofocus placeholder="Asset url"></sl-input>
