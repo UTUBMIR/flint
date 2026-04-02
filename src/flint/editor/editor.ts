@@ -470,7 +470,7 @@ export default class Editor {
 
         EditorName("New Layer")(Layer); // Adding here because we don`t want this in game
         EditorName("New GameObject")(GameObject);
-        CodeEditor.openVirtualEditor("project-config.json");
+        CodeEditor.openFile("project-config.json");
     }
 
     public static async loadEngineFiles() {

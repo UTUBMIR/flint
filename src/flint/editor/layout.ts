@@ -1,10 +1,11 @@
 import { type ComponentContainer, GoldenLayout, LayoutConfig, type ResolvedComponentItemConfig, RowOrColumn } from "golden-layout";
+import { CodeEditor } from "./code-editor";
 
 const STORAGE_KEY = "flint.editor.layout";
 const HOST_ID = "layout-host";
 const HEADER_HEIGHT = 20;
 
-type PanelType = "Viewport" | "Hierarchy" | "Assets" | "Inspector";
+type PanelType = "Viewport" | "CodeEditor" | "Hierarchy" | "Assets" | "Inspector";
 
 type PanelDefinition = {
     type: PanelType;
@@ -13,6 +14,7 @@ type PanelDefinition = {
 
 const panelDefinitions: readonly PanelDefinition[] = [
     { type: "Viewport", templateId: "viewport-panel-template" },
+    { type: "CodeEditor", templateId: "code-editor-panel-template" },
     { type: "Hierarchy", templateId: "hierarchy-panel-template" },
     { type: "Assets", templateId: "assets-panel-template" },
     { type: "Inspector", templateId: "inspector-panel-template" }
@@ -156,6 +158,30 @@ function wrapComponentInStack(item: {
     };
 }
 
+function createViewportAndEditorStack() {
+    return {
+        type: "stack" as const,
+        size: "75%",
+        isClosable: true,
+        content: [
+            {
+                type: "component" as const,
+                componentType: "Viewport",
+                title: "Viewport",
+                isClosable: true,
+                reorderEnabled: true
+            },
+            {
+                type: "component" as const,
+                componentType: "CodeEditor",
+                title: "Code Editor",
+                isClosable: true,
+                reorderEnabled: true
+            }
+        ]
+    };
+}
+
 function createDefaultLayout(): LayoutConfig {
     return {
         root: {
@@ -167,9 +193,9 @@ function createDefaultLayout(): LayoutConfig {
                     content: [
                         {
                             type: "row",
-                            size: "75%",
+                            size: "80%",
                             content: [
-                                createPanelStack("Viewport", "Viewport", "80%"),
+                                createViewportAndEditorStack(),
                                 createPanelStack("Hierarchy", "Hierarchy", "20%")
                             ]
                         },
@@ -225,6 +251,13 @@ function bindPanelComponent(container: ComponentContainer, itemConfig: ResolvedC
 
     const template = getTemplateElement(templateId);
     container.element.appendChild(template);
+
+    if (componentType === "CodeEditor") {
+        const codeEditorContainer = template.querySelector("#code-editor-container");
+        if (codeEditorContainer instanceof HTMLElement) {
+            CodeEditor.init(codeEditorContainer);
+        }
+    }
 
     return {
         component: {

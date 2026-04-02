@@ -24,6 +24,17 @@
     <link rel="stylesheet" href="./dist/main.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css">
+    <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://unpkg.com/monaco-editor@0.34.0/min/vs/editor/editor.main.css">
+    <script>
+        var require = {
+            paths: {
+                vs: "https://unpkg.com/monaco-editor@0.34.0/min/vs"
+            }
+        };
+    </script>
+    <script src="https://unpkg.com/monaco-editor@0.34.0/min/vs/loader.js"></script>
+    <script src="https://unpkg.com/monaco-editor@0.34.0/min/vs/editor/editor.main.nls.js"></script>
+    <script src="https://unpkg.com/monaco-editor@0.34.0/min/vs/editor/editor.main.js"></script>
 </head>
 
 
@@ -145,6 +156,10 @@
     <div id="layout-templates" aria-hidden="true">
         <div id="viewport-panel-template" class="panel-content viewport-panel">
             <div id="root"></div>
+        </div>
+
+        <div id="code-editor-panel-template" class="panel-content code-editor-panel">
+            <div id="code-editor-container"></div>
         </div>
 
         <div id="hierarchy-panel-template" class="panel-content">

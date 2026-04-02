@@ -151,6 +151,11 @@ sl-details::part(header) {
     color: #ffffff;
 } */
 
+section.lm_tabs > div.lm_tab.lm_active.lm_focused {
+    background: #242428;
+    color: #fff;
+}
+
 .lm_content {
     /* background: #111317; */
     background: var(--sl-color-neutral-0);
@@ -162,10 +167,10 @@ sl-details::part(header) {
     background: #1f2329;
 } */
 
-.lm_splitter:hover,
+/* .lm_splitter:hover,
 .lm_drag_handle {
     background: #8f6f1e;
-}
+} */
 
 .lm_controls .lm_close,
 .lm_header .lm_tab .lm_close_tab {
@@ -439,4 +444,18 @@ legend {
     font-weight: 600;
     font-size: 1rem;
     text-transform: uppercase;
+}
+
+.code-editor-panel {
+    background: #1e1e1e;
+}
+
+.code-editor-panel #code-editor-container {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.code-editor-panel .monaco-editor {
+    padding-top: 4px;
 }

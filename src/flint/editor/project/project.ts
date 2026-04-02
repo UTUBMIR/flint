@@ -373,7 +373,7 @@ export class Project {
 
     public static async openInFileEditor(pathToOpen: string) {
         if (ProjectConfig.config.rootPath === "virtual") {
-            CodeEditor.openVirtualEditor(pathToOpen);
+            CodeEditor.openFile(pathToOpen);
             return;
         }
         if (!ProjectConfig.config.rootPath) {

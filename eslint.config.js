@@ -6,7 +6,7 @@ import { defineConfig } from "eslint/config";
 
 export default defineConfig([
   {
-    files: ["**/*.{ts,mjs,cjs,jsx,tsx,mts,cts}"],
+    files: ["src/**/*.ts", "src/**/*.tsx"],
 
     languageOptions: {
       globals: globals.browser,
@@ -51,9 +51,22 @@ export default defineConfig([
         },
       ],
 
-      "@typescript-eslint/explicit-member-accessibility": "error",
-
+      "@typescript-eslint/no-explicit-any": "off",
       "import/no-cycle": "error",
+    },
+  },
+  {
+    files: ["src/flint/public/**/*.ts", "old_*.ts"],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        project: "./tsconfig.json",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/explicit-member-accessibility": "off",
+      "@typescript-eslint/no-empty-object-type": "off",
     },
   },
 ]);
