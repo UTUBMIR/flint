@@ -24,7 +24,8 @@
     "scripts": {
         "build:libs": "npx esbuild node_modules/planck-js/dist/planck.mjs --bundle --format=esm --outfile=src/flint/public/libs/planck.js --platform=browser --target=es2022 && rollup -c",
         "build": "concurrently \"npm run build:js\" \"npm run build:types && node type-generator.js\"",
-        "build:js": "esbuild src/main.ts --bundle --outfile=dist/main.js --target=es2022 --platform=browser --minify --sourcemap",
+        "build:dev": "esbuild src/main.ts --bundle --outfile=dist/main.js --target=es2022 --platform=browser --minify --sourcemap --watch",
+        "build:js": "esbuild src/main.ts --bundle --outfile=dist/main.js --target=es2022 --platform=browser --minify",
         "build:types": "tsc -p tsconfig.json --emitDeclarationOnly"
     },
     "devDependencies": {

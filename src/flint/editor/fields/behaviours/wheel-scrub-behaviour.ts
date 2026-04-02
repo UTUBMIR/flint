@@ -1,7 +1,7 @@
 import { type FieldBehavior, type BehaviorContext } from "../field-behaviour";
 
 export class WheelScrubBehavior implements FieldBehavior {
-    private speed = 0.5;
+    private speed = 0.005;
     private shiftMult = 8;
     private ctrlMult = 0.1;
 
