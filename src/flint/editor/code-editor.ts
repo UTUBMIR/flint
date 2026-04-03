@@ -107,6 +107,7 @@ export class CodeEditor {
     private static completionsInstalled: boolean = false;
     private static hasUnsavedChanges: boolean = false;
     private static autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+    private static monacoLoadPromise: Promise<void> | null = null;
 
     private static readonly autoSaveDelayMs: number = 300;
 
@@ -158,17 +159,78 @@ export class CodeEditor {
         this.editor?.focus();
     }
 
+    private static hasTypescriptSupport(): boolean {
+        const monaco = this.Monaco as {
+            editor?: { create?: unknown };
+            languages?: {
+                typescript?: {
+                    typescriptDefaults?: unknown;
+                };
+            };
+        };
+
+        return Boolean(
+            monaco?.editor?.create &&
+            monaco?.languages?.typescript?.typescriptDefaults
+        );
+    }
+
     private static async waitForMonaco(): Promise<void> {
-        const maxAttempts = 100;
-        const interval = 100;
-        for (let i = 0; i < maxAttempts; i++) {
-            const monaco = this.Monaco as { editor?: { create?: unknown } };
-            if (monaco?.editor?.create) {
-                return;
-            }
-            await new Promise(resolve => setTimeout(resolve, interval));
+        if (this.hasTypescriptSupport()) {
+            return;
         }
-        throw new Error("Monaco editor failed to load");
+
+        if (!this.monacoLoadPromise) {
+            this.monacoLoadPromise = new Promise<void>((resolve, reject) => {
+                const amdRequire = (globalThis as {
+                    require?: ((modules: string[], onLoad: () => void, onError?: (error: unknown) => void) => void) & {
+                        config?: (options: { paths: Record<string, string> }) => void;
+                    };
+                }).require;
+
+                if (typeof amdRequire === "function") {
+                    amdRequire.config?.({
+                        paths: {
+                            vs: "./dist/vendor/monaco/vs"
+                        }
+                    });
+
+                    amdRequire(
+                        ["vs/editor/editor.main", "vs/language/typescript/monaco.contribution"],
+                        () => resolve(),
+                        error => reject(error instanceof Error ? error : new Error(String(error)))
+                    );
+                    return;
+                }
+
+                const maxAttempts = 100;
+                const interval = 100;
+                let attempts = 0;
+
+                const poll = () => {
+                    if (this.hasTypescriptSupport()) {
+                        resolve();
+                        return;
+                    }
+
+                    attempts += 1;
+                    if (attempts >= maxAttempts) {
+                        reject(new Error("Monaco editor failed to load"));
+                        return;
+                    }
+
+                    setTimeout(poll, interval);
+                };
+
+                poll();
+            });
+        }
+
+        await this.monacoLoadPromise;
+
+        if (!this.hasTypescriptSupport()) {
+            throw new Error("Monaco TypeScript support failed to load");
+        }
     }
 
     private static libsLoaded: boolean = false;

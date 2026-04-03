@@ -118,7 +118,7 @@ export default class Bundler {
         if (!Bundler.esbuild) {
             const { default: esbuild } = await dynamicImport(__FLINT_ESBUILD_MODULE_URL__);
             await esbuild.initialize({
-                wasmURL: __FLINT_ESBUILD_WASM_URL__,
+                wasmURL: new URL(__FLINT_ESBUILD_WASM_URL__, window.location.href).toString(),
             });
 
             Bundler.esbuild = esbuild;
