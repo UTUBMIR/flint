@@ -74,3 +74,8 @@ copyRecursive(
     path.join(projectRoot, "node_modules", "esbuild-wasm", "esbuild.wasm"),
     path.join(esbuildDir, "esbuild.wasm")
 );
+
+copyRecursive(
+    path.join(projectRoot, "node_modules", "esbuild-wasm", "esm", "browser.min.js"),
+    path.join(esbuildDir, "browser.min.js")
+);

@@ -50,8 +50,6 @@ export default defineConfig([
           disallowTypeAnnotations: false,
         },
       ],
-
-      "@typescript-eslint/no-explicit-any": "off",
       "import/no-cycle": "error",
     },
   },
