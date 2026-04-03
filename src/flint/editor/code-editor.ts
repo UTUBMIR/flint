@@ -104,6 +104,9 @@ export class CodeEditor {
     private static modulesByPath: Map<string, ModuleExports> = new Map();
     private static completionsInstalled: boolean = false;
     private static hasUnsavedChanges: boolean = false;
+    private static autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+    private static readonly autoSaveDelayMs: number = 300;
 
     private static readonly typeNames: Record<string, string> = {
         "ts": "typescript",
@@ -126,6 +129,26 @@ export class CodeEditor {
 
     public static isReady(): boolean {
         return this.isInitialized;
+    }
+
+    private static attachModelListeners(model: EditorTab["model"]): void {
+        model.onDidChangeContent(() => {
+            this.checkForUnsavedChanges();
+            this.scheduleAutoSave();
+        });
+    }
+
+    private static scheduleAutoSave(): void {
+        if (!this.currentPath || !this.editor || !this.model) return;
+
+        if (this.autoSaveTimer) {
+            clearTimeout(this.autoSaveTimer);
+        }
+
+        this.autoSaveTimer = setTimeout(() => {
+            this.autoSaveTimer = null;
+            void this.saveCurrentFile();
+        }, this.autoSaveDelayMs);
     }
 
     private static async waitForMonaco(): Promise<void> {
@@ -183,9 +206,7 @@ export class CodeEditor {
         const model = this.editor.getModel();
         if (model) {
             this.model = model;
-            model.onDidChangeContent(() => {
-                this.checkForUnsavedChanges();
-            });
+            this.attachModelListeners(model);
         }
         this.isInitialized = true;
 
@@ -265,6 +286,7 @@ export class CodeEditor {
         const language = this.getLanguageFromPath(path);
 
         const model = this.Monaco.editor.createModel(text, language);
+        this.attachModelListeners(model);
         this.editor.setModel(model);
         this.model = model;
 
@@ -293,6 +315,11 @@ export class CodeEditor {
 
     public static async saveCurrentFile(): Promise<void> {
         if (!this.currentPath || !this.editor || !this.model) return;
+
+        if (this.autoSaveTimer) {
+            clearTimeout(this.autoSaveTimer);
+            this.autoSaveTimer = null;
+        }
 
         const text = this.model.getValue();
         await System.fileSystem.writeTextFile(this.currentPath, text);

@@ -459,3 +459,7 @@ legend {
 .code-editor-panel .monaco-editor {
     padding-top: 4px;
 }
+
+.lm_dropTargetIndicator {
+    z-index: 1000;
+}
