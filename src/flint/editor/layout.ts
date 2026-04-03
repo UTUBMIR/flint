@@ -255,7 +255,7 @@ function bindPanelComponent(container: ComponentContainer, itemConfig: ResolvedC
     if (componentType === "CodeEditor") {
         const codeEditorContainer = template.querySelector("#code-editor-container");
         if (codeEditorContainer instanceof HTMLElement) {
-            CodeEditor.init(codeEditorContainer);
+            CodeEditor.init(codeEditorContainer, container);
         }
     }
 

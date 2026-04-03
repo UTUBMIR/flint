@@ -1,3 +1,4 @@
+import type { ComponentContainer } from "golden-layout";
 import { System } from "@flint/runtime/system";
 import ProjectConfig from "./project/project-config";
 
@@ -95,6 +96,7 @@ interface IStandaloneCodeEditor {
 
 export class CodeEditor {
     private static container: HTMLElement | null = null;
+    private static panelContainer: ComponentContainer | null = null;
     private static editor: IStandaloneCodeEditor | null = null;
     private static model: EditorTab["model"] | null = null;
     private static currentPath: string = "";
@@ -151,6 +153,11 @@ export class CodeEditor {
         }, this.autoSaveDelayMs);
     }
 
+    private static focusEditorPanel(): void {
+        this.panelContainer?.focus();
+        this.editor?.focus();
+    }
+
     private static async waitForMonaco(): Promise<void> {
         const maxAttempts = 100;
         const interval = 100;
@@ -166,10 +173,11 @@ export class CodeEditor {
 
     private static libsLoaded: boolean = false;
 
-    public static async init(container: HTMLElement): Promise<void> {
-        if (this.isInitialized) return;
-
+    public static async init(container: HTMLElement, panelContainer?: ComponentContainer): Promise<void> {
         this.container = container;
+        this.panelContainer = panelContainer ?? this.panelContainer;
+
+        if (this.isInitialized) return;
 
         await this.waitForMonaco();
 
@@ -299,7 +307,7 @@ export class CodeEditor {
         this.activeTabPath = path;
         this.currentPath = path;
 
-        this.editor.focus();
+        this.focusEditorPanel();
     }
 
     private static switchToTab(path: string): void {
@@ -310,7 +318,7 @@ export class CodeEditor {
         this.model = tab.model;
         this.activeTabPath = path;
         this.currentPath = path;
-        this.editor.focus();
+        this.focusEditorPanel();
     }
 
     public static async saveCurrentFile(): Promise<void> {
