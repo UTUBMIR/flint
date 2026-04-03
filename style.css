@@ -463,3 +463,7 @@ legend {
 .lm_dropTargetIndicator {
     z-index: 1000;
 }
+
+.lm_dragProxy {
+    z-index: 1000;
+}

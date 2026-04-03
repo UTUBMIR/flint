@@ -114,7 +114,7 @@ export default class Bundler {
     public static async init() {
         if (!Bundler.esbuild) {
             await esbuild.initialize({
-                wasmURL: new URL("vendor/esbuild/esbuild.wasm", window.location.href).toString(),
+                wasmURL: new URL("dist/vendor/esbuild/esbuild.wasm", window.location.href).toString(),
             });
 
             Bundler.esbuild = esbuild;
