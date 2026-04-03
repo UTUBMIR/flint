@@ -1,3 +1,4 @@
+import esbuild from "esbuild-wasm/esm/browser.min.js";
 import ProjectConfig from "./project-config";
 
 export default class Bundler {
@@ -112,10 +113,8 @@ export default class Bundler {
 
     public static async init() {
         if (!Bundler.esbuild) {
-            const { default: esbuild } = await import("https://cdn.jsdelivr.net/npm/esbuild-wasm@0.19.12/esm/browser.min.js");
-
             await esbuild.initialize({
-                wasmURL: "https://cdn.jsdelivr.net/npm/esbuild-wasm@0.19.12/esbuild.wasm",
+                wasmURL: new URL("vendor/esbuild/esbuild.wasm", window.location.href).toString(),
             });
 
             Bundler.esbuild = esbuild;

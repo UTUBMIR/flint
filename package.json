@@ -22,10 +22,12 @@
     "type": "module",
     "main": "main.js",
     "scripts": {
+        "copy:editor-assets": "node scripts/copy-editor-assets.mjs",
+        "build:shoelace": "esbuild src/vendor/shoelace.ts --bundle --format=esm --outfile=dist/vendor/shoelace/shoelace.js --target=es2022 --platform=browser --minify",
         "build:libs": "npx esbuild node_modules/planck-js/dist/planck.mjs --bundle --format=esm --outfile=src/flint/public/libs/planck.js --platform=browser --target=es2022 && rollup -c",
         "build": "concurrently \"npm run build:js\" \"npm run build:types && node type-generator.js\"",
-        "build:dev": "esbuild src/main.ts --bundle --outfile=dist/main.js --target=es2022 --platform=browser --minify --sourcemap --loader:.png=dataurl --watch",
-        "build:js": "esbuild src/main.ts --bundle --outfile=dist/main.js --target=es2022 --platform=browser --minify --sourcemap --loader:.png=dataurl",
+        "build:dev": "npm run copy:editor-assets && npm run build:shoelace && esbuild src/main.ts --bundle --outfile=dist/main.js --target=es2022 --platform=browser --minify --sourcemap --loader:.png=dataurl --watch",
+        "build:js": "npm run copy:editor-assets && npm run build:shoelace && esbuild src/main.ts --bundle --outfile=dist/main.js --target=es2022 --platform=browser --minify --sourcemap --loader:.png=dataurl",
         "build:types": "tsc -p tsconfig.json --emitDeclarationOnly"
     },
     "devDependencies": {
