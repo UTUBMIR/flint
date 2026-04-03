@@ -118,7 +118,16 @@
                         </sl-menu-item>
                     </sl-menu>
                 </sl-dropdown>
-                <sl-button size="small">Window</sl-button>
+                <sl-dropdown>
+                    <sl-button size="small" slot="trigger">Window</sl-button>
+                    <sl-menu>
+                        <sl-menu-label>Layout</sl-menu-label>
+                        <sl-menu-item id="reset-layout-button" value="reset-layout">
+                            <sl-icon slot="prefix" name="arrow-clockwise"></sl-icon>
+                            Reset Layout
+                        </sl-menu-item>
+                    </sl-menu>
+                </sl-dropdown>
                 <sl-button size="small">Help</sl-button>
             </sl-button-group>
         </div>

@@ -12,6 +12,7 @@ import Shape from "../runtime/components/shape";
 import Transform from "../runtime/transform";
 import { System } from "../runtime/system";
 import { Builder } from "./project/builder";
+import { resetStoredLayout } from "./layout";
 import PhysicsBody from "@flint/runtime/components/physics/physics-body";
 import BoxCollider from "@flint/runtime/components/physics/box-collider";
 import Label from "@flint/runtime/components/label";
@@ -203,6 +204,11 @@ class ToolBarActions {
                 Notifier.notify("Project stopped.", "primary");
             }
         }
+    }
+
+    public static resetLayout() {
+        resetStoredLayout();
+        window.location.reload();
     }
 }
 
@@ -433,6 +439,8 @@ export default class Editor {
                     await ToolBarActions.compile();
                 }
             }, true);
+
+            document.getElementById("reset-layout-button")!.addEventListener("click", ToolBarActions.resetLayout);
 
             this.runButton = document.getElementById("run-button")! as HTMLButtonElement;
 

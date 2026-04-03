@@ -294,7 +294,7 @@ function loadStoredLayout(): LayoutConfig | null {
     }
 }
 
-function makeItemDockable(item: unknown): unknown {
+function makeItemDockable(item: unknown, parentType?: string): unknown {
     if (!item || typeof item !== "object") {
         return item;
     }
@@ -311,7 +311,7 @@ function makeItemDockable(item: unknown): unknown {
         header?: Record<string, unknown>;
     };
 
-    if (typedItem.type === "component") {
+    if (typedItem.type === "component" && parentType !== "stack") {
         return wrapComponentInStack(typedItem);
     }
 
@@ -323,14 +323,14 @@ function makeItemDockable(item: unknown): unknown {
                 ...typedItem.header,
                 close: "Close"
             },
-            content: typedItem.content?.map(makeItemDockable)
+            content: typedItem.content?.map(child => makeItemDockable(child, "stack"))
         };
     }
 
     if ((typedItem.type === "row" || typedItem.type === "column") && typedItem.content) {
         return {
             ...typedItem,
-            content: typedItem.content.map(makeItemDockable)
+            content: typedItem.content.map(child => makeItemDockable(child, typedItem.type))
         };
     }
 
@@ -368,6 +368,10 @@ function saveLayout(layout: GoldenLayout) {
     const resolved = layout.saveLayout();
     const serializable = LayoutConfig.fromResolved(resolved);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+}
+
+export function resetStoredLayout(): void {
+    localStorage.removeItem(STORAGE_KEY);
 }
 
 export function initializeEditorLayout(): GoldenLayout {
