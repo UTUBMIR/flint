@@ -4,6 +4,7 @@ import { CodeEditor } from "./code-editor";
 const STORAGE_KEY = "flint.editor.layout";
 const HOST_ID = "layout-host";
 const HEADER_HEIGHT = 20;
+let currentLayout: GoldenLayout | null = null;
 
 type PanelType = "Viewport" | "CodeEditor" | "Hierarchy" | "Assets" | "Inspector";
 
@@ -374,6 +375,17 @@ export function resetStoredLayout(): void {
     localStorage.removeItem(STORAGE_KEY);
 }
 
+export function resetEditorLayout(): void {
+    const layout = currentLayout;
+    if (!layout) {
+        resetStoredLayout();
+        return;
+    }
+
+    resetStoredLayout();
+    layout.loadLayout(createDefaultLayout());
+}
+
 export function initializeEditorLayout(): GoldenLayout {
     installLiveSplitterResize();
 
@@ -383,6 +395,7 @@ export function initializeEditorLayout(): GoldenLayout {
     }
 
     const layout = new GoldenLayout(host, bindPanelComponent, unbindPanelComponent);
+    currentLayout = layout;
 
     let saveTimeout: number | undefined;
     layout.addEventListener("stateChanged", () => {
