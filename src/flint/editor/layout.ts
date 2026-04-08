@@ -1,10 +1,13 @@
 import { type ComponentContainer, GoldenLayout, LayoutConfig, type ResolvedComponentItemConfig, RowOrColumn } from "golden-layout";
 import { CodeEditor } from "./code-editor";
+import { FloatingPanelManager, type FloatingPanelState } from "./floating-panels";
 
 const STORAGE_KEY = "flint.editor.layout";
 const HOST_ID = "layout-host";
+const STORAGE_VERSION = 2;
 const HEADER_HEIGHT = 20;
 let currentLayout: GoldenLayout | null = null;
+let currentFloatingPanels: FloatingPanelManager | null = null;
 
 type PanelType = "Viewport" | "CodeEditor" | "Hierarchy" | "Assets" | "Inspector";
 
@@ -35,6 +38,14 @@ type LiveResizeRowOrColumn = RowOrColumn & {
         after: { element: HTMLElement; size: number; updateSize: (force: boolean) => void };
     };
     updateSize: (force: boolean) => void;
+};
+
+type AnimatedDropTargetIndicator = {
+    _element?: HTMLElement;
+    highlightArea: (area: { x1: number; y1: number; x2: number; y2: number }, margin: number) => void;
+    hide: () => void;
+    __flintAnimationInstalled?: boolean;
+    __flintHideTimeout?: number;
 };
 
 function installLiveSplitterResize() {
@@ -115,6 +126,42 @@ function installLiveSplitterResize() {
         }
 
         originalDragStop.call(this, splitter);
+    };
+}
+
+function installAnimatedDropTargetIndicator(layout: GoldenLayout) {
+    const internalLayout = layout as GoldenLayout & {
+        dropTargetIndicator?: AnimatedDropTargetIndicator | null;
+    };
+
+    const indicator = internalLayout.dropTargetIndicator;
+    if (!indicator || indicator.__flintAnimationInstalled) {
+        return;
+    }
+
+    const element = indicator._element;
+    if (!(element instanceof HTMLElement)) {
+        return;
+    }
+
+    indicator.__flintAnimationInstalled = true;
+    const originalHighlightArea = indicator.highlightArea.bind(indicator);
+
+    indicator.highlightArea = (area, margin) => {
+        window.clearTimeout(indicator.__flintHideTimeout);
+        element.classList.remove("flint-drop-target-fading");
+        originalHighlightArea(area, margin);
+        element.classList.add("flint-drop-target-visible");
+    };
+
+    indicator.hide = () => {
+        window.clearTimeout(indicator.__flintHideTimeout);
+        element.classList.remove("flint-drop-target-visible");
+        element.classList.add("flint-drop-target-fading");
+        indicator.__flintHideTimeout = window.setTimeout(() => {
+            element.classList.remove("flint-drop-target-fading");
+            element.style.display = "none";
+        }, 140);
     };
 }
 
@@ -281,14 +328,33 @@ function unbindPanelComponent(container: ComponentContainer) {
     }
 }
 
-function loadStoredLayout(): LayoutConfig | null {
+type StoredLayoutSnapshot = {
+    version: number;
+    dockedLayout: LayoutConfig;
+    floatingPanels: FloatingPanelState[];
+};
+
+function loadStoredLayout(): StoredLayoutSnapshot | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
         return null;
     }
 
     try {
-        return JSON.parse(raw) as LayoutConfig;
+        const parsed = JSON.parse(raw) as Partial<StoredLayoutSnapshot> & LayoutConfig;
+        if ("dockedLayout" in parsed) {
+            return {
+                version: typeof parsed.version === "number" ? parsed.version : STORAGE_VERSION,
+                dockedLayout: parsed.dockedLayout ?? createDefaultLayout(),
+                floatingPanels: Array.isArray(parsed.floatingPanels) ? parsed.floatingPanels : []
+            };
+        }
+
+        return {
+            version: STORAGE_VERSION,
+            dockedLayout: parsed as LayoutConfig,
+            floatingPanels: []
+        };
     } catch {
         localStorage.removeItem(STORAGE_KEY);
         return null;
@@ -368,7 +434,12 @@ function normalizeLayoutConfig(layoutConfig: LayoutConfig): LayoutConfig {
 function saveLayout(layout: GoldenLayout) {
     const resolved = layout.saveLayout();
     const serializable = LayoutConfig.fromResolved(resolved);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+    const snapshot: StoredLayoutSnapshot = {
+        version: STORAGE_VERSION,
+        dockedLayout: serializable,
+        floatingPanels: currentFloatingPanels?.serialize() ?? []
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
 }
 
 export function resetStoredLayout(): void {
@@ -383,6 +454,7 @@ export function resetEditorLayout(): void {
     }
 
     resetStoredLayout();
+    currentFloatingPanels?.clearFloatingPanels(true);
     layout.loadLayout(createDefaultLayout());
 }
 
@@ -396,8 +468,14 @@ export function initializeEditorLayout(): GoldenLayout {
 
     const layout = new GoldenLayout(host, bindPanelComponent, unbindPanelComponent);
     currentLayout = layout;
-
     let saveTimeout: number | undefined;
+    currentFloatingPanels = new FloatingPanelManager(layout, host, () => {
+        window.clearTimeout(saveTimeout);
+        saveTimeout = window.setTimeout(() => {
+            saveLayout(layout);
+        }, 100);
+    });
+
     layout.addEventListener("stateChanged", () => {
         window.clearTimeout(saveTimeout);
         saveTimeout = window.setTimeout(() => {
@@ -405,14 +483,18 @@ export function initializeEditorLayout(): GoldenLayout {
         }, 100);
     });
 
-    const layoutConfig = normalizeLayoutConfig(loadStoredLayout() ?? createDefaultLayout());
+    const storedSnapshot = loadStoredLayout();
+    const layoutConfig = normalizeLayoutConfig(storedSnapshot?.dockedLayout ?? createDefaultLayout());
 
     try {
         layout.loadLayout(layoutConfig);
+        installAnimatedDropTargetIndicator(layout);
+        currentFloatingPanels.restore(storedSnapshot?.floatingPanels ?? []);
     } catch (error) {
         console.warn("Failed to load stored GoldenLayout config, restoring defaults.", error);
         localStorage.removeItem(STORAGE_KEY);
         layout.loadLayout(createDefaultLayout());
+        installAnimatedDropTargetIndicator(layout);
     }
 
     return layout;

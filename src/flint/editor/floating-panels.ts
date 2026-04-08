@@ -1,0 +1,1174 @@
+import type { ComponentItem, ComponentItemConfig, ContentItem, GoldenLayout, Stack, Tab } from "golden-layout";
+
+const FLOATING_OVERLAY_ID = "layout-floating-host";
+const FLOATING_STACK_ID_PREFIX = "flint-floating-stack-";
+const DEFAULT_FLOAT_WIDTH = 420;
+const DEFAULT_FLOAT_HEIGHT = 280;
+const MIN_VISIBLE_MARGIN = 24;
+const DRAG_PROXY_CLASS = "lm_dragProxy";
+const HEADER_CLASS = "lm_header";
+const TABS_CLASS = "lm_tabs";
+const TAB_CLASS = "lm_tab";
+const TITLE_CLASS = "lm_title";
+const CONTENT_CLASS = "lm_content";
+const DRAGGING_CLASS = "flint-floating-window-dragging";
+const DOCK_GUIDE_CLASS = "flint-dock-guide";
+const DOCK_GUIDE_VISIBLE_CLASS = "visible";
+const DOCK_GUIDE_ACTIVE_CLASS = "active";
+const RESIZE_DIRECTIONS = [
+    "n",
+    "e",
+    "s",
+    "w",
+    "ne",
+    "nw",
+    "se",
+    "sw"
+] as const;
+const DOCK_ZONES = ["top", "left", "center", "right", "bottom"] as const;
+
+type ResizeDirection = typeof RESIZE_DIRECTIONS[number];
+type DockZone = typeof DOCK_ZONES[number];
+
+type Bounds = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+};
+
+type FloatingDockTarget = {
+    stackId: string | null;
+    index: number;
+};
+
+export type FloatingPanelState = {
+    componentId: string;
+    componentConfig: Record<string, unknown>;
+    bounds: Bounds;
+    zIndex: number;
+    dockTarget: FloatingDockTarget | null;
+};
+
+type DockArea = {
+    x1?: number;
+    y1?: number;
+    x2?: number;
+    y2?: number;
+    surface?: number;
+    contentItem: InternalContentItem;
+};
+
+type InternalComponentItem = ComponentItem & {
+    enterDragMode: (width: number, height: number) => void;
+    exitDragMode: () => void;
+    drag: () => void;
+    show: () => void;
+    destroy: () => void;
+};
+
+type InternalContentItem = ContentItem & {
+    updateSize: (force: boolean) => void;
+    onDrop: (contentItem: ContentItem, area: DockArea) => void;
+    highlightDropZone: (x: number, y: number, area: DockArea) => void;
+};
+
+type InternalStack = Stack & InternalContentItem & {
+    addChild: (contentItem: ContentItem, index?: number, focus?: boolean) => number;
+    getArea: () => DockArea | null;
+    childElementContainer: HTMLElement;
+    contentAreaDimensions?: Partial<Record<DockZone | "header" | "body", { highlightArea: DockArea }>>;
+    header: {
+        element: HTMLElement;
+    };
+    _dropSegment?: "header" | "body" | "left" | "right" | "top" | "bottom";
+    destroy: () => void;
+};
+
+type InternalLayout = GoldenLayout & {
+    createAndInitContentItem: (config: unknown, parent: ContentItem) => ContentItem;
+    calculateItemAreas: () => void;
+    getArea: (x: number, y: number) => DockArea | null;
+    groundItem?: ContentItem;
+    dropTargetIndicator: {
+        hide: () => void;
+        highlightArea: (area: DockArea, level: number) => void;
+    } | null;
+    tabDropPlaceholder: HTMLElement;
+    emit: (eventName: string, ...args: unknown[]) => void;
+};
+
+interface InternalDragListener {
+    on(eventName: "drag", callback: (offsetX: number, offsetY: number, event: PointerEvent) => void): void;
+    on(eventName: "dragStop", callback: (event?: PointerEvent) => void): void;
+    off(eventName: "drag", callback: (offsetX: number, offsetY: number, event: PointerEvent) => void): void;
+    off(eventName: "dragStop", callback: (event?: PointerEvent) => void): void;
+}
+
+type InternalTab = Tab & {
+    _dragStartEvent?: (x: number, y: number, dragListener: InternalDragListener, componentItem: ComponentItem) => void;
+};
+
+type FloatingPanel = {
+    componentId: string;
+    componentItem: InternalComponentItem;
+    floatingStack: InternalStack;
+    shell: HTMLElement;
+    title: HTMLElement;
+    body: HTMLElement;
+    handleTitleChanged: (updatedTitle: string) => void;
+    bounds: Bounds;
+    zIndex: number;
+    dockTarget: FloatingDockTarget | null;
+};
+
+type FloatOptions = {
+    bounds?: Bounds;
+    dockTarget?: FloatingDockTarget | null;
+    zIndex?: number;
+};
+
+type DockPreview =
+    | {
+        kind: "header";
+        stack: InternalStack;
+        area: DockArea;
+        pointerX: number;
+        pointerY: number;
+    }
+    | {
+        kind: "zone";
+        stack: InternalStack;
+        area: DockArea;
+        zone: DockZone;
+    };
+
+type ResolvedHeaderConfig = {
+    show?: false | string;
+    popout?: false | string;
+    maximise?: false | string;
+    close?: string;
+    minimise?: string;
+    tabDropdown?: false | string;
+};
+
+type ResolvedComponentConfig = {
+    type: "component";
+    title: string;
+    componentType: unknown;
+    componentState?: unknown;
+    id: string;
+    maximised: boolean;
+    isClosable: boolean;
+    reorderEnabled: boolean;
+    header?: ResolvedHeaderConfig;
+    size: number;
+    sizeUnit: string;
+    minSize?: number;
+    minSizeUnit: string;
+};
+
+function ensureComponentId(componentItem: ComponentItem): string {
+    if (componentItem.id) {
+        return componentItem.id;
+    }
+
+    const fallbackId = `flint-panel-${String(componentItem.componentType).toLowerCase()}-${Date.now()}`;
+    componentItem.id = fallbackId;
+    return fallbackId;
+}
+
+function clamp(value: number, min: number, max: number): number {
+    return Math.min(Math.max(value, min), max);
+}
+
+function parsePixels(value: string | number | undefined, fallback: number): number {
+    if (typeof value === "number") {
+        return value;
+    }
+
+    const parsed = Number.parseFloat(value ?? "");
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function isPointerInsideRect(x: number, y: number, rect: DOMRect): boolean {
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+
+function formatSize(size: number | undefined, unit: string): string | undefined {
+    if (size === undefined) {
+        return undefined;
+    }
+
+    return `${size}${unit}`;
+}
+
+function toSerializableComponentConfig(componentItem: InternalComponentItem): Record<string, unknown> {
+    const resolved = componentItem.toConfig() as unknown as ResolvedComponentConfig;
+    const result: Record<string, unknown> = {
+        type: "component",
+        title: resolved.title,
+        componentType: resolved.componentType,
+        id: resolved.id,
+        isClosable: resolved.isClosable,
+        reorderEnabled: resolved.reorderEnabled,
+        maximised: resolved.maximised,
+        size: formatSize(resolved.size, resolved.sizeUnit)
+    };
+
+    const minSize = formatSize(resolved.minSize, resolved.minSizeUnit);
+    if (minSize !== undefined) {
+        result.minSize = minSize;
+    }
+
+    if (resolved.componentState !== undefined) {
+        result.componentState = resolved.componentState;
+    }
+
+    if (resolved.header !== undefined) {
+        result.header = { ...resolved.header };
+    }
+
+    return result;
+}
+
+function createFloatingStackConfig(stackId: string): Record<string, unknown> {
+    return {
+        type: "stack",
+        content: [],
+        size: 1,
+        sizeUnit: "fr",
+        minSize: undefined,
+        minSizeUnit: "px",
+        id: stackId,
+        maximised: false,
+        isClosable: false,
+        activeItemIndex: 0,
+        header: {
+            show: false,
+            popout: false,
+            close: undefined,
+            maximise: undefined,
+            minimise: undefined,
+            tabDropdown: false
+        }
+    };
+}
+
+class TabTearOffDragProxy {
+    private readonly proxyElement: HTMLElement;
+    private readonly proxyContentElement: HTMLElement;
+    private readonly dragCallback = (_offsetX: number, _offsetY: number, event: PointerEvent) => this.onDrag(event);
+    private readonly dragStopCallback = (event?: PointerEvent) => this.onDrop(event);
+    private readonly componentFocused: boolean;
+    private readonly minX: number;
+    private readonly minY: number;
+    private readonly maxX: number;
+    private readonly maxY: number;
+    private readonly sided: boolean;
+    private lastPointerX: number;
+    private lastPointerY: number;
+    private readonly dockTarget: FloatingDockTarget | null;
+
+    public constructor(
+        private readonly manager: FloatingPanelManager,
+        private readonly layout: InternalLayout,
+        private readonly x: number,
+        private readonly y: number,
+        private readonly dragListener: InternalDragListener,
+        private readonly componentItem: InternalComponentItem,
+        originalParent: Stack
+    ) {
+        this.dockTarget = manager.captureDockTarget(componentItem, originalParent);
+        this.lastPointerX = x;
+        this.lastPointerY = y;
+
+        const groundRect = this.layout.groundItem?.element.getBoundingClientRect();
+        if (!groundRect) {
+            throw new Error("GoldenLayout ground item is unavailable for floating drag.");
+        }
+
+        this.minX = groundRect.left + document.body.scrollLeft;
+        this.minY = groundRect.top + document.body.scrollTop;
+        this.maxX = this.minX + groundRect.width;
+        this.maxY = this.minY + groundRect.height;
+        this.sided = originalParent.headerShow && originalParent.headerLeftRightSided;
+
+        this.proxyElement = document.createElement("div");
+        this.proxyElement.classList.add(DRAG_PROXY_CLASS);
+        if (originalParent.headerShow) {
+            this.proxyElement.classList.add(`lm_${originalParent.headerSide}`);
+        }
+
+        const headerElement = document.createElement("div");
+        headerElement.classList.add(HEADER_CLASS);
+
+        const tabsElement = document.createElement("div");
+        tabsElement.classList.add(TABS_CLASS);
+
+        const tabElement = document.createElement("div");
+        tabElement.classList.add(TAB_CLASS);
+
+        const titleElement = document.createElement("span");
+        titleElement.classList.add(TITLE_CLASS);
+        titleElement.textContent = componentItem.title;
+        tabElement.title = componentItem.title;
+
+        tabElement.appendChild(titleElement);
+        tabsElement.appendChild(tabElement);
+        headerElement.appendChild(tabsElement);
+
+        this.proxyContentElement = document.createElement("div");
+        this.proxyContentElement.classList.add(CONTENT_CLASS);
+
+        this.proxyElement.appendChild(headerElement);
+        this.proxyElement.appendChild(this.proxyContentElement);
+
+        if (originalParent.headerShow && (originalParent.headerSide === "right" || originalParent.headerSide === "bottom")) {
+            this.proxyContentElement.insertAdjacentElement("afterend", headerElement);
+        }
+
+        this.componentFocused = componentItem.focused;
+        if (this.componentFocused) {
+            componentItem.blur();
+        }
+
+        if (!componentItem.parent) {
+            throw new Error("Dragged component is missing a parent stack.");
+        }
+
+        componentItem.parent.removeChild(componentItem, true);
+        this.proxyContentElement.appendChild(componentItem.element);
+        this.setDimensions();
+
+        this.proxyElement.style.left = `${x}px`;
+        this.proxyElement.style.top = `${y}px`;
+        document.body.appendChild(this.proxyElement);
+
+        this.setDropPosition(x, y);
+
+        this.dragListener.on("drag", this.dragCallback);
+        this.dragListener.on("dragStop", this.dragStopCallback);
+    }
+
+    private setDimensions(): void {
+        const { dimensions, header } = this.layout.layoutConfig;
+        let width = dimensions.dragProxyWidth;
+        let height = dimensions.dragProxyHeight;
+        const headerHeight = header.show === false ? 0 : dimensions.headerHeight;
+
+        this.proxyElement.style.width = `${width}px`;
+        this.proxyElement.style.height = `${height}px`;
+
+        width -= this.sided ? headerHeight : 0;
+        height -= this.sided ? 0 : headerHeight;
+        this.proxyContentElement.style.width = `${width}px`;
+        this.proxyContentElement.style.height = `${height}px`;
+        this.componentItem.enterDragMode(width, height);
+        this.componentItem.show();
+    }
+
+    private onDrag(event: PointerEvent): void {
+        this.lastPointerX = event.pageX;
+        this.lastPointerY = event.pageY;
+        this.setDropPosition(event.pageX, event.pageY);
+        this.componentItem.drag();
+    }
+
+    private setDropPosition(pageX: number, pageY: number): void {
+        let x = pageX;
+        let y = pageY;
+
+        if (this.layout.layoutConfig.settings.constrainDragToContainer) {
+            x = clamp(x, Math.ceil(this.minX), Math.floor(this.maxX));
+            y = clamp(y, Math.ceil(this.minY), Math.floor(this.maxY));
+        }
+
+        this.proxyElement.style.left = `${x}px`;
+        this.proxyElement.style.top = `${y}px`;
+        this.manager.updateDockPreview(pageX, pageY);
+    }
+
+    private onDrop(event?: PointerEvent): void {
+        this.dragListener.off("drag", this.dragCallback);
+        this.dragListener.off("dragStop", this.dragStopCallback);
+
+        this.componentItem.exitDragMode();
+        let redocked = false;
+
+        if (this.manager.applyDockPreview(this.componentItem)) {
+            redocked = true;
+        } else {
+            const finalX = event?.pageX ?? this.lastPointerX;
+            const finalY = event?.pageY ?? this.lastPointerY;
+            const proxyRect = this.proxyElement.getBoundingClientRect();
+            const dropBounds = this.manager.boundsFromViewportRect(proxyRect, finalX, finalY);
+            this.manager.clearDockPreview();
+            this.manager.attachDetachedComponent(this.componentItem, {
+                bounds: dropBounds,
+                dockTarget: this.dockTarget
+            });
+        }
+
+        this.proxyElement.remove();
+        this.layout.emit("itemDropped", this.componentItem);
+
+        if (redocked && this.componentFocused) {
+            this.componentItem.focus();
+        }
+    }
+}
+
+export class FloatingPanelManager {
+    private readonly internalLayout: InternalLayout;
+    private readonly overlay: HTMLElement;
+    private readonly dockGuide: HTMLElement;
+    private readonly dockGuideIcons = new Map<DockZone, HTMLElement>();
+    private readonly panels = new Map<string, FloatingPanel>();
+    private activeDockPreview: DockPreview | null = null;
+    private nextZIndex = 0;
+
+    public constructor(
+        private readonly layout: GoldenLayout,
+        private readonly host: HTMLElement,
+        private readonly onChanged: () => void
+    ) {
+        this.internalLayout = layout as InternalLayout;
+        this.overlay = this.createOverlay();
+        this.dockGuide = this.createDockGuide();
+        this.layout.addEventListener("tabCreated", tab => this.decorateTab(tab));
+    }
+
+    public destroy(): void {
+        this.clearDockPreview();
+        this.clearFloatingPanels(true);
+        this.overlay.remove();
+    }
+
+    public updateDockPreview(pageX: number, pageY: number): DockPreview | null {
+        const hoveredStack = this.findHoveredStack(this.layout.rootItem, pageX, pageY);
+        if (!hoveredStack) {
+            this.clearDockPreview();
+            return null;
+        }
+
+        const stackArea = hoveredStack.getArea();
+        if (!stackArea) {
+            this.clearDockPreview();
+            return null;
+        }
+
+        const headerRect = hoveredStack.header.element.getBoundingClientRect();
+        const clientX = pageX - window.scrollX;
+        const clientY = pageY - window.scrollY;
+        if (isPointerInsideRect(clientX, clientY, headerRect)) {
+            this.hideDockGuide();
+            hoveredStack.highlightDropZone(pageX, pageY, stackArea);
+            this.activeDockPreview = {
+                kind: "header",
+                stack: hoveredStack,
+                area: stackArea,
+                pointerX: pageX,
+                pointerY: pageY
+            };
+            return this.activeDockPreview;
+        }
+
+        const contentRect = hoveredStack.childElementContainer.getBoundingClientRect();
+        if (!isPointerInsideRect(clientX, clientY, contentRect)) {
+            this.clearDockPreview();
+            return null;
+        }
+
+        this.showDockGuide(contentRect);
+        const activeZone = this.getDockGuideZone(clientX, clientY);
+        this.setActiveDockGuideZone(activeZone);
+        if (!activeZone) {
+            this.internalLayout.dropTargetIndicator?.hide();
+            this.internalLayout.tabDropPlaceholder.remove();
+            this.activeDockPreview = null;
+            return null;
+        }
+
+        const highlightArea = this.createZoneHighlightArea(hoveredStack, contentRect, activeZone);
+        this.internalLayout.dropTargetIndicator?.highlightArea(highlightArea, 1);
+        this.internalLayout.tabDropPlaceholder.remove();
+
+        this.activeDockPreview = {
+            kind: "zone",
+            stack: hoveredStack,
+            area: stackArea,
+            zone: activeZone
+        };
+        return this.activeDockPreview;
+    }
+
+    public applyDockPreview(componentItem: InternalComponentItem): boolean {
+        const preview = this.activeDockPreview;
+        if (!preview) {
+            return false;
+        }
+
+        if (preview.kind === "header") {
+            preview.stack.highlightDropZone(preview.pointerX, preview.pointerY, preview.area);
+            preview.stack.onDrop(componentItem, preview.area);
+        } else if (preview.zone === "center") {
+            preview.stack.addChild(componentItem, undefined, true);
+        } else {
+            preview.stack._dropSegment = preview.zone;
+            preview.stack.onDrop(componentItem, preview.area);
+        }
+
+        this.clearDockPreview();
+        return true;
+    }
+
+    public clearDockPreview(): void {
+        this.activeDockPreview = null;
+        this.hideDockGuide();
+        this.internalLayout.dropTargetIndicator?.hide();
+        this.internalLayout.tabDropPlaceholder.remove();
+    }
+
+    public clearFloatingPanels(destroyItems: boolean): void {
+        const panels = [...this.panels.values()];
+        this.clearDockPreview();
+        this.panels.clear();
+
+        for (const panel of panels) {
+            panel.shell.remove();
+            panel.componentItem.off("titleChanged", panel.handleTitleChanged);
+
+            if (destroyItems) {
+                panel.floatingStack.destroy();
+            }
+        }
+    }
+
+    public decorateTab(tab: Tab): void {
+        const internalTab = tab as InternalTab;
+        const tabElement = tab.element;
+        if (tabElement.querySelector(".flint-tab-undock")) {
+            return;
+        }
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "flint-tab-undock";
+        button.setAttribute("aria-label", "Float panel");
+        button.title = "Float panel";
+        button.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            event.stopPropagation();
+        });
+        button.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.floatComponent(tab.componentItem);
+        });
+        tabElement.appendChild(button);
+
+        internalTab._dragStartEvent = (x, y, dragListener, componentItem) => {
+            const parent = componentItem.parent;
+            if (!parent || !parent.isStack) {
+                return;
+            }
+
+            if (parent.isStack && (parent as Stack).isMaximised) {
+                (parent as Stack).toggleMaximise();
+            }
+
+            new TabTearOffDragProxy(
+                this,
+                this.internalLayout,
+                x,
+                y,
+                dragListener,
+                componentItem as InternalComponentItem,
+                parent as Stack
+            );
+        };
+    }
+
+    public boundsFromViewportRect(rect: DOMRect, pointerPageX?: number, pointerPageY?: number): Bounds {
+        const hostRect = this.host.getBoundingClientRect();
+        const bounds = this.clampBounds({
+            x: rect.left - hostRect.left,
+            y: rect.top - hostRect.top,
+            width: rect.width,
+            height: rect.height
+        });
+
+        if (pointerPageX === undefined || pointerPageY === undefined) {
+            return bounds;
+        }
+
+        const pointerClientX = pointerPageX - window.scrollX;
+        const pointerClientY = pointerPageY - window.scrollY;
+        const relativeX = rect.width > 0 ? clamp((pointerClientX - rect.left) / rect.width, 0, 1) : 0.5;
+        const relativeY = rect.height > 0 ? clamp((pointerClientY - rect.top) / rect.height, 0, 1) : 0.5;
+        return this.clampBounds({
+            x: pointerClientX - hostRect.left - bounds.width * relativeX,
+            y: pointerClientY - hostRect.top - bounds.height * relativeY,
+            width: bounds.width,
+            height: bounds.height
+        });
+    }
+
+    public captureDockTarget(componentItem: ComponentItem, fallbackParent?: Stack): FloatingDockTarget | null {
+        const parent = (componentItem.parent as Stack | null) ?? fallbackParent ?? null;
+        if (!parent) {
+            return null;
+        }
+
+        return {
+            stackId: parent.id || null,
+            index: Math.max(0, parent.contentItems.indexOf(componentItem))
+        };
+    }
+
+    public serialize(): FloatingPanelState[] {
+        return [...this.panels.values()]
+            .sort((left, right) => left.zIndex - right.zIndex)
+            .map(panel => ({
+                componentId: panel.componentId,
+                componentConfig: toSerializableComponentConfig(panel.componentItem),
+                bounds: { ...panel.bounds },
+                zIndex: panel.zIndex,
+                dockTarget: panel.dockTarget ? { ...panel.dockTarget } : null
+            }));
+    }
+
+    public restore(states: readonly FloatingPanelState[]): void {
+        const orderedStates = [...states].sort((left, right) => left.zIndex - right.zIndex);
+        for (const state of orderedStates) {
+            const created = this.layout.newItem(state.componentConfig as ComponentItemConfig) as InternalComponentItem;
+            this.attachDetachedComponent(created, {
+                bounds: state.bounds,
+                dockTarget: state.dockTarget,
+                zIndex: state.zIndex
+            });
+        }
+    }
+
+    public floatComponent(componentItem: ComponentItem, options: FloatOptions = {}): void {
+        const internalComponentItem = componentItem as InternalComponentItem;
+        const componentId = ensureComponentId(componentItem);
+        if (this.panels.has(componentId)) {
+            const existingPanel = this.panels.get(componentId)!;
+            this.focusPanel(existingPanel);
+            return;
+        }
+
+        const parent = internalComponentItem.parent;
+        const dockTarget = options.dockTarget ?? this.captureDockTarget(componentItem);
+        const sourceRect = componentItem.element.getBoundingClientRect();
+
+        if (!parent) {
+            throw new Error("Cannot float a component without a parent.");
+        }
+
+        parent.removeChild(componentItem, true);
+
+        const floatOptions: FloatOptions = {
+            bounds: options.bounds ?? this.createDefaultBounds(sourceRect),
+            dockTarget
+        };
+        if (options.zIndex !== undefined) {
+            floatOptions.zIndex = options.zIndex;
+        }
+
+        this.attachDetachedComponent(internalComponentItem, floatOptions);
+    }
+
+    public attachDetachedComponent(componentItem: InternalComponentItem, options: FloatOptions = {}): void {
+        const componentId = ensureComponentId(componentItem);
+        if (this.panels.has(componentId)) {
+            return;
+        }
+
+        const floatingStack = this.createFloatingStack(componentItem);
+        const panel = this.createPanel(componentId, componentItem, floatingStack, options);
+        this.panels.set(componentId, panel);
+        this.overlay.appendChild(panel.shell);
+        this.focusPanel(panel);
+        this.updatePanelBounds(panel, panel.bounds, false);
+        this.syncFloatingStack(panel);
+        this.onChanged();
+    }
+
+    private createOverlay(): HTMLElement {
+        const overlay = document.createElement("div");
+        overlay.id = FLOATING_OVERLAY_ID;
+        this.host.appendChild(overlay);
+        return overlay;
+    }
+
+    private createDockGuide(): HTMLElement {
+        const guide = document.createElement("div");
+        guide.className = DOCK_GUIDE_CLASS;
+
+        for (const zone of DOCK_ZONES) {
+            const icon = document.createElement("div");
+            icon.className = `flint-dock-zone flint-dock-zone-${zone}`;
+            guide.appendChild(icon);
+            this.dockGuideIcons.set(zone, icon);
+        }
+
+        this.overlay.appendChild(guide);
+        return guide;
+    }
+
+    private showDockGuide(contentRect: DOMRect): void {
+        const guideSize = Math.min(156, Math.max(112, Math.min(contentRect.width, contentRect.height) * 0.52));
+        this.dockGuide.classList.add(DOCK_GUIDE_VISIBLE_CLASS);
+        this.dockGuide.style.width = `${guideSize}px`;
+        this.dockGuide.style.height = `${guideSize}px`;
+        this.dockGuide.style.left = `${contentRect.left - this.host.getBoundingClientRect().left + (contentRect.width - guideSize) / 2}px`;
+        this.dockGuide.style.top = `${contentRect.top - this.host.getBoundingClientRect().top + (contentRect.height - guideSize) / 2}px`;
+    }
+
+    private hideDockGuide(): void {
+        this.dockGuide.classList.remove(DOCK_GUIDE_VISIBLE_CLASS);
+        this.setActiveDockGuideZone(null);
+    }
+
+    private setActiveDockGuideZone(zone: DockZone | null): void {
+        for (const [currentZone, element] of this.dockGuideIcons.entries()) {
+            element.classList.toggle(DOCK_GUIDE_ACTIVE_CLASS, currentZone === zone);
+        }
+    }
+
+    private getDockGuideZone(clientX: number, clientY: number): DockZone | null {
+        for (const zone of DOCK_ZONES) {
+            const element = this.dockGuideIcons.get(zone);
+            if (!element) {
+                continue;
+            }
+
+            const rect = element.getBoundingClientRect();
+            if (isPointerInsideRect(clientX, clientY, rect)) {
+                return zone;
+            }
+        }
+
+        return null;
+    }
+
+    private createFloatingStack(componentItem: InternalComponentItem): InternalStack {
+        const parent = this.internalLayout.groundItem ?? this.layout.rootItem;
+        if (!parent) {
+            throw new Error("GoldenLayout root is unavailable for floating stack creation.");
+        }
+
+        const stackConfig = createFloatingStackConfig(`${FLOATING_STACK_ID_PREFIX}${ensureComponentId(componentItem)}`);
+        const floatingStack = this.internalLayout.createAndInitContentItem(stackConfig, parent) as InternalStack;
+        floatingStack.addChild(componentItem, 0, true);
+        floatingStack.element.classList.add("flint-floating-stack");
+        return floatingStack;
+    }
+
+    private createPanel(
+        componentId: string,
+        componentItem: InternalComponentItem,
+        floatingStack: InternalStack,
+        options: FloatOptions
+    ): FloatingPanel {
+        const shell = document.createElement("section");
+        shell.className = "flint-floating-window";
+        shell.dataset.panelId = componentId;
+
+        const header = document.createElement("header");
+        header.className = "flint-floating-window-header";
+
+        const title = document.createElement("div");
+        title.className = "flint-floating-window-title";
+        title.textContent = componentItem.title;
+
+        const actions = document.createElement("div");
+        actions.className = "flint-floating-window-actions";
+
+        const dockButton = document.createElement("button");
+        dockButton.type = "button";
+        dockButton.className = "flint-floating-window-button flint-floating-window-dock";
+        dockButton.title = "Dock panel";
+        dockButton.setAttribute("aria-label", "Dock panel");
+        dockButton.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const panel = this.panels.get(componentId);
+            if (panel) {
+                this.dockPanel(panel);
+            }
+        });
+
+        actions.appendChild(dockButton);
+        header.appendChild(title);
+        header.appendChild(actions);
+
+        const body = document.createElement("div");
+        body.className = "flint-floating-window-body";
+        body.appendChild(floatingStack.element);
+
+        shell.appendChild(header);
+        shell.appendChild(body);
+        for (const direction of RESIZE_DIRECTIONS) {
+            const handle = document.createElement("div");
+            handle.className = `flint-floating-resize-handle flint-floating-resize-${direction}`;
+            handle.addEventListener("pointerdown", event => this.beginResize(event, componentId, direction));
+            shell.appendChild(handle);
+        }
+
+        shell.addEventListener("pointerdown", () => {
+            const panel = this.panels.get(componentId);
+            if (panel) {
+                this.focusPanel(panel);
+            }
+        });
+        header.addEventListener("pointerdown", event => this.beginMove(event, componentId));
+        const handleTitleChanged = (updatedTitle: string) => {
+            title.textContent = updatedTitle;
+        };
+        componentItem.on("titleChanged", handleTitleChanged);
+
+        return {
+            componentId,
+            componentItem,
+            floatingStack,
+            shell,
+            title,
+            body,
+            handleTitleChanged,
+            bounds: this.clampBounds(options.bounds ?? this.createDefaultBounds(componentItem.element.getBoundingClientRect())),
+            zIndex: options.zIndex ?? this.bumpZIndex(),
+            dockTarget: options.dockTarget ?? null
+        };
+    }
+
+    private bumpZIndex(): number {
+        this.nextZIndex += 1;
+        return this.nextZIndex;
+    }
+
+    private focusPanel(panel: FloatingPanel): void {
+        panel.zIndex = this.bumpZIndex();
+        for (const currentPanel of this.panels.values()) {
+            currentPanel.shell.classList.toggle("active", currentPanel.componentId === panel.componentId);
+            currentPanel.shell.style.zIndex = String(currentPanel.zIndex);
+        }
+        this.onChanged();
+    }
+
+    private beginMove(event: PointerEvent, componentId: string): void {
+        if (event.button !== 0) {
+            return;
+        }
+
+        const panel = this.panels.get(componentId);
+        if (!panel) {
+            return;
+        }
+
+        if ((event.target as HTMLElement).closest(".flint-floating-window-actions")) {
+            return;
+        }
+
+        event.preventDefault();
+        this.focusPanel(panel);
+        panel.shell.classList.add(DRAGGING_CLASS);
+
+        const startBounds = { ...panel.bounds };
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const move = (moveEvent: PointerEvent) => {
+            const dx = moveEvent.clientX - startX;
+            const dy = moveEvent.clientY - startY;
+            this.updatePanelBounds(panel, {
+                x: startBounds.x + dx,
+                y: startBounds.y + dy,
+                width: startBounds.width,
+                height: startBounds.height
+            }, false);
+            this.updateDockPreview(moveEvent.pageX, moveEvent.pageY);
+        };
+        const finish = () => {
+            panel.shell.classList.remove(DRAGGING_CLASS);
+            document.removeEventListener("pointermove", move);
+            document.removeEventListener("pointerup", finish);
+            if (this.activeDockPreview) {
+                this.dockPanel(panel, true);
+            } else {
+                this.clearDockPreview();
+                this.onChanged();
+            }
+        };
+
+        document.addEventListener("pointermove", move);
+        document.addEventListener("pointerup", finish);
+    }
+
+    private beginResize(event: PointerEvent, componentId: string, direction: ResizeDirection): void {
+        if (event.button !== 0) {
+            return;
+        }
+
+        const panel = this.panels.get(componentId);
+        if (!panel) {
+            return;
+        }
+
+        event.preventDefault();
+        this.focusPanel(panel);
+        const startBounds = { ...panel.bounds };
+        const startX = event.clientX;
+        const startY = event.clientY;
+
+        const move = (moveEvent: PointerEvent) => {
+            const dx = moveEvent.clientX - startX;
+            const dy = moveEvent.clientY - startY;
+            const nextBounds = { ...startBounds };
+
+            if (direction.includes("e")) {
+                nextBounds.width += dx;
+            }
+            if (direction.includes("s")) {
+                nextBounds.height += dy;
+            }
+            if (direction.includes("w")) {
+                nextBounds.x += dx;
+                nextBounds.width -= dx;
+            }
+            if (direction.includes("n")) {
+                nextBounds.y += dy;
+                nextBounds.height -= dy;
+            }
+
+            this.updatePanelBounds(panel, nextBounds, false);
+        };
+        const finish = () => {
+            document.removeEventListener("pointermove", move);
+            document.removeEventListener("pointerup", finish);
+            this.onChanged();
+        };
+
+        document.addEventListener("pointermove", move);
+        document.addEventListener("pointerup", finish);
+    }
+
+    private dockPanel(panel: FloatingPanel, useActivePreview = false): void {
+        const preview = useActivePreview ? this.activeDockPreview : null;
+        this.panels.delete(panel.componentId);
+        panel.shell.remove();
+        panel.componentItem.off("titleChanged", panel.handleTitleChanged);
+        panel.floatingStack.removeChild(panel.componentItem, true);
+        panel.floatingStack.destroy();
+
+        if (preview && this.applyDockPreview(panel.componentItem)) {
+            panel.componentItem.focus();
+            this.onChanged();
+            return;
+        }
+
+        const preferredStack = this.findDockStack(panel.dockTarget?.stackId);
+        if (preferredStack) {
+            const index = clamp(panel.dockTarget?.index ?? preferredStack.contentItems.length, 0, preferredStack.contentItems.length);
+            preferredStack.addChild(panel.componentItem, index, true);
+            panel.componentItem.focus();
+            this.onChanged();
+            return;
+        }
+
+        const fallbackStack = this.getFirstStack(this.layout.rootItem);
+        if (fallbackStack) {
+            fallbackStack.addChild(panel.componentItem, fallbackStack.contentItems.length, true);
+            panel.componentItem.focus();
+            this.onChanged();
+            return;
+        }
+
+        throw new Error("Unable to find a dock target for floating panel.");
+    }
+
+    private findHoveredStack(node: ContentItem | undefined, pageX: number, pageY: number): InternalStack | null {
+        if (!node) {
+            return null;
+        }
+
+        for (const child of node.contentItems) {
+            const match = this.findHoveredStack(child, pageX, pageY);
+            if (match) {
+                return match;
+            }
+        }
+
+        if (!node.isStack) {
+            return null;
+        }
+
+        const stack = node as InternalStack;
+        const rect = stack.element.getBoundingClientRect();
+        const clientX = pageX - window.scrollX;
+        const clientY = pageY - window.scrollY;
+        return isPointerInsideRect(clientX, clientY, rect) ? stack : null;
+    }
+
+    private createZoneHighlightArea(stack: InternalStack, contentRect: DOMRect, zone: DockZone): DockArea {
+        const builtInArea = zone === "center" ? undefined : stack.contentAreaDimensions?.[zone]?.highlightArea;
+        if (builtInArea) {
+            return builtInArea;
+        }
+
+        const x1 = contentRect.left + window.scrollX;
+        const y1 = contentRect.top + window.scrollY;
+        const x2 = x1 + contentRect.width;
+        const y2 = y1 + contentRect.height;
+        const midX = x1 + contentRect.width / 2;
+        const midY = y1 + contentRect.height / 2;
+
+        if (zone === "center") {
+            return {
+                x1,
+                y1,
+                x2,
+                y2,
+                surface: contentRect.width * contentRect.height,
+                contentItem: stack
+            };
+        }
+
+        if (zone === "left") {
+            return {
+                x1,
+                y1,
+                x2: midX,
+                y2,
+                surface: (midX - x1) * contentRect.height,
+                contentItem: stack
+            };
+        }
+
+        if (zone === "right") {
+            return {
+                x1: midX,
+                y1,
+                x2,
+                y2,
+                surface: (x2 - midX) * contentRect.height,
+                contentItem: stack
+            };
+        }
+
+        if (zone === "top") {
+            return {
+                x1,
+                y1,
+                x2,
+                y2: midY,
+                surface: contentRect.width * (midY - y1),
+                contentItem: stack
+            };
+        }
+
+        return {
+            x1,
+            y1: midY,
+            x2,
+            y2,
+            surface: contentRect.width * (y2 - midY),
+            contentItem: stack
+        };
+    }
+
+    private findDockStack(stackId: string | null | undefined): Stack | null {
+        if (!stackId) {
+            return null;
+        }
+
+        return this.findContentItemById(this.layout.rootItem, stackId) as Stack | null;
+    }
+
+    private findContentItemById(node: ContentItem | undefined, id: string): ContentItem | null {
+        if (!node) {
+            return null;
+        }
+
+        if (node.id === id) {
+            return node;
+        }
+
+        for (const child of node.contentItems) {
+            const match = this.findContentItemById(child, id);
+            if (match) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    private getFirstStack(node: ContentItem | undefined): Stack | null {
+        if (!node) {
+            return null;
+        }
+
+        if (node.isStack) {
+            return node as Stack;
+        }
+
+        for (const child of node.contentItems) {
+            const match = this.getFirstStack(child);
+            if (match) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    private createDefaultBounds(sourceRect: DOMRect): Bounds {
+        if (sourceRect.width > 0 && sourceRect.height > 0) {
+            return this.boundsFromViewportRect(sourceRect);
+        }
+
+        const hostRect = this.host.getBoundingClientRect();
+        return this.clampBounds({
+            x: (hostRect.width - DEFAULT_FLOAT_WIDTH) / 2,
+            y: (hostRect.height - DEFAULT_FLOAT_HEIGHT) / 2,
+            width: DEFAULT_FLOAT_WIDTH,
+            height: DEFAULT_FLOAT_HEIGHT
+        });
+    }
+
+    private clampBounds(bounds: Bounds): Bounds {
+        const hostRect = this.host.getBoundingClientRect();
+        const minWidth = parsePixels(this.layout.layoutConfig.dimensions.defaultMinItemWidth, DEFAULT_FLOAT_WIDTH);
+        const minHeight = parsePixels(this.layout.layoutConfig.dimensions.defaultMinItemHeight, DEFAULT_FLOAT_HEIGHT);
+
+        const width = clamp(bounds.width, minWidth, Math.max(minWidth, hostRect.width));
+        const height = clamp(bounds.height, minHeight, Math.max(minHeight, hostRect.height));
+        const x = clamp(bounds.x, -width + MIN_VISIBLE_MARGIN, Math.max(MIN_VISIBLE_MARGIN, hostRect.width - MIN_VISIBLE_MARGIN));
+        const y = clamp(bounds.y, 0, Math.max(0, hostRect.height - MIN_VISIBLE_MARGIN));
+
+        return { x, y, width, height };
+    }
+
+    private updatePanelBounds(panel: FloatingPanel, bounds: Bounds, persist: boolean): void {
+        panel.bounds = this.clampBounds(bounds);
+        panel.shell.style.left = `${panel.bounds.x}px`;
+        panel.shell.style.top = `${panel.bounds.y}px`;
+        panel.shell.style.width = `${panel.bounds.width}px`;
+        panel.shell.style.height = `${panel.bounds.height}px`;
+        this.syncFloatingStack(panel);
+        if (persist) {
+            this.onChanged();
+        }
+    }
+
+    private syncFloatingStack(panel: FloatingPanel): void {
+        panel.floatingStack.element.style.width = "100%";
+        panel.floatingStack.element.style.height = "100%";
+        requestAnimationFrame(() => {
+            panel.floatingStack.updateSize(true);
+        });
+    }
+}
