@@ -48,8 +48,8 @@ indexHtml = replaceOrThrow(
 
 indexHtml = replaceOrThrow(
     indexHtml,
-    '                vs: "./dist/vendor/monaco/vs"',
-    `                vs: "https://unpkg.com/monaco-editor@${monacoVersion}/min/vs"`
+    '        window.__FLINT_MONACO_VS_PATH__ = "./dist/vendor/monaco/vs";',
+    `        window.__FLINT_MONACO_VS_PATH__ = "https://unpkg.com/monaco-editor@${monacoVersion}/min/vs";`
 );
 
 indexHtml = replaceOrThrow(

@@ -125,6 +125,21 @@ export class CodeEditor {
         return window.monaco;
     }
 
+    private static getMonacoVsPath(): string {
+        const globalConfig = globalThis as {
+            __FLINT_MONACO_VS_PATH__?: string;
+            require?: {
+                paths?: {
+                    vs?: string;
+                };
+            };
+        };
+
+        return globalConfig.__FLINT_MONACO_VS_PATH__
+            ?? globalConfig.require?.paths?.vs
+            ?? "./dist/vendor/monaco/vs";
+    }
+
     private static getLanguageFromPath(path: string): string {
         const ext = path.split(".").at(-1) ?? "";
         return this.typeNames[ext] ?? "typescript";
@@ -191,7 +206,7 @@ export class CodeEditor {
                 if (typeof amdRequire === "function") {
                     amdRequire.config?.({
                         paths: {
-                            vs: "./dist/vendor/monaco/vs"
+                            vs: this.getMonacoVsPath()
                         }
                     });
 
