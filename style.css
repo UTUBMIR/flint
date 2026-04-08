@@ -62,14 +62,14 @@ body {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    z-index: 30;
+    z-index: 2000;
 }
 
 .flint-dock-guide {
     position: absolute;
     display: none;
     pointer-events: none;
-    z-index: 31;
+    z-index: 2100;
     --flint-dock-outline: rgba(175, 137, 26, 0.62);
     --flint-dock-outline-strong: rgba(214, 171, 40, 0.9);
     --flint-dock-fill: rgba(17, 18, 24, 0.92);
@@ -817,7 +817,7 @@ legend {
 }
 
 .lm_dropTargetIndicator {
-    z-index: 1000;
+    z-index: 2050;
     opacity: 0;
     transform: scale(0.98);
     transition:
@@ -841,5 +841,5 @@ legend {
 }
 
 .lm_dragProxy {
-    z-index: 1000;
+    z-index: 1900;
 }
