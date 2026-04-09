@@ -551,6 +551,10 @@ export class FloatingPanelManager {
         button.className = "flint-tab-undock";
         button.setAttribute("aria-label", "Float panel");
         button.title = "Float panel";
+        const undockIcon = document.createElement("sl-icon");
+        undockIcon.setAttribute("name", "box-arrow-up-right");
+        undockIcon.setAttribute("aria-hidden", "true");
+        button.appendChild(undockIcon);
         button.addEventListener("pointerdown", event => {
             event.preventDefault();
             event.stopPropagation();
@@ -880,6 +884,10 @@ export class FloatingPanelManager {
         dockButton.className = "flint-floating-window-button flint-floating-window-dock";
         dockButton.title = "Dock panel";
         dockButton.setAttribute("aria-label", "Dock panel");
+        const dockIcon = document.createElement("sl-icon");
+        dockIcon.setAttribute("name", "box-arrow-in-down-right");
+        dockIcon.setAttribute("aria-hidden", "true");
+        dockButton.appendChild(dockIcon);
         dockButton.addEventListener("click", event => {
             event.preventDefault();
             event.stopPropagation();

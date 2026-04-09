@@ -360,8 +360,8 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
     position: absolute;
     top: 50%;
     right: 4px;
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border: 0;
     padding: 0;
     border-radius: 4px;
@@ -369,33 +369,20 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
     background: transparent;
     cursor: pointer;
     opacity: 0.6;
+    color: #6c7483;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.flint-tab-undock::before,
-.flint-tab-undock::after {
-    content: "";
-    position: absolute;
-    inset: 0;
+.flint-tab-undock:hover,
+.flint-tab-undock:focus-visible {
+    color: #d9dde5;
 }
 
-.flint-tab-undock::before {
-    inset: 3px;
-    border: 1px solid currentColor;
-    border-radius: 2px;
-}
-
-.flint-tab-undock::after {
-    top: 2px;
-    right: 2px;
-    width: 5px;
-    height: 5px;
-    border-top: 1px solid currentColor;
-    border-right: 1px solid currentColor;
-}
-
-.flint-tab-undock:hover {
-    opacity: 1;
-    background: color-mix(in srgb, var(--sl-color-neutral-900) 16%, transparent);
+.flint-tab-undock:focus-visible {
+    outline: 1px solid rgba(214, 171, 40, 0.6);
+    outline-offset: 1px;
 }
 
 .flint-floating-window {
@@ -456,8 +443,8 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
 
 .flint-floating-window-button {
     position: relative;
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border: 0;
     padding: 0;
     border-radius: 4px;
@@ -465,6 +452,9 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
     color: inherit;
     opacity: 0.7;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .flint-floating-window-button:hover {
@@ -472,29 +462,32 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
     background: rgba(255, 255, 255, 0.08);
 }
 
-.flint-floating-window-dock::before,
-.flint-floating-window-dock::after {
-    content: "";
-    position: absolute;
+.flint-floating-window-dock {
+    color: #cbd1da;
 }
 
-.flint-floating-window-dock::before {
-    left: 3px;
-    right: 3px;
-    bottom: 3px;
-    height: 4px;
-    border: 1px solid currentColor;
-    border-radius: 2px;
+.flint-floating-window-dock:hover,
+.flint-floating-window-dock:focus-visible {
+    color: #ffffff;
 }
 
-.flint-floating-window-dock::after {
-    top: 2px;
-    left: 5px;
-    width: 4px;
-    height: 6px;
-    border-left: 1px solid currentColor;
-    border-bottom: 1px solid currentColor;
-    transform: rotate(-45deg);
+.flint-tab-undock sl-icon,
+.flint-floating-window-button sl-icon {
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.flint-tab-undock:hover,
+.flint-tab-undock:focus-visible,
+.flint-floating-window-button:hover,
+.flint-floating-window-button:focus-visible {
+    opacity: 1;
+    background: color-mix(in srgb, var(--sl-color-neutral-900) 16%, transparent);
+}
+
+.flint-floating-window-button:focus-visible {
+    outline: 1px solid rgba(214, 171, 40, 0.6);
+    outline-offset: 1px;
 }
 
 .flint-floating-window-body {
