@@ -189,6 +189,34 @@ function clamp(value: number, min: number, max: number): number {
     return Math.min(Math.max(value, min), max);
 }
 
+function resolveDockGuideZone(guideRect: DOMRect, clientX: number, clientY: number): DockZone | null {
+    if (!isPointerInsideRect(clientX, clientY, guideRect)) {
+        return null;
+    }
+
+    const relativeX = guideRect.width > 0 ? (clientX - guideRect.left) / guideRect.width : 0.5;
+    const relativeY = guideRect.height > 0 ? (clientY - guideRect.top) / guideRect.height : 0.5;
+    const inset = 0.32;
+
+    if (relativeY <= inset && relativeX >= inset && relativeX <= 1 - inset) {
+        return "top";
+    }
+
+    if (relativeY >= 1 - inset && relativeX >= inset && relativeX <= 1 - inset) {
+        return "bottom";
+    }
+
+    if (relativeX <= inset && relativeY >= inset && relativeY <= 1 - inset) {
+        return "left";
+    }
+
+    if (relativeX >= 1 - inset && relativeY >= inset && relativeY <= 1 - inset) {
+        return "right";
+    }
+
+    return "center";
+}
+
 function parsePixels(value: string | number | undefined, fallback: number): number {
     if (typeof value === "number") {
         return value;
@@ -729,14 +757,19 @@ export class FloatingPanelManager {
     }
 
     private getDockGuideZone(clientX: number, clientY: number): DockZone | null {
+        const guideRect = this.dockGuide.getBoundingClientRect();
+        const guideZone = resolveDockGuideZone(guideRect, clientX, clientY);
+        if (guideZone) {
+            return guideZone;
+        }
+
         for (const zone of DOCK_ZONES) {
             const element = this.dockGuideIcons.get(zone);
             if (!element) {
                 continue;
             }
 
-            const rect = element.getBoundingClientRect();
-            if (isPointerInsideRect(clientX, clientY, rect)) {
+            if (isPointerInsideRect(clientX, clientY, element.getBoundingClientRect())) {
                 return zone;
             }
         }
@@ -988,21 +1021,25 @@ export class FloatingPanelManager {
         const move = (moveEvent: PointerEvent) => {
             const dx = moveEvent.clientX - startX;
             const dy = moveEvent.clientY - startY;
+            const minWidth = parsePixels(this.layout.layoutConfig.dimensions.defaultMinItemWidth, DEFAULT_FLOAT_WIDTH);
+            const minHeight = parsePixels(this.layout.layoutConfig.dimensions.defaultMinItemHeight, DEFAULT_FLOAT_HEIGHT);
             const nextBounds = { ...startBounds };
+            const rightEdge = startBounds.x + startBounds.width;
+            const bottomEdge = startBounds.y + startBounds.height;
 
             if (direction.includes("e")) {
-                nextBounds.width += dx;
+                nextBounds.width = Math.max(minWidth, startBounds.width + dx);
             }
             if (direction.includes("s")) {
-                nextBounds.height += dy;
+                nextBounds.height = Math.max(minHeight, startBounds.height + dy);
             }
             if (direction.includes("w")) {
-                nextBounds.x += dx;
-                nextBounds.width -= dx;
+                nextBounds.width = Math.max(minWidth, startBounds.width - dx);
+                nextBounds.x = rightEdge - nextBounds.width;
             }
             if (direction.includes("n")) {
-                nextBounds.y += dy;
-                nextBounds.height -= dy;
+                nextBounds.height = Math.max(minHeight, startBounds.height - dy);
+                nextBounds.y = bottomEdge - nextBounds.height;
             }
 
             this.updatePanelBounds(panel, nextBounds, false);
