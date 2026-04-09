@@ -81,6 +81,10 @@ body {
     display: block;
 }
 
+.flint-dock-guide-outer {
+    z-index: 2095;
+}
+
 .flint-dock-zone {
     position: absolute;
     width: 29%;
@@ -172,6 +176,29 @@ body {
     left: 24%;
     right: 24%;
     height: 22%;
+}
+
+.flint-dock-guide-outer.flint-dock-zone {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    background: rgba(11, 13, 18, 0.9);
+}
+
+.flint-dock-guide-outer.flint-dock-zone::before {
+    inset: 15%;
+    border-radius: 8px;
+}
+
+.flint-dock-guide-outer.flint-dock-zone::after {
+    border-radius: 6px;
+}
+
+.flint-dock-guide-outer.flint-dock-zone-top,
+.flint-dock-guide-outer.flint-dock-zone-left,
+.flint-dock-guide-outer.flint-dock-zone-right,
+.flint-dock-guide-outer.flint-dock-zone-bottom {
+    transform: none;
 }
 
 #layout-templates {

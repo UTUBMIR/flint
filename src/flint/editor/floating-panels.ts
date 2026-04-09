@@ -13,6 +13,7 @@ const TITLE_CLASS = "lm_title";
 const CONTENT_CLASS = "lm_content";
 const DRAGGING_CLASS = "flint-floating-window-dragging";
 const DOCK_GUIDE_CLASS = "flint-dock-guide";
+const OUTER_DOCK_GUIDE_CLASS = "flint-dock-guide-outer";
 const DOCK_GUIDE_VISIBLE_CLASS = "visible";
 const DOCK_GUIDE_ACTIVE_CLASS = "active";
 const RESIZE_DIRECTIONS = [
@@ -26,9 +27,11 @@ const RESIZE_DIRECTIONS = [
     "sw"
 ] as const;
 const DOCK_ZONES = ["top", "left", "center", "right", "bottom"] as const;
+const OUTER_DOCK_ZONES = ["top", "left", "right", "bottom"] as const;
 
 type ResizeDirection = typeof RESIZE_DIRECTIONS[number];
 type DockZone = typeof DOCK_ZONES[number];
+type OuterDockZone = typeof OUTER_DOCK_ZONES[number];
 
 type Bounds = {
     x: number;
@@ -71,6 +74,10 @@ type InternalContentItem = ContentItem & {
     updateSize: (force: boolean) => void;
     onDrop: (contentItem: ContentItem, area: DockArea) => void;
     highlightDropZone: (x: number, y: number, area: DockArea) => void;
+    addChild: (contentItem: ContentItem, index?: number, suspendResize?: boolean) => number;
+    replaceChild: (oldChild: ContentItem, newChild: ContentItem, destroyOldChild?: boolean) => void;
+    size: number;
+    sizeUnit: string;
 };
 
 type InternalStack = Stack & InternalContentItem & {
@@ -141,6 +148,12 @@ type DockPreview =
         stack: InternalStack;
         area: DockArea;
         zone: DockZone;
+    }
+    | {
+        kind: "outer-zone";
+        targetItem: InternalContentItem;
+        zone: OuterDockZone;
+        area: DockArea;
     };
 
 type ResolvedHeaderConfig = {
@@ -424,8 +437,10 @@ export class FloatingPanelManager {
     private readonly overlay: HTMLElement;
     private readonly dockGuide: HTMLElement;
     private readonly dockGuideIcons = new Map<DockZone, HTMLElement>();
+    private readonly outerDockGuideIcons = new Map<OuterDockZone, HTMLElement>();
     private readonly panels = new Map<string, FloatingPanel>();
     private activeDockPreview: DockPreview | null = null;
+    private dockGuideStack: InternalStack | null = null;
     private nextZIndex = 0;
 
     public constructor(
@@ -436,6 +451,7 @@ export class FloatingPanelManager {
         this.internalLayout = layout as InternalLayout;
         this.overlay = this.createOverlay();
         this.dockGuide = this.createDockGuide();
+        this.createOuterDockGuides();
         this.layout.addEventListener("tabCreated", tab => this.decorateTab(tab));
     }
 
@@ -446,11 +462,19 @@ export class FloatingPanelManager {
     }
 
     public updateDockPreview(pageX: number, pageY: number): DockPreview | null {
-        const hoveredStack = this.findHoveredStack(this.layout.rootItem, pageX, pageY);
+        const clientX = pageX - window.scrollX;
+        const clientY = pageY - window.scrollY;
+        let hoveredStack = this.findHoveredStack(this.layout.rootItem, pageX, pageY);
+        if (!hoveredStack && this.dockGuideStack && this.getOuterDockGuideZone(clientX, clientY)) {
+            hoveredStack = this.dockGuideStack;
+        }
+
         if (!hoveredStack) {
             this.clearDockPreview();
             return null;
         }
+
+        this.dockGuideStack = hoveredStack;
 
         const stackArea = hoveredStack.getArea();
         if (!stackArea) {
@@ -459,8 +483,6 @@ export class FloatingPanelManager {
         }
 
         const headerRect = hoveredStack.header.element.getBoundingClientRect();
-        const clientX = pageX - window.scrollX;
-        const clientY = pageY - window.scrollY;
         if (isPointerInsideRect(clientX, clientY, headerRect)) {
             this.hideDockGuide();
             hoveredStack.highlightDropZone(pageX, pageY, stackArea);
@@ -475,12 +497,35 @@ export class FloatingPanelManager {
         }
 
         const contentRect = hoveredStack.childElementContainer.getBoundingClientRect();
+        this.showDockGuide(contentRect);
+        this.showOuterDockGuides(hoveredStack, contentRect);
+        const outerZone = this.getOuterDockGuideZone(clientX, clientY);
+        this.setActiveOuterDockGuideZone(outerZone);
+        if (outerZone) {
+            this.setActiveDockGuideZone(null);
+            const outerTarget = this.findOuterDockTargetItem(hoveredStack, outerZone);
+            if (!outerTarget) {
+                this.clearDockPreview();
+                return null;
+            }
+
+            const highlightArea = this.createOuterZoneHighlightArea(outerTarget, outerZone);
+            this.internalLayout.dropTargetIndicator?.highlightArea(highlightArea, 1);
+            this.internalLayout.tabDropPlaceholder.remove();
+            this.activeDockPreview = {
+                kind: "outer-zone",
+                targetItem: outerTarget,
+                zone: outerZone,
+                area: highlightArea
+            };
+            return this.activeDockPreview;
+        }
+
         if (!isPointerInsideRect(clientX, clientY, contentRect)) {
             this.clearDockPreview();
             return null;
         }
 
-        this.showDockGuide(contentRect);
         const activeZone = this.getDockGuideZone(clientX, clientY);
         this.setActiveDockGuideZone(activeZone);
         if (!activeZone) {
@@ -512,6 +557,8 @@ export class FloatingPanelManager {
         if (preview.kind === "header") {
             preview.stack.highlightDropZone(preview.pointerX, preview.pointerY, preview.area);
             preview.stack.onDrop(componentItem, preview.area);
+        } else if (preview.kind === "outer-zone") {
+            this.applyOuterDockPreview(componentItem, preview.targetItem, preview.zone);
         } else if (preview.zone === "center") {
             preview.stack.addChild(componentItem, undefined, true);
         } else {
@@ -525,6 +572,7 @@ export class FloatingPanelManager {
 
     public clearDockPreview(): void {
         this.activeDockPreview = null;
+        this.dockGuideStack = null;
         this.hideDockGuide();
         this.internalLayout.dropTargetIndicator?.hide();
         this.internalLayout.tabDropPlaceholder.remove();
@@ -719,6 +767,15 @@ export class FloatingPanelManager {
         return guide;
     }
 
+    private createOuterDockGuides(): void {
+        for (const zone of OUTER_DOCK_ZONES) {
+            const icon = document.createElement("div");
+            icon.className = `${DOCK_GUIDE_CLASS} ${OUTER_DOCK_GUIDE_CLASS} flint-dock-zone flint-dock-zone-${zone}`;
+            this.overlay.appendChild(icon);
+            this.outerDockGuideIcons.set(zone, icon);
+        }
+    }
+
     private showDockGuide(contentRect: DOMRect): void {
         const guideSize = Math.min(156, Math.max(112, Math.min(contentRect.width, contentRect.height) * 0.52));
         this.dockGuide.classList.add(DOCK_GUIDE_VISIBLE_CLASS);
@@ -731,10 +788,17 @@ export class FloatingPanelManager {
     private hideDockGuide(): void {
         this.dockGuide.classList.remove(DOCK_GUIDE_VISIBLE_CLASS);
         this.setActiveDockGuideZone(null);
+        this.hideOuterDockGuides();
     }
 
     private setActiveDockGuideZone(zone: DockZone | null): void {
         for (const [currentZone, element] of this.dockGuideIcons.entries()) {
+            element.classList.toggle(DOCK_GUIDE_ACTIVE_CLASS, currentZone === zone);
+        }
+    }
+
+    private setActiveOuterDockGuideZone(zone: OuterDockZone | null): void {
+        for (const [currentZone, element] of this.outerDockGuideIcons.entries()) {
             element.classList.toggle(DOCK_GUIDE_ACTIVE_CLASS, currentZone === zone);
         }
     }
@@ -753,6 +817,71 @@ export class FloatingPanelManager {
         }
 
         return null;
+    }
+
+    private getOuterDockGuideZone(clientX: number, clientY: number): OuterDockZone | null {
+        for (const zone of OUTER_DOCK_ZONES) {
+            const element = this.outerDockGuideIcons.get(zone);
+            if (!element || !element.classList.contains(DOCK_GUIDE_VISIBLE_CLASS)) {
+                continue;
+            }
+
+            const rect = element.getBoundingClientRect();
+            if (isPointerInsideRect(clientX, clientY, rect)) {
+                return zone;
+            }
+        }
+
+        return null;
+    }
+
+    private showOuterDockGuides(stack: InternalStack, anchorRect: DOMRect): void {
+        const hostRect = this.host.getBoundingClientRect();
+        const guideSize = 54;
+        const inset = 10;
+
+        for (const zone of OUTER_DOCK_ZONES) {
+            const icon = this.outerDockGuideIcons.get(zone);
+            const targetItem = this.findOuterDockTargetItem(stack, zone);
+            if (!icon) {
+                continue;
+            }
+
+            if (!targetItem) {
+                icon.classList.remove(DOCK_GUIDE_VISIBLE_CLASS);
+                continue;
+            }
+
+            let left = anchorRect.left - hostRect.left;
+            let top = anchorRect.top - hostRect.top;
+
+            if (zone === "left") {
+                left += inset;
+                top += (anchorRect.height - guideSize) / 2;
+            } else if (zone === "right") {
+                left += anchorRect.width - guideSize - inset;
+                top += (anchorRect.height - guideSize) / 2;
+            } else if (zone === "top") {
+                left += (anchorRect.width - guideSize) / 2;
+                top += inset;
+            } else {
+                left += (anchorRect.width - guideSize) / 2;
+                top += anchorRect.height - guideSize - inset;
+            }
+
+            icon.style.width = `${guideSize}px`;
+            icon.style.height = `${guideSize}px`;
+            icon.style.left = `${left}px`;
+            icon.style.top = `${top}px`;
+            icon.classList.add(DOCK_GUIDE_VISIBLE_CLASS);
+        }
+    }
+
+    private hideOuterDockGuides(): void {
+        this.setActiveOuterDockGuideZone(null);
+        for (const element of this.outerDockGuideIcons.values()) {
+            element.classList.remove(DOCK_GUIDE_VISIBLE_CLASS);
+        }
     }
 
     private createFloatingStack(componentItem: InternalComponentItem): InternalStack {
@@ -1012,6 +1141,23 @@ export class FloatingPanelManager {
         return isPointerInsideRect(clientX, clientY, rect) ? stack : null;
     }
 
+    private findOuterDockTargetItem(stack: InternalStack, zone: OuterDockZone): InternalContentItem | null {
+        const wantsHorizontalSplit = zone === "left" || zone === "right";
+        let target: InternalContentItem = stack;
+
+        while (target.parent && !target.parent.isGround) {
+            const parent = target.parent as InternalContentItem;
+            const shouldClimb = wantsHorizontalSplit ? parent.isColumn : parent.isRow;
+            if (!shouldClimb) {
+                break;
+            }
+
+            target = parent;
+        }
+
+        return target === stack ? null : target;
+    }
+
     private createZoneHighlightArea(stack: InternalStack, contentRect: DOMRect, zone: DockZone): DockArea {
         const builtInArea = zone === "center" ? undefined : stack.contentAreaDimensions?.[zone]?.highlightArea;
         if (builtInArea) {
@@ -1077,6 +1223,115 @@ export class FloatingPanelManager {
             surface: contentRect.width * (y2 - midY),
             contentItem: stack
         };
+    }
+
+    private createOuterZoneHighlightArea(targetItem: InternalContentItem, zone: OuterDockZone): DockArea {
+        const rect = targetItem.element.getBoundingClientRect();
+        const x1 = rect.left + window.scrollX;
+        const y1 = rect.top + window.scrollY;
+        const x2 = x1 + rect.width;
+        const y2 = y1 + rect.height;
+        const midX = x1 + rect.width / 2;
+        const midY = y1 + rect.height / 2;
+
+        if (zone === "left") {
+            return {
+                x1,
+                y1,
+                x2: midX,
+                y2,
+                surface: (midX - x1) * rect.height,
+                contentItem: targetItem
+            };
+        }
+
+        if (zone === "right") {
+            return {
+                x1: midX,
+                y1,
+                x2,
+                y2,
+                surface: (x2 - midX) * rect.height,
+                contentItem: targetItem
+            };
+        }
+
+        if (zone === "top") {
+            return {
+                x1,
+                y1,
+                x2,
+                y2: midY,
+                surface: rect.width * (midY - y1),
+                contentItem: targetItem
+            };
+        }
+
+        return {
+            x1,
+            y1: midY,
+            x2,
+            y2,
+            surface: rect.width * (y2 - midY),
+            contentItem: targetItem
+        };
+    }
+
+    private createDockedStack(componentItem: InternalComponentItem, parent: ContentItem): InternalStack {
+        const stackConfig = {
+            type: "stack",
+            content: [],
+            size: 50,
+            sizeUnit: "percent",
+            isClosable: true,
+            activeItemIndex: 0,
+            header: {
+                show: "top",
+                popout: false,
+                close: "Close",
+                maximise: "max",
+                tabDropdown: "more"
+            }
+        };
+        const stack = this.internalLayout.createAndInitContentItem(stackConfig, parent) as InternalStack;
+        stack.addChild(componentItem, 0, true);
+        return stack;
+    }
+
+    private createDockContainer(type: "row" | "column", parent: ContentItem): InternalContentItem {
+        return this.internalLayout.createAndInitContentItem({ type, content: [] }, parent) as InternalContentItem;
+    }
+
+    private applyOuterDockPreview(componentItem: InternalComponentItem, targetItem: InternalContentItem, zone: OuterDockZone): void {
+        const dockedStack = this.createDockedStack(componentItem, targetItem);
+        const parent = targetItem.parent as InternalContentItem | null;
+        const isVertical = zone === "top" || zone === "bottom";
+        const insertBefore = zone === "top" || zone === "left";
+        const requiredType = isVertical ? "column" : "row";
+
+        if (parent && ((isVertical && parent.isColumn) || (!isVertical && parent.isRow))) {
+            const index = parent.contentItems.indexOf(targetItem);
+            parent.addChild(dockedStack, insertBefore ? index : index + 1, true);
+            targetItem.size *= 0.5;
+            dockedStack.size = targetItem.size;
+            dockedStack.sizeUnit = targetItem.sizeUnit;
+            parent.updateSize(false);
+            return;
+        }
+
+        const rowOrColumnParent = (parent ?? this.internalLayout.groundItem) as InternalContentItem | undefined;
+        if (!rowOrColumnParent) {
+            throw new Error("GoldenLayout ground item is unavailable for outer docking.");
+        }
+
+        const container = this.createDockContainer(requiredType, rowOrColumnParent);
+        rowOrColumnParent.replaceChild(targetItem, container, true);
+        container.addChild(dockedStack, insertBefore ? 0 : undefined, true);
+        container.addChild(targetItem, insertBefore ? undefined : 0, true);
+        targetItem.size = 50;
+        dockedStack.size = 50;
+        dockedStack.sizeUnit = "percent";
+        container.updateSize(false);
     }
 
     private findDockStack(stackId: string | null | undefined): Stack | null {
