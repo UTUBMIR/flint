@@ -5,12 +5,6 @@ const FLOATING_STACK_ID_PREFIX = "flint-floating-stack-";
 const DEFAULT_FLOAT_WIDTH = 420;
 const DEFAULT_FLOAT_HEIGHT = 280;
 const MIN_VISIBLE_MARGIN = 24;
-const DRAG_PROXY_CLASS = "lm_dragProxy";
-const HEADER_CLASS = "lm_header";
-const TABS_CLASS = "lm_tabs";
-const TAB_CLASS = "lm_tab";
-const TITLE_CLASS = "lm_title";
-const CONTENT_CLASS = "lm_content";
 const DRAGGING_CLASS = "flint-floating-window-dragging";
 const DOCK_GUIDE_CLASS = "flint-dock-guide";
 const OUTER_DOCK_GUIDE_CLASS = "flint-dock-guide-outer";
@@ -269,77 +263,27 @@ function createFloatingStackConfig(stackId: string): Record<string, unknown> {
 }
 
 class TabTearOffDragProxy {
-    private readonly proxyElement: HTMLElement;
-    private readonly proxyContentElement: HTMLElement;
     private readonly dragCallback = (_offsetX: number, _offsetY: number, event: PointerEvent) => this.onDrag(event);
     private readonly dragStopCallback = (event?: PointerEvent) => this.onDrop(event);
     private readonly componentFocused: boolean;
-    private readonly minX: number;
-    private readonly minY: number;
-    private readonly maxX: number;
-    private readonly maxY: number;
-    private readonly sided: boolean;
+    private readonly panel: FloatingPanel;
+    private readonly startBounds: Bounds;
+    private readonly startPageX: number;
+    private readonly startPageY: number;
     private lastPointerX: number;
     private lastPointerY: number;
-    private readonly dockTarget: FloatingDockTarget | null;
 
     public constructor(
         private readonly manager: FloatingPanelManager,
-        private readonly layout: InternalLayout,
         private readonly x: number,
         private readonly y: number,
         private readonly dragListener: InternalDragListener,
         private readonly componentItem: InternalComponentItem,
         originalParent: Stack
     ) {
-        this.dockTarget = manager.captureDockTarget(componentItem, originalParent);
+        const dockTarget = manager.captureDockTarget(componentItem, originalParent);
         this.lastPointerX = x;
         this.lastPointerY = y;
-
-        const groundRect = this.layout.groundItem?.element.getBoundingClientRect();
-        if (!groundRect) {
-            throw new Error("GoldenLayout ground item is unavailable for floating drag.");
-        }
-
-        this.minX = groundRect.left + document.body.scrollLeft;
-        this.minY = groundRect.top + document.body.scrollTop;
-        this.maxX = this.minX + groundRect.width;
-        this.maxY = this.minY + groundRect.height;
-        this.sided = originalParent.headerShow && originalParent.headerLeftRightSided;
-
-        this.proxyElement = document.createElement("div");
-        this.proxyElement.classList.add(DRAG_PROXY_CLASS);
-        if (originalParent.headerShow) {
-            this.proxyElement.classList.add(`lm_${originalParent.headerSide}`);
-        }
-
-        const headerElement = document.createElement("div");
-        headerElement.classList.add(HEADER_CLASS);
-
-        const tabsElement = document.createElement("div");
-        tabsElement.classList.add(TABS_CLASS);
-
-        const tabElement = document.createElement("div");
-        tabElement.classList.add(TAB_CLASS);
-
-        const titleElement = document.createElement("span");
-        titleElement.classList.add(TITLE_CLASS);
-        titleElement.textContent = componentItem.title;
-        tabElement.title = componentItem.title;
-
-        tabElement.appendChild(titleElement);
-        tabsElement.appendChild(tabElement);
-        headerElement.appendChild(tabsElement);
-
-        this.proxyContentElement = document.createElement("div");
-        this.proxyContentElement.classList.add(CONTENT_CLASS);
-
-        this.proxyElement.appendChild(headerElement);
-        this.proxyElement.appendChild(this.proxyContentElement);
-
-        if (originalParent.headerShow && (originalParent.headerSide === "right" || originalParent.headerSide === "bottom")) {
-            this.proxyContentElement.insertAdjacentElement("afterend", headerElement);
-        }
 
         this.componentFocused = componentItem.focused;
         if (this.componentFocused) {
@@ -350,81 +294,52 @@ class TabTearOffDragProxy {
             throw new Error("Dragged component is missing a parent stack.");
         }
 
+        const sourceRect = componentItem.element.getBoundingClientRect();
         componentItem.parent.removeChild(componentItem, true);
-        this.proxyContentElement.appendChild(componentItem.element);
-        this.setDimensions();
+        this.panel = this.manager.attachDetachedComponent(this.componentItem, {
+            bounds: this.manager.boundsFromViewportRect(sourceRect, x, y),
+            dockTarget
+        });
+        this.startBounds = { ...this.panel.bounds };
+        this.startPageX = x;
+        this.startPageY = y;
+        this.panel.shell.classList.add(DRAGGING_CLASS);
 
-        this.proxyElement.style.left = `${x}px`;
-        this.proxyElement.style.top = `${y}px`;
-        document.body.appendChild(this.proxyElement);
-
-        this.setDropPosition(x, y);
+        this.manager.updateDockPreview(x, y);
 
         this.dragListener.on("drag", this.dragCallback);
         this.dragListener.on("dragStop", this.dragStopCallback);
     }
 
-    private setDimensions(): void {
-        const { dimensions, header } = this.layout.layoutConfig;
-        let width = dimensions.dragProxyWidth;
-        let height = dimensions.dragProxyHeight;
-        const headerHeight = header.show === false ? 0 : dimensions.headerHeight;
-
-        this.proxyElement.style.width = `${width}px`;
-        this.proxyElement.style.height = `${height}px`;
-
-        width -= this.sided ? headerHeight : 0;
-        height -= this.sided ? 0 : headerHeight;
-        this.proxyContentElement.style.width = `${width}px`;
-        this.proxyContentElement.style.height = `${height}px`;
-        this.componentItem.enterDragMode(width, height);
-        this.componentItem.show();
-    }
-
     private onDrag(event: PointerEvent): void {
         this.lastPointerX = event.pageX;
         this.lastPointerY = event.pageY;
-        this.setDropPosition(event.pageX, event.pageY);
-        this.componentItem.drag();
-    }
-
-    private setDropPosition(pageX: number, pageY: number): void {
-        let x = pageX;
-        let y = pageY;
-
-        if (this.layout.layoutConfig.settings.constrainDragToContainer) {
-            x = clamp(x, Math.ceil(this.minX), Math.floor(this.maxX));
-            y = clamp(y, Math.ceil(this.minY), Math.floor(this.maxY));
-        }
-
-        this.proxyElement.style.left = `${x}px`;
-        this.proxyElement.style.top = `${y}px`;
-        this.manager.updateDockPreview(pageX, pageY);
+        this.manager.moveFloatingPanel(this.panel, {
+            x: this.startBounds.x + (event.pageX - this.startPageX),
+            y: this.startBounds.y + (event.pageY - this.startPageY),
+            width: this.startBounds.width,
+            height: this.startBounds.height
+        });
+        this.manager.updateDockPreview(event.pageX, event.pageY);
     }
 
     private onDrop(event?: PointerEvent): void {
         this.dragListener.off("drag", this.dragCallback);
         this.dragListener.off("dragStop", this.dragStopCallback);
+        this.panel.shell.classList.remove(DRAGGING_CLASS);
 
-        this.componentItem.exitDragMode();
+        const finalX = event?.pageX ?? this.lastPointerX;
+        const finalY = event?.pageY ?? this.lastPointerY;
+        this.manager.updateDockPreview(finalX, finalY);
+
         let redocked = false;
-
-        if (this.manager.applyDockPreview(this.componentItem)) {
+        if (this.manager.hasActiveDockPreview()) {
+            this.manager.dockPanel(this.panel, true);
             redocked = true;
         } else {
-            const finalX = event?.pageX ?? this.lastPointerX;
-            const finalY = event?.pageY ?? this.lastPointerY;
-            const proxyRect = this.proxyElement.getBoundingClientRect();
-            const dropBounds = this.manager.boundsFromViewportRect(proxyRect, finalX, finalY);
             this.manager.clearDockPreview();
-            this.manager.attachDetachedComponent(this.componentItem, {
-                bounds: dropBounds,
-                dockTarget: this.dockTarget
-            });
+            this.manager.persistFloatingPanel(this.panel);
         }
-
-        this.proxyElement.remove();
-        this.layout.emit("itemDropped", this.componentItem);
 
         if (redocked && this.componentFocused) {
             this.componentItem.focus();
@@ -435,6 +350,7 @@ class TabTearOffDragProxy {
 export class FloatingPanelManager {
     private readonly internalLayout: InternalLayout;
     private readonly overlay: HTMLElement;
+    private readonly guideOverlay: HTMLElement;
     private readonly dockGuide: HTMLElement;
     private readonly dockGuideIcons = new Map<DockZone, HTMLElement>();
     private readonly outerDockGuideIcons = new Map<OuterDockZone, HTMLElement>();
@@ -450,6 +366,7 @@ export class FloatingPanelManager {
     ) {
         this.internalLayout = layout as InternalLayout;
         this.overlay = this.createOverlay();
+        this.guideOverlay = this.createGuideOverlay();
         this.dockGuide = this.createDockGuide();
         this.createOuterDockGuides();
         this.layout.addEventListener("tabCreated", tab => this.decorateTab(tab));
@@ -458,6 +375,7 @@ export class FloatingPanelManager {
     public destroy(): void {
         this.clearDockPreview();
         this.clearFloatingPanels(true);
+        this.guideOverlay.remove();
         this.overlay.remove();
     }
 
@@ -628,7 +546,6 @@ export class FloatingPanelManager {
 
             new TabTearOffDragProxy(
                 this,
-                this.internalLayout,
                 x,
                 y,
                 dragListener,
@@ -729,10 +646,10 @@ export class FloatingPanelManager {
         this.attachDetachedComponent(internalComponentItem, floatOptions);
     }
 
-    public attachDetachedComponent(componentItem: InternalComponentItem, options: FloatOptions = {}): void {
+    public attachDetachedComponent(componentItem: InternalComponentItem, options: FloatOptions = {}): FloatingPanel {
         const componentId = ensureComponentId(componentItem);
         if (this.panels.has(componentId)) {
-            return;
+            return this.panels.get(componentId)!;
         }
 
         const floatingStack = this.createFloatingStack(componentItem);
@@ -743,12 +660,20 @@ export class FloatingPanelManager {
         this.updatePanelBounds(panel, panel.bounds, false);
         this.syncFloatingStack(panel);
         this.onChanged();
+        return panel;
     }
 
     private createOverlay(): HTMLElement {
         const overlay = document.createElement("div");
         overlay.id = FLOATING_OVERLAY_ID;
         this.host.appendChild(overlay);
+        return overlay;
+    }
+
+    private createGuideOverlay(): HTMLElement {
+        const overlay = document.createElement("div");
+        overlay.className = "flint-dock-overlay";
+        this.host.parentElement?.appendChild(overlay);
         return overlay;
     }
 
@@ -763,7 +688,7 @@ export class FloatingPanelManager {
             this.dockGuideIcons.set(zone, icon);
         }
 
-        this.overlay.appendChild(guide);
+        this.guideOverlay.appendChild(guide);
         return guide;
     }
 
@@ -771,7 +696,7 @@ export class FloatingPanelManager {
         for (const zone of OUTER_DOCK_ZONES) {
             const icon = document.createElement("div");
             icon.className = `${DOCK_GUIDE_CLASS} ${OUTER_DOCK_GUIDE_CLASS} flint-dock-zone flint-dock-zone-${zone}`;
-            this.overlay.appendChild(icon);
+            this.guideOverlay.appendChild(icon);
             this.outerDockGuideIcons.set(zone, icon);
         }
     }
@@ -981,11 +906,19 @@ export class FloatingPanelManager {
 
     private focusPanel(panel: FloatingPanel): void {
         panel.zIndex = this.bumpZIndex();
-        for (const currentPanel of this.panels.values()) {
-            currentPanel.shell.classList.toggle("active", currentPanel.componentId === panel.componentId);
-            currentPanel.shell.style.zIndex = String(currentPanel.zIndex);
-        }
+        this.syncPanelZIndices(panel.componentId);
         this.onChanged();
+    }
+
+    private syncPanelZIndices(activePanelId?: string): void {
+        const orderedPanels = [...this.panels.values()]
+            .sort((left, right) => left.zIndex - right.zIndex);
+
+        for (let index = 0; index < orderedPanels.length; index += 1) {
+            const currentPanel = orderedPanels[index]!;
+            currentPanel.shell.classList.toggle("active", currentPanel.componentId === activePanelId);
+            currentPanel.shell.style.zIndex = String(index + 1);
+        }
     }
 
     private beginMove(event: PointerEvent, componentId: string): void {
@@ -1084,7 +1017,7 @@ export class FloatingPanelManager {
         document.addEventListener("pointerup", finish);
     }
 
-    private dockPanel(panel: FloatingPanel, useActivePreview = false): void {
+    public dockPanel(panel: FloatingPanel, useActivePreview = false): void {
         const preview = useActivePreview ? this.activeDockPreview : null;
         this.panels.delete(panel.componentId);
         panel.shell.remove();
@@ -1116,6 +1049,18 @@ export class FloatingPanelManager {
         }
 
         throw new Error("Unable to find a dock target for floating panel.");
+    }
+
+    public hasActiveDockPreview(): boolean {
+        return this.activeDockPreview !== null;
+    }
+
+    public moveFloatingPanel(panel: FloatingPanel, bounds: Bounds): void {
+        this.updatePanelBounds(panel, bounds, false);
+    }
+
+    public persistFloatingPanel(panel: FloatingPanel): void {
+        this.updatePanelBounds(panel, panel.bounds, true);
     }
 
     private findHoveredStack(node: ContentItem | undefined, pageX: number, pageY: number): InternalStack | null {

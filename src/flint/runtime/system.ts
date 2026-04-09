@@ -319,6 +319,12 @@ export class System {
             throw new Error(`Html element with type "div" and id "${id}" was not found!`);
         }
 
+        // Keep game-layer z-index ordering contained within the viewport root so
+        // editor overlays and floating panels can stack above the game surface.
+        div.style.position = "relative";
+        div.style.zIndex = "0";
+        div.style.isolation = "isolate";
+
         this.rootDiv = div;
     }
 

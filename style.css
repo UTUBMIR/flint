@@ -63,14 +63,21 @@ body {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    z-index: 20;
+    z-index: 100;
+}
+
+.flint-dock-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 110;
 }
 
 .flint-dock-guide {
     position: absolute;
     display: none;
     pointer-events: none;
-    z-index: 30;
+    z-index: 1;
     --flint-dock-outline: rgba(175, 137, 26, 0.62);
     --flint-dock-outline-strong: rgba(214, 171, 40, 0.9);
     --flint-dock-fill: rgba(17, 18, 24, 0.92);
@@ -83,7 +90,7 @@ body {
 }
 
 .flint-dock-guide-outer {
-    z-index: 25;
+    z-index: 1;
 }
 
 .flint-dock-zone {
@@ -856,7 +863,7 @@ legend {
 }
 
 .lm_dropTargetIndicator {
-    z-index: 35;
+    z-index: 95;
     opacity: 0;
     transform: scale(0.98);
     transition:
@@ -880,5 +887,5 @@ legend {
 }
 
 .lm_dragProxy {
-    z-index: 15;
+    z-index: 105;
 }
