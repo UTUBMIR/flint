@@ -122,6 +122,19 @@ body {
 
 .flint-dock-zone.active {
     border-color: var(--flint-dock-outline-strong);
+    background: rgba(28, 23, 10, 0.92);
+    box-shadow:
+        0 0 0 1px rgba(214, 171, 40, 0.18),
+        0 12px 28px rgba(8, 9, 12, 0.28);
+}
+
+.flint-dock-zone.active::before {
+    border-color: rgba(233, 198, 85, 0.72);
+    background: rgba(30, 24, 10, 0.46);
+}
+
+.flint-dock-zone.active::after {
+    background: rgba(214, 171, 40, 0.52);
 }
 
 .flint-dock-zone-top {
