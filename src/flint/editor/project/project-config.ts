@@ -32,8 +32,6 @@ export default class ProjectConfig {
                 "flint/*"
             ]
         },
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
         "noImplicitOverride": true,
         "module": "esnext",
         "target": "esnext"

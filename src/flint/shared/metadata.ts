@@ -9,15 +9,47 @@ export const MetadataKeys = {
     EditorName: Symbol.for("editor.editor-name")
 };
 
+type MetadataFieldContext =
+    ClassFieldDecoratorContext<object, unknown> |
+    ClassAccessorDecoratorContext<object, unknown>;
+
+function getMetadataFieldName(context: MetadataFieldContext): string {
+    if (context.private) {
+        throw new Error("Metadata decorators do not support private fields.");
+    }
+
+    if (typeof context.name !== "string") {
+        throw new Error("Metadata decorators require a string field name.");
+    }
+
+    return context.name;
+}
+
+function defineFieldMetadata(
+    context: MetadataFieldContext,
+    key: symbol,
+    value: unknown
+): void {
+    const field = getMetadataFieldName(context);
+
+    context.addInitializer(function (this: object) {
+        const target = context.static ? this : Object.getPrototypeOf(this);
+
+        metadataRequest(() => {
+            if (Metadata.getField(target, field, key) === value) {
+                return;
+            }
+
+            Metadata.setField(target, field, key, value);
+        });
+    });
+}
+
 /**
  * Turns off serialization for field.
  */
-export function NonSerialized() {
-    return (target: any, key: string) => {
-        metadataRequest(() => {
-            Metadata.setField(target, key, MetadataKeys.NonSerialized, true);
-        });
-    };
+export function NonSerialized(_: undefined, context: MetadataFieldContext) {
+    defineFieldMetadata(context, MetadataKeys.NonSerialized, true);
 }
 
 
@@ -28,33 +60,23 @@ export function NonSerialized() {
 
 
 export function FieldRenderer(renderer: string) {
-    return (target: any, key: string) => {
-        metadataRequest(() => {
-            Metadata.setField(target, key, MetadataKeys.FieldRenderer, renderer);
-        });
+    return function (_: undefined, context: MetadataFieldContext) {
+        defineFieldMetadata(context, MetadataKeys.FieldRenderer, renderer);
     };
 }
 /**
  * Explicitly hides field from inspector
  */
 
-export function HideInInspector() {
-    return (target: any, key: string) => {
-        metadataRequest(() => {
-            Metadata.setField(target, key, MetadataKeys.HideInInspector, true);
-        });
-    };
+export function HideInInspector(_: undefined, context: MetadataFieldContext) {
+    defineFieldMetadata(context, MetadataKeys.HideInInspector, true);
 }
 /**
  * Explicitly shows field to inspector
  */
 
-export function ShowInInspector() {
-    return (target: any, key: string) => {
-        metadataRequest(() => {
-            Metadata.setField(target, key, MetadataKeys.HideInInspector, false);
-        });
-    };
+export function ShowInInspector(_: undefined, context: MetadataFieldContext) {
+    defineFieldMetadata(context, MetadataKeys.HideInInspector, false);
 }
 
 

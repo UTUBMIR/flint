@@ -7,8 +7,8 @@ export default abstract class Component {
     /**
      * The GameObject that owns this component.
      */
-    @NonSerialized()
-    @HideInInspector()
+    @NonSerialized
+    @HideInInspector
     public gameObject!: GameObject;
 
     /**
