@@ -13,8 +13,14 @@ import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.j
  * @param name - Name to show in the Editor.
  */
 export function EditorName(name: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (target: any) => {
+    return function (
+        target: (abstract new (...args: any[]) => object) | object,
+        context?: ClassDecoratorContext
+    ) {
+        if (context && context.kind !== "class") {
+            throw new Error("@EditorName can only decorate classes.");
+        }
+
         if (typeof target === "function") {
             Metadata.setClass(target.prototype, MetadataKeys.EditorName, name);
         } else {

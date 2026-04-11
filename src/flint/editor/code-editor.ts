@@ -266,7 +266,6 @@ export class CodeEditor {
             moduleResolution: Monaco.languages.typescript.ModuleResolutionKind.NodeJs,
             strict: true,
             allowNonTsExtensions: true,
-            experimentalDecorators: true,
             baseUrl: "./",
             paths: {
                 "@flint/*": ["@flint/*"]

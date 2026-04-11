@@ -49,13 +49,177 @@ body {
 #layout-root {
     flex: 1;
     min-height: 0;
-    /* background: #17191d; */
+    position: relative;
+    z-index: 0;
     background: var(--sl-color-neutral-0);
 }
 
 #layout-host {
     width: 100%;
     height: 100%;
+}
+
+#layout-floating-host {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.flint-dock-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 110;
+}
+
+.flint-dock-guide {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    z-index: 1;
+    --flint-dock-outline: rgba(175, 137, 26, 0.62);
+    --flint-dock-outline-strong: rgba(214, 171, 40, 0.9);
+    --flint-dock-fill: rgba(17, 18, 24, 0.92);
+    --flint-dock-inner: rgba(103, 112, 138, 0.28);
+    --flint-dock-pane: rgba(214, 171, 40, 0.32);
+}
+
+.flint-dock-guide.visible {
+    display: block;
+}
+
+.flint-dock-guide-outer {
+    z-index: 1;
+}
+
+.flint-dock-zone {
+    position: absolute;
+    width: 29%;
+    height: 29%;
+    border: 1px solid var(--flint-dock-outline);
+    border-radius: 12px;
+    background: rgba(13, 14, 19, 0.8);
+    /* background: transparent; */
+    opacity: 0.96;
+}
+
+.flint-dock-zone::before {
+    content: "";
+    position: absolute;
+    inset: 18%;
+    border: 1px solid var(--flint-dock-inner);
+    border-radius: 7px;
+    background: rgba(8, 10, 14, 0.36);
+}
+
+.flint-dock-zone::after {
+    content: "";
+    position: absolute;
+    background: var(--flint-dock-pane);
+    border-radius: 5px;
+}
+
+.flint-dock-zone.active {
+    border-color: var(--flint-dock-outline-strong);
+    background: rgba(28, 23, 10, 0.92);
+    box-shadow:
+        0 0 0 1px rgba(214, 171, 40, 0.18),
+        0 12px 28px rgba(8, 9, 12, 0.28);
+}
+
+.flint-dock-zone.active::before {
+    border-color: rgba(233, 198, 85, 0.72);
+    background: rgba(30, 24, 10, 0.46);
+}
+
+.flint-dock-zone.active::after {
+    background: rgba(214, 171, 40, 0.52);
+}
+
+.flint-dock-zone-top {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.flint-dock-zone-top::after {
+    top: 18%;
+    left: 24%;
+    right: 24%;
+    height: 22%;
+}
+
+.flint-dock-zone-left {
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+}
+
+.flint-dock-zone-left::after {
+    top: 24%;
+    bottom: 24%;
+    left: 18%;
+    width: 22%;
+}
+
+.flint-dock-zone-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.flint-dock-zone-center::after {
+    inset: 27%;
+}
+
+.flint-dock-zone-right {
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+}
+
+.flint-dock-zone-right::after {
+    top: 24%;
+    bottom: 24%;
+    right: 18%;
+    width: 22%;
+}
+
+.flint-dock-zone-bottom {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.flint-dock-zone-bottom::after {
+    bottom: 18%;
+    left: 24%;
+    right: 24%;
+    height: 22%;
+}
+
+.flint-dock-guide-outer.flint-dock-zone {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    background: rgba(11, 13, 18, 0.9);
+}
+
+.flint-dock-guide-outer.flint-dock-zone::before {
+    inset: 15%;
+    border-radius: 8px;
+}
+
+.flint-dock-guide-outer.flint-dock-zone::after {
+    border-radius: 6px;
+}
+
+.flint-dock-guide-outer.flint-dock-zone-top,
+.flint-dock-guide-outer.flint-dock-zone-left,
+.flint-dock-guide-outer.flint-dock-zone-right,
+.flint-dock-guide-outer.flint-dock-zone-bottom {
+    transform: none;
 }
 
 #layout-templates {
@@ -72,6 +236,16 @@ canvas {
 
 #loading-dialog::part(close-button__base) {
     display: none;
+}
+
+#settings-window::part(base),
+#view-assets-dialog::part(base) {
+    z-index: 3000;
+}
+
+#settings-window::part(panel),
+#view-assets-dialog::part(panel) {
+    z-index: 3001;
 }
 
 sl-icon,
@@ -175,6 +349,239 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
 .lm_controls .lm_close,
 .lm_header .lm_tab .lm_close_tab {
     display: none !important;
+}
+
+.lm_tab {
+    position: relative;
+    padding-right: 24px;
+}
+
+.flint-tab-undock {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    width: 16px;
+    height: 16px;
+    border: 0;
+    padding: 0;
+    border-radius: 4px;
+    transform: translateY(-50%);
+    background: transparent;
+    cursor: pointer;
+    opacity: 0.6;
+    color: #6c7483;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flint-tab-undock:hover,
+.flint-tab-undock:focus-visible {
+    color: #d9dde5;
+}
+
+.flint-tab-undock:focus-visible {
+    outline: 1px solid rgba(214, 171, 40, 0.6);
+    outline-offset: 1px;
+}
+
+.flint-floating-window {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+    min-height: 180px;
+    pointer-events: auto;
+    border: 1px solid #2f343c;
+    border-radius: var(--sl-border-radius-medium);
+    overflow: hidden;
+    background: color-mix(in srgb, var(--sl-color-neutral-0) 96%, #101216);
+    /* box-shadow: 0 18px 40px rgba(11, 15, 20, 0.28); */
+    backdrop-filter: blur(8px);
+}
+
+.flint-floating-window.active {
+    /* border-color: #8f6f1e; */
+    /* box-shadow: 0 20px 48px rgba(11, 15, 20, 0.34); */
+}
+
+.flint-floating-window-dragging {
+    opacity: 0.94;
+    cursor: grabbing;
+}
+
+.flint-floating-window-header {
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sl-spacing-x-small);
+    padding: 0 6px 0 8px;
+    background: linear-gradient(180deg, #23272d 0%, #171a1f 100%);
+    color: #d9dde5;
+    cursor: grab;
+    user-select: none;
+}
+
+.flint-floating-window-header:active {
+    cursor: grabbing;
+}
+
+.flint-floating-window-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.flint-floating-window-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.flint-floating-window-button {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    border: 0;
+    padding: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flint-floating-window-button:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.flint-floating-window-dock {
+    color: #cbd1da;
+}
+
+.flint-floating-window-dock:hover,
+.flint-floating-window-dock:focus-visible {
+    color: #ffffff;
+}
+
+.flint-tab-undock sl-icon,
+.flint-floating-window-button sl-icon {
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.flint-tab-undock:hover,
+.flint-tab-undock:focus-visible,
+.flint-floating-window-button:hover,
+.flint-floating-window-button:focus-visible {
+    opacity: 1;
+    background: color-mix(in srgb, var(--sl-color-neutral-900) 16%, transparent);
+}
+
+.flint-floating-window-button:focus-visible {
+    outline: 1px solid rgba(214, 171, 40, 0.6);
+    outline-offset: 1px;
+}
+
+.flint-floating-window-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background: var(--sl-color-neutral-0);
+}
+
+.flint-floating-stack,
+.flint-floating-stack > .lm_item,
+.flint-floating-window-body > .lm_item {
+    width: 100%;
+    height: 100%;
+}
+
+.flint-floating-stack > .lm_header {
+    display: none !important;
+}
+
+.flint-floating-stack > .lm_content {
+    height: 100%;
+    border-top: 1px solid #2f343c;
+}
+
+.flint-floating-resize-handle {
+    position: absolute;
+    z-index: 1;
+}
+
+.flint-floating-resize-n,
+.flint-floating-resize-s {
+    left: 8px;
+    right: 8px;
+    height: 8px;
+}
+
+.flint-floating-resize-n {
+    top: -4px;
+    cursor: ns-resize;
+}
+
+.flint-floating-resize-s {
+    bottom: -4px;
+    cursor: ns-resize;
+}
+
+.flint-floating-resize-e,
+.flint-floating-resize-w {
+    top: 8px;
+    bottom: 8px;
+    width: 8px;
+}
+
+.flint-floating-resize-e {
+    right: -4px;
+    cursor: ew-resize;
+}
+
+.flint-floating-resize-w {
+    left: -4px;
+    cursor: ew-resize;
+}
+
+.flint-floating-resize-ne,
+.flint-floating-resize-nw,
+.flint-floating-resize-se,
+.flint-floating-resize-sw {
+    width: 12px;
+    height: 12px;
+}
+
+.flint-floating-resize-ne {
+    top: -4px;
+    right: -4px;
+    cursor: nesw-resize;
+}
+
+.flint-floating-resize-nw {
+    top: -4px;
+    left: -4px;
+    cursor: nwse-resize;
+}
+
+.flint-floating-resize-se {
+    right: -4px;
+    bottom: -4px;
+    cursor: nwse-resize;
+}
+
+.flint-floating-resize-sw {
+    left: -4px;
+    bottom: -4px;
+    cursor: nesw-resize;
 }
 
 .panel-content {
@@ -344,6 +751,7 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
     align-items: center;
     justify-content: center;
     position: relative;
+    z-index: 100;
     padding: var(--sl-spacing-2x-small);
     background: var(--sl-color-background-secondary);
     color: var(--sl-color-text);
@@ -461,9 +869,29 @@ legend {
 }
 
 .lm_dropTargetIndicator {
-    z-index: 1000;
+    z-index: 95;
+    opacity: 0;
+    transform: scale(0.98);
+    transition:
+        left 120ms ease,
+        top 120ms ease,
+        width 120ms ease,
+        height 120ms ease,
+        opacity 220ms ease,
+        transform 220ms ease;
+    will-change: left, top, width, height, opacity, transform;
+}
+
+.lm_dropTargetIndicator.flint-drop-target-visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.lm_dropTargetIndicator.flint-drop-target-fading {
+    opacity: 0;
+    transform: scale(0.985);
 }
 
 .lm_dragProxy {
-    z-index: 1000;
+    z-index: 105;
 }

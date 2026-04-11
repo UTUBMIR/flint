@@ -5,7 +5,7 @@ import Component from "../../component";
 import PhysicsBody from "./physics-body";
 
 export default abstract class Collider extends Component {
-    @NonSerialized()
+    @NonSerialized
     protected fixture!: P.Fixture;
 
     protected get body(): P.Body {

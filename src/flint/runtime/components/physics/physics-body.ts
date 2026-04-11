@@ -6,29 +6,29 @@ import type { PhysicsWorld } from "@flint/runtime/physics-world";
 import { System } from "@flint/runtime/system";
 
 export default class PhysicsBody extends Component {
-    @NonSerialized()
+    @NonSerialized
     public body!: P.Body;
 
     public type: "dynamic" | "static" | "kinematic" = "dynamic";
 
     public mass: number = 1;
 
-    @NonSerialized()
+    @NonSerialized
     private attachedWorld: PhysicsWorld | undefined;
 
-    @NonSerialized()
+    @NonSerialized
     private lastPulledX: number = Number.NaN;
 
-    @NonSerialized()
+    @NonSerialized
     private lastPulledY: number = Number.NaN;
 
-    @NonSerialized()
+    @NonSerialized
     private lastPulledAngle: number = Number.NaN;
 
-    @NonSerialized()
+    @NonSerialized
     private lastAppliedType: PhysicsBody["type"] = this.type;
 
-    @NonSerialized()
+    @NonSerialized
     private lastAppliedMass: number = this.mass;
 
     private get world(): PhysicsWorld {
