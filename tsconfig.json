@@ -1,5 +1,7 @@
 {
     "compilerOptions": {
+        "experimentalDecorators": false,
+        "useDefineForClassFields": false,
         "rootDir": "./src",
         "outDir": "./dist",
         "declaration": true,

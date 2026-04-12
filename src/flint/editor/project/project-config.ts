@@ -34,7 +34,9 @@ export default class ProjectConfig {
         },
         "noImplicitOverride": true,
         "module": "esnext",
-        "target": "esnext"
+        "target": "esnext",
+        "experimentalDecorators": false,
+        "useDefineForClassFields": false
     }
 }`;
 
