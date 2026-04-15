@@ -12,7 +12,7 @@ export default [
             format: "es",
 
             generatedCode: {
-                preset: "es2015",
+                preset: "es2024",
                 constBindings: true,
                 arrowFunctions: true,
                 objectShorthand: true
@@ -36,7 +36,7 @@ export default [
             format: "es",
 
             generatedCode: {
-                preset: "es2015",
+                preset: "es2024",
                 constBindings: true,
                 arrowFunctions: true,
                 objectShorthand: true
@@ -45,7 +45,7 @@ export default [
 
         plugins: [
             esbuild({
-                target: "es2022",
+                target: "es2024",
                 minify: false
             })
         ],

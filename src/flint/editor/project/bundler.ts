@@ -133,7 +133,7 @@ export default class Bundler {
             bundle: true,
             write: false,
             format: "esm",
-            target: ["esnext"],
+            target: ["es2024"],
             plugins: [Bundler.virtualFsPlugin],
             external: ["@flint/"],
             platform: "browser",
