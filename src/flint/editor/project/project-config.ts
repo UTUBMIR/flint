@@ -47,7 +47,8 @@ export default class ProjectConfig {
         physicsPixelsPerMeter: 100,
         physicsGravityX: 0,
         physicsGravityY: 9.8,
-        generateJsMap: false
+        generateJsMap: false,
+        rootPath: "virtual"
     };
 
     public static async save() {
