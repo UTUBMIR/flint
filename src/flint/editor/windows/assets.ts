@@ -25,6 +25,8 @@ export default class Assets {
     public contextDropdownElement: DropdownType;
     public contextMenuElement: HTMLElement;
 
+    private scheduledRerender = false;
+
     private cachedWidth = 0;
     private cachedHeight = 0;
     private allAssets: AssetData[] = [];
@@ -44,7 +46,7 @@ export default class Assets {
         this.setupButtons();
         this.setupContextMenu();
         this.setupToolbar();
-        this.renderCurrentFolder();
+        this.requestRerender();
     }
 
     private setupToolbar() {
@@ -178,7 +180,7 @@ export default class Assets {
         parts.pop(); // go up one folder
         this.currentPath = "/" + parts.join("/");
         if (this.currentPath === "") this.currentPath = "/";
-        this.renderCurrentFolder();
+        this.requestRerender();
     }
 
     private async uploadFileToCurrentFolder() {
@@ -259,19 +261,29 @@ export default class Assets {
     /** Adds asset to store and re-renders current folder */
     public addAsset(asset: AssetData) {
         this.allAssets.push(asset);
-        this.renderCurrentFolder();
+        this.requestRerender();
     }
 
     /** Removes asset and all nested assets if folder */
     public removeAsset(path: string) {
         this.allAssets = this.allAssets.filter(a => !a.path.startsWith(path));
-        this.renderCurrentFolder();
+        this.requestRerender();
     }
 
     /** Clears all assets */
     public clearAssets() {
         this.allAssets = [];
-        this.renderCurrentFolder();
+        this.requestRerender();
+    }
+
+    public requestRerender() {
+        if (this.scheduledRerender) return;
+        this.scheduledRerender = true;
+
+        queueMicrotask(() => {
+            this.scheduledRerender = false;
+            this.renderCurrentFolder();
+        });
     }
 
     /** Renders only assets in the current folder */
@@ -388,7 +400,7 @@ export default class Assets {
 
     private enterFolder(path: string) {
         this.currentPath = path;
-        this.renderCurrentFolder();
+        this.requestRerender();
     }
 
     private async onAssetOpen(asset: AssetData) {

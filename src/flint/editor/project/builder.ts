@@ -74,6 +74,12 @@ export class Builder {
 
             Bundler.files.set(path, text);
         }
+
+        Editor.assetsWindow.clearAssets();
+        for (const asset of textAssets) {
+            Editor.assetsWindow.addAsset(asset as AssetData);//FIXME: WTF?!? This should not be here
+        }
+
         try {
             const enableSourceMap = sourceMap ?? ProjectConfig.config?.generateJsMap ?? false;
             const result = (await Bundler.bundle(entryPoint, enableSourceMap)).outputFiles[0]?.text;
@@ -81,11 +87,6 @@ export class Builder {
             if (!result) return false;
 
             this.compiled = result;
-
-            Editor.assetsWindow.clearAssets();
-            for (const asset of textAssets) {
-                Editor.assetsWindow.addAsset(asset as AssetData);//FIXME: WTF?!?
-            }
 
             return true;
         }
