@@ -751,6 +751,7 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
 .inspector-field sl-input {
     flex: 1;
     min-width: 10px !important;
+    margin-right: 10px;
 }
 
 .app-toolbar {

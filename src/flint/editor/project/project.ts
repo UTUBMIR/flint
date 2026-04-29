@@ -170,12 +170,14 @@ export class Project {
 
     public static async newProject(folderHandle: FileSystemDirectoryHandle) {
         if (await Project.startupProject(folderHandle) || !await Project.loadProject()) {
-            System.world.addLayer(Editor.defaultLayer);
+            await Project.initializeDefaultProject();
             refreshEditorWindows("Hierarchy");
         }
 
         await Project.saveProject();
-        System.world.addLayer(new EditorLayer());
+        if (!System.world.getLayers().some(layer => layer instanceof EditorLayer)) {
+            System.world.addLayer(new EditorLayer());
+        }
         refreshEditorWindows("Hierarchy");
 
         // setInterval(async () => {
@@ -439,6 +441,39 @@ export class ${name} extends Component {
         await Project.openInFileEditor("/" + relativeFilePath);
     }
 
+    private static async initializeDefaultProject() {
+        const template = Editor.defaultProject;
+        await Project.ensureTemplateFiles(template.files);
+        await Project.ensureTemplateComponents(template.components);
+        await Builder.buildForEditor();
+        await ProjectLoader.load(Editor.defaultProject.data);
+    }
+
+    private static async ensureTemplateFiles(files: { path: string, content: string }[]) {
+        for (const file of files) {
+            const fileExists = await System.fileSystem.fileExists(file.path);
+            if (!fileExists) {
+                await System.fileSystem.writeTextFile(file.path, file.content);
+            }
+        }
+    }
+
+    private static async ensureTemplateComponents(components: { name: string, file: string }[]) {
+        let updated = false;
+
+        for (const component of components) {
+            if (ProjectConfig.config.components.some(existing => existing.name === component.name)) {
+                continue;
+            }
+
+            ProjectConfig.config.components.push(component);
+            updated = true;
+        }
+
+        if (updated) {
+            await ProjectConfig.save();
+        }
+    }
 
     public static async deleteComponent(name: string) {
         const fileBaseName = CasingHandler.splitPascalCase(name, "-");

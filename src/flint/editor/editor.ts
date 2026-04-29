@@ -3,7 +3,8 @@ import Layer from "../runtime/layer";
 import Vector2 from "../shared/vector2";
 import Bundler from "./project/bundler";
 import { Project } from "./project/project";
-import HierarchyWindow, { EditorName as EditorName } from "./windows/hierarchy";
+import type HierarchyWindow from "./windows/hierarchy";
+import { EditorName as EditorName } from "./windows/hierarchy";
 
 import Camera from "../runtime/components/camera";
 import Shape from "../runtime/components/shape";
@@ -15,6 +16,7 @@ import PhysicsBody from "@flint/runtime/components/physics/physics-body";
 import BoxCollider from "@flint/runtime/components/physics/box-collider";
 import Label from "@flint/runtime/components/label";
 import Image from "@flint/runtime/components/image";
+import type Component from "../runtime/component";
 import { CodeEditor } from "./code-editor";
 import { SettingsWindow, type SettingsChangedEventDetail, type SettingsValue } from "./settings/settings-window";
 import type SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog.component.js";
@@ -27,6 +29,23 @@ import ProjectConfig from "./project/project-config";
 import { AbstractFileSystem } from "@flint/shared/file-system";
 import { AssetRegistry, AssetType } from "../runtime/assets";
 import { activeWindowService, editorAssetStore } from "./window-services";
+import type { ProjectData } from "../runtime/project-loader";
+
+export type ProjectTemplateFile = {
+    path: string;
+    content: string;
+};
+
+export type ProjectTemplateComponent = {
+    name: string;
+    file: string;
+};
+
+export type ProjectTemplate = {
+    data: ProjectData;
+    files: ProjectTemplateFile[];
+    components: ProjectTemplateComponent[];
+};
 
 export type DropdownType = HTMLElement & {
     show: () => void;
@@ -140,7 +159,7 @@ class ToolBarActions {
     public static async downloadtBuild() {
         try {
             const build = await System.fileSystem.readTextFile("build/index.html");
-            const blob = new Blob([build], {type: "text/html"});
+            const blob = new Blob([build], { type: "text/html" });
             const fileName = "index.html";
             const url = URL.createObjectURL(blob);
 
@@ -152,7 +171,7 @@ class ToolBarActions {
             URL.revokeObjectURL(url);
             Notifier.notify("Build downloaded", "success");
         }
-        catch(e: unknown) {
+        catch (e: unknown) {
             Notifier.notify("Could not download build: " + e, "warning");
         }
     }
@@ -229,11 +248,8 @@ export default class Editor {
     public static loadingDialog: HTMLElement & { show: () => void, hide: () => void };
     public static loadingDialogProgressBar: HTMLElement & { value: number, indeterminate: boolean };
 
-
-    private static _defaultLayer: Layer;
-
-    public static get defaultLayer(): Layer {
-        return this._defaultLayer;
+    public static get defaultProject(): ProjectTemplate {
+        return this.createDefaultProject();
     }
 
     private static _running = false;
@@ -568,12 +584,28 @@ export default class Editor {
         Editor.updateWindowFields();
         Editor.loadEngineFiles();
 
-        Editor._defaultLayer = new Layer();
-        EditorName("Main Layer")(Editor._defaultLayer);
+        EditorName("New Layer")(Layer); // Adding here because we don`t want this in game
+        EditorName("New GameObject")(GameObject);
+        CodeEditor.openFile("project-config.json");
+    }
 
-        const rect = new GameObject([
-            new Shape()
-        ], new Transform(
+    private static createDefaultProject(): ProjectTemplate {
+        const defaultLayer = new Layer();
+        EditorName("Main Layer")(defaultLayer);
+
+        const rectComponents: Component[] = [];
+
+        const helloWorldType = System.components.get("HelloWorld");
+        if (helloWorldType) {
+            rectComponents.push(new (helloWorldType as new () => Component)());
+        }
+
+        const rotateComponentType = System.components.get("Rotate");
+        if (rotateComponentType) {
+            rectComponents.push(new (rotateComponentType as new () => Component)());
+        }
+
+        const rect = new GameObject(rectComponents, new Transform(
             undefined,
             new Vector2(1, 1)
         ));
@@ -584,11 +616,60 @@ export default class Editor {
         ]);
         EditorName("Camera")(camera);
 
-        Editor._defaultLayer.addObjects([rect, camera]);
+        defaultLayer.addObjects([rect, camera]);
 
-        EditorName("New Layer")(Layer); // Adding here because we don`t want this in game
-        EditorName("New GameObject")(GameObject);
-        CodeEditor.openFile("project-config.json");
+        return {
+            data: {
+                layers: [defaultLayer],
+                assets: []
+            },
+            files: [{
+                path: "assets/hello-world.ts",
+                content: `import Label from "@flint/runtime/components/label";
+
+// Components are small scripts you attach to GameObjects.
+// This one extends Label, so it already knows how to draw text on screen.
+export class HelloWorld extends Label {
+    // Label already has these fields, so we override their default values here.
+    public override text = "Hello world!";
+    public override fontSize = 32;
+
+    override start(): void {
+        // start() runs once when the game begins.
+        console.log("Hello world!");
+    }
+}
+`
+            }, {
+                path: "assets/rotate.ts",
+                content: `import Component from "@flint/runtime/component";
+import { System } from "@flint/runtime/system";
+
+// This is the simplest kind of Flint component.
+// It extends Component directly, then changes its GameObject's Transform.
+export class Rotate extends Component {
+    public rotationSpeed = 2;
+
+    override start(): void {
+        // Make the rectangle a little wider when the game starts.
+        this.transform.size.x = 2;
+    }
+
+    override update(): void {
+        // Rotate smoothly. deltaTime keeps the speed stable on high and low fps.
+        this.transform.rotation += this.rotationSpeed * System.deltaTime;
+    }
+}
+`
+            }],
+            components: [{
+                name: "HelloWorld",
+                file: "/assets/hello-world.ts"
+            }, {
+                name: "Rotate",
+                file: "/assets/rotate.ts"
+            }]
+        };
     }
 
     public static async loadEngineFiles() {

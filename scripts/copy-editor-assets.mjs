@@ -47,6 +47,7 @@ const shoelaceIcons = [
     "list-columns-reverse",
     "list-ul",
     "lock-fill",
+    "unlock-fill",
     "play",
     "plus-lg",
     "plus-square",

@@ -120,6 +120,8 @@ export class CodeEditor {
     private static readonly windows = new Map<string, EditorWindowController>();
     private static activeWindowId: string | null = null;
     private static spawnWindow: WindowSpawner | null = null;
+    private static initializing = false;
+    private static readonly initialWindowWaitMs = 250;
 
     private static readonly typeNames: Record<string, string> = {
         "ts": "typescript",
@@ -393,10 +395,9 @@ export class CodeEditor {
             return this.activeWindowId;
         }
 
-        const firstWindow = this.windows.keys().next();
-        if (!firstWindow.done) {
-            this.activeWindowId = firstWindow.value;
-            return this.activeWindowId;
+        for (const [id] of this.windows) {
+            this.activeWindowId = id;
+            return id;
         }
 
         if (this.spawnWindow) {
@@ -407,18 +408,64 @@ export class CodeEditor {
         return null;
     }
 
+    private static async waitForExistingWindow(timeoutMs = this.initialWindowWaitMs): Promise<string | null> {
+        const deadline = performance.now() + timeoutMs;
+
+        while (performance.now() < deadline) {
+            const existingWindowId = this.getOrCreateActiveWindowIdWithoutSpawn();
+            if (existingWindowId) {
+                return existingWindowId;
+            }
+
+            await new Promise<void>(resolve => {
+                requestAnimationFrame(() => resolve());
+            });
+        }
+
+        return this.getOrCreateActiveWindowIdWithoutSpawn();
+    }
+
+    private static getOrCreateActiveWindowIdWithoutSpawn(): string | null {
+        if (this.activeWindowId && this.windows.has(this.activeWindowId)) {
+            return this.activeWindowId;
+        }
+
+        for (const [id] of this.windows) {
+            this.activeWindowId = id;
+            return id;
+        }
+
+        return null;
+    }
+
     public static async openFile(path: string, instanceId?: string): Promise<void> {
-        const targetWindowId = instanceId ?? this.getOrCreateActiveWindowId();
+        let targetWindowId = instanceId
+            ?? this.getOrCreateActiveWindowIdWithoutSpawn()
+            ?? await this.waitForExistingWindow();
+
+        if (!targetWindowId) {
+            await this.waitForMonaco();
+            targetWindowId = this.getOrCreateActiveWindowId();
+        }
+
         if (!targetWindowId) {
             return;
         }
 
-        const controller = this.windows.get(targetWindowId);
+        let controller = this.windows.get(targetWindowId);
         if (!controller) {
-            setTimeout(() => {
-                void this.openFile(path, targetWindowId);
-            }, 0);
-            return;
+            await this.waitForMonaco();
+            controller = this.windows.get(targetWindowId);
+            if (!controller) {
+                targetWindowId = this.getOrCreateActiveWindowId();
+                if (!targetWindowId) {
+                    return;
+                }
+                controller = this.windows.get(targetWindowId);
+                if (!controller) {
+                    return;
+                }
+            }
         }
 
         await this.ensureLibrariesLoaded();

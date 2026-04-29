@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { ComponentContainer } from "golden-layout";
 import type GameObject from "../../runtime/game-object";
 import type Component from "../../runtime/component";
 import { System, type UUID } from "../../runtime/system";
@@ -79,8 +80,6 @@ export default class InspectorWindow extends BaseEditorWindow {
     }
 
     public override initialize(): void {
-        this.setupTabButton();
-
         this.listen(this.dropTarget, "dragover", event => {
             event.preventDefault();
         });
@@ -134,6 +133,32 @@ export default class InspectorWindow extends BaseEditorWindow {
         };
     }
 
+    public toggleFollowSelection(): void {
+        this.followingSelection = !this.followingSelection;
+        this.updateLockButton();
+        if (this.followingSelection) {
+            this.setTargetId(this.context.services.selection.getSelectedId());
+        }
+    }
+
+    public updateLockButton(): void {
+        const stack = this.context.container as ComponentContainer & {
+            parent?: {
+                header?: {
+                    controlsContainerElement?: HTMLElement;
+                };
+            };
+        };
+        const lockButton = stack.parent?.header?.controlsContainerElement?.querySelector('[data-flint-inspector-lock]') as HTMLElement | null;
+        if (!lockButton) {
+            return;
+        }
+        lockButton.innerHTML = `<sl-icon name="${this.followingSelection ? "unlock-fill" : "lock-fill"}" style="font-size: 14px;"></sl-icon>`;
+        lockButton.setAttribute("title", this.followingSelection
+            ? "Unlock - inspector will follow selection"
+            : "Locked - inspector pinned to object");
+    }
+
     public override restoreState(state: EditorWindowState): void {
         this.followingSelection = state?.followingSelection !== false;
         const currentObjectId = state?.currentObjectId;
@@ -156,49 +181,6 @@ export default class InspectorWindow extends BaseEditorWindow {
     private setTargetId(id: UUID | null): void {
         this.currentObjectId = id;
         this.renderCurrentObject();
-    }
-
-    private setupTabButton(): void {
-        const existingTab = this.context.container.tab;
-        if (existingTab?.element) {
-            this.appendLockButton(existingTab.element);
-            return;
-        }
-
-        this.context.container.on("tab", (tab) => {
-            if (tab?.element) {
-                this.appendLockButton(tab.element);
-            }
-        });
-    }
-
-    private appendLockButton(tabElement: HTMLElement): void {
-        this.lockButton = document.createElement("button");
-        this.lockButton.className = "lm_tab_right_action_button";
-        this.lockButton.innerHTML = `<sl-icon name="unlock-fill" style="font-size: 14px;"></sl-icon>`;
-        this.lockButton.setAttribute("title", "Lock inspector to current object");
-        this.lockButton.style.cssText = "background: transparent; border: none; color: inherit; cursor: pointer; padding: 2px 6px; display: flex; align-items: center;";
-        this.lockButton.addEventListener("click", (e) => {
-            e.stopPropagation();
-            this.followingSelection = !this.followingSelection;
-            this.updateLockButton();
-            if (this.followingSelection) {
-                this.setTargetId(this.context.services.selection.getSelectedId());
-            }
-        });
-
-        tabElement.appendChild(this.lockButton);
-        this.updateLockButton();
-    }
-
-    private updateLockButton(): void {
-        if (!this.lockButton) {
-            return;
-        }
-        this.lockButton.innerHTML = `<sl-icon name="${this.followingSelection ? "unlock-fill" : "lock-fill"}" style="font-size: 14px;"></sl-icon>`;
-        this.lockButton.setAttribute("title", this.followingSelection
-            ? "Unlock - inspector will follow selection"
-            : "Locked - inspector pinned to object");
     }
 
     public async addComponent(): Promise<void> {
