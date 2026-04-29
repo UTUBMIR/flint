@@ -12,6 +12,8 @@ import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.j
 import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
 import { CodeEditor } from "../code-editor";
 import { CasingHandler } from "../casing-handler";
+import { activeWindowService, editorAssetStore, editorSelectionService } from "../window-services";
+import { refreshEditorWindows } from "../layout";
 
 type ProjectArchiveEntry = {
     kind: "directory";
@@ -150,18 +152,16 @@ export class Project {
 
     public static async stop() {
         const success = await Project.loadProject();
-        Editor.hierarchyWindow.update();
-
-        if (Editor.inspectorWindow.currentObject) {
-            Editor.inspectorWindow.currentObject = System.world.getGameObjectById(Editor.inspectorWindow.currentObject.id);
-        }
+        refreshEditorWindows("Hierarchy");
+        refreshEditorWindows("Inspector");
+        editorSelectionService.setSelectedId(editorSelectionService.getSelectedId());
         return success;
     }
 
     public static async openProject(folderHandle: FileSystemDirectoryHandle) {
         await Project.startupProject(folderHandle);
         await Project.loadProject();
-        Editor.hierarchyWindow.update();
+        refreshEditorWindows("Hierarchy");
 
         // setInterval(async () => {
         //     await Project.saveProject();
@@ -171,12 +171,12 @@ export class Project {
     public static async newProject(folderHandle: FileSystemDirectoryHandle) {
         if (await Project.startupProject(folderHandle) || !await Project.loadProject()) {
             System.world.addLayer(Editor.defaultLayer);
-            Editor.hierarchyWindow.update();
+            refreshEditorWindows("Hierarchy");
         }
 
         await Project.saveProject();
         System.world.addLayer(new EditorLayer());
-        Editor.hierarchyWindow.update();
+        refreshEditorWindows("Hierarchy");
 
         // setInterval(async () => {
         //     await Project.saveProject();
@@ -238,7 +238,7 @@ export class Project {
         await ProjectConfig.ensureLoaded();
         await Builder.buildForEditor();
         await Project.loadProject();
-        Editor.hierarchyWindow.update();
+        refreshEditorWindows("Hierarchy");
     }
 
     public static async saveProject() {
@@ -397,7 +397,7 @@ export class Project {
         name = CasingHandler.joinToPascalCase(name);
         const fileBaseName = CasingHandler.splitPascalCase(name, "-");
 
-        const assetPath = Editor.assetsWindow.currentPath.replace(/^\//, "");
+        const assetPath = activeWindowService.getPreferredAssetsPath().replace(/^\//, "");
         const relativeFilePath = `${assetPath}/${fileBaseName}.ts`;
 
         const fileContent = `import Component from "@flint/runtime/component";
@@ -425,11 +425,11 @@ export class ${name} extends Component {
 
         await System.fileSystem.writeTextFile(relativeFilePath, fileContent);
 
-        Editor.assetsWindow.addAsset({
+        editorAssetStore.add({
             id: crypto.randomUUID(),
             name: fileBaseName + ".ts",
             type: "component",
-            path: relativeFilePath,
+            path: "/" + relativeFilePath,
             data: name
         });
 
@@ -442,7 +442,7 @@ export class ${name} extends Component {
 
     public static async deleteComponent(name: string) {
         const fileBaseName = CasingHandler.splitPascalCase(name, "-");
-        const assetPath = Editor.assetsWindow.currentPath.replace(/^\//, "");
+        const assetPath = activeWindowService.getPreferredAssetsPath().replace(/^\//, "");
         const relativeFilePath = `${assetPath}/${fileBaseName}.ts`;
 
         try {
@@ -464,7 +464,7 @@ export class ${name} extends Component {
         }
 
         // Updating UI
-        Editor.assetsWindow.removeAsset(relativeFilePath);
+        editorAssetStore.remove("/" + relativeFilePath);
     }
 
 

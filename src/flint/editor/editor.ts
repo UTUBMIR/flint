@@ -3,16 +3,14 @@ import Layer from "../runtime/layer";
 import Vector2 from "../shared/vector2";
 import Bundler from "./project/bundler";
 import { Project } from "./project/project";
-import Assets from "./windows/assets";
 import HierarchyWindow, { EditorName as EditorName } from "./windows/hierarchy";
-import InspectorWindow from "./windows/inspector";
 
 import Camera from "../runtime/components/camera";
 import Shape from "../runtime/components/shape";
 import Transform from "../runtime/transform";
 import { System } from "../runtime/system";
 import { Builder } from "./project/builder";
-import { resetEditorLayout } from "./layout";
+import { refreshEditorWindows, resetEditorLayout, spawnEditorWindow, getEditorWindowsOfType } from "./layout";
 import PhysicsBody from "@flint/runtime/components/physics/physics-body";
 import BoxCollider from "@flint/runtime/components/physics/box-collider";
 import Label from "@flint/runtime/components/label";
@@ -20,8 +18,15 @@ import Image from "@flint/runtime/components/image";
 import { CodeEditor } from "./code-editor";
 import { SettingsWindow, type SettingsChangedEventDetail, type SettingsValue } from "./settings/settings-window";
 import type SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog.component.js";
+import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
+import type SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox.js";
+import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
+import type SlSelect from "@shoelace-style/shoelace/dist/components/select/select.js";
+import type SlCopyButton from "@shoelace-style/shoelace/dist/components/copy-button/copy-button.js";
 import ProjectConfig from "./project/project-config";
 import { AbstractFileSystem } from "@flint/shared/file-system";
+import { AssetRegistry, AssetType } from "../runtime/assets";
+import { activeWindowService, editorAssetStore } from "./window-services";
 
 export type DropdownType = HTMLElement & {
     show: () => void;
@@ -216,9 +221,6 @@ class ToolBarActions {
 export default class Editor {
     public static draggedItem: unknown | undefined;
 
-    public static hierarchyWindow: HierarchyWindow;
-    public static inspectorWindow: InspectorWindow;
-    public static assetsWindow: Assets;
     public static settingsWindow: SettingsWindow;
 
     public static runButton: HTMLButtonElement;
@@ -368,6 +370,118 @@ export default class Editor {
         });
     }
 
+    private static initAssetMenuActions() {
+        const createAssetDialog = document.getElementById("create-asset-dialog")! as SlDialog;
+        const createButton = createAssetDialog.querySelector("sl-button") as SlButton;
+        const preloadCheckbox = createAssetDialog.querySelector("sl-checkbox") as SlCheckbox;
+        const typeSelect = createAssetDialog.querySelector("sl-select")! as SlSelect;
+        const createInput = createAssetDialog.querySelector("sl-input") as SlInput;
+
+        if (!typeSelect.querySelector("sl-option")) {
+            for (const type of Object.keys(AssetType).filter(key => Number.isNaN(Number(key)))) {
+                typeSelect.append(Object.assign(document.createElement("sl-option"), {
+                    textContent: type,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    value: (AssetType as any)[type]
+                }));
+            }
+            typeSelect.setAttribute("value", "0");
+        }
+
+        document.getElementById("new-asset-button")?.addEventListener("click", () => {
+            createButton.disabled = true;
+            createInput.value = "";
+            createAssetDialog.show();
+        });
+
+        createInput.addEventListener("sl-input", () => {
+            createButton.disabled = createInput.value.trim() === "";
+        });
+
+        createButton.addEventListener("click", () => {
+            createAssetDialog.hide();
+            AssetRegistry.register({
+                id: crypto.randomUUID(),
+                url: createInput.value.trim(),
+                type: +typeSelect.value,
+                preload: preloadCheckbox.checked
+            });
+        });
+
+        const viewAssetsDialog = document.getElementById("view-assets-dialog")! as SlDialog;
+        const assetsTable = viewAssetsDialog.querySelector("table")! as HTMLTableElement;
+        document.getElementById("view-assets-button")?.addEventListener("click", () => {
+            Editor.fillAssetTable(assetsTable);
+            viewAssetsDialog.show();
+        });
+
+        document.getElementById("new-component-general-button")?.addEventListener("click", () => {
+            Project.showCreateComponentWindow();
+        });
+
+        document.getElementById("upload-file-button")?.addEventListener("click", () => {
+            void Editor.uploadFileToActiveAssetsFolder();
+        });
+    }
+
+    private static fillAssetTable(table: HTMLTableElement) {
+        const body = table.tBodies[0];
+        if (!body) {
+            throw new Error("Assets table must have a body.");
+        }
+
+        body.innerHTML = "";
+        for (const asset of AssetRegistry.meta.values()) {
+            const row = body.insertRow();
+            row.insertCell().innerText = asset.url;
+            const idCell = row.insertCell();
+            idCell.style.display = "flex";
+
+            const idCopyButton = document.createElement("sl-copy-button") as SlCopyButton;
+            idCopyButton.value = asset.id;
+            idCopyButton.style.marginLeft = "auto";
+            idCell.append(document.createTextNode(asset.id), idCopyButton);
+
+            row.insertCell().innerText = AssetType[asset.type];
+            const checkbox = document.createElement("sl-checkbox") as SlCheckbox;
+            checkbox.checked = asset.preload;
+            checkbox.addEventListener("sl-change", () => {
+                asset.preload = checkbox.checked;
+            });
+            row.insertCell().append(checkbox);
+        }
+    }
+
+    private static async uploadFileToActiveAssetsFolder() {
+        const file = await new Promise<File | null>(resolve => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.addEventListener("change", () => {
+                resolve(input.files?.[0] ?? null);
+            }, { once: true });
+            input.click();
+        });
+
+        if (!file) {
+            return;
+        }
+
+        const activePath = activeWindowService.getPreferredAssetsPath();
+        const relativeFolderPath = activePath.replace(/^\/+/, "");
+        const relativeFilePath = relativeFolderPath ? `${relativeFolderPath}/${file.name}` : file.name;
+        const fullAssetPath = "/" + relativeFilePath;
+
+        await System.fileSystem.writeFile(relativeFilePath, new Uint8Array(await file.arrayBuffer()));
+        editorAssetStore.remove(fullAssetPath);
+        editorAssetStore.add({
+            id: crypto.randomUUID(),
+            name: file.name,
+            type: file.name.endsWith(".ts") ? "component" : file.name.endsWith(".json") ? "json" : "file",
+            path: fullAssetPath,
+            data: ""
+        });
+    }
+
     public static syncSettingsFromProjectConfig() {
         if (!ProjectConfig.config) {
             return;
@@ -388,15 +502,9 @@ export default class Editor {
         Editor.enableLongPressContextMenu(document);
 
         try {
-            const addComponentDialog = document.getElementById("add-component-dialog")!;
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            Editor.hierarchyWindow = new HierarchyWindow(document.getElementById("hierarchy-tree")! as any);
-            Editor.inspectorWindow = new InspectorWindow(document.getElementById("inspector-body")! as HTMLDivElement, addComponentDialog);
             Editor.settingsWindow = new SettingsWindow(document.getElementById("settings-window")! as SlDialog);
             Editor.initSettingsWindow();
-
-            Editor.assetsWindow = new Assets(document.getElementById("assets-window")! as HTMLDivElement, document.getElementById("assets-grid")! as HTMLDivElement);
+            Editor.initAssetMenuActions();
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             Editor.loadingDialog = document.getElementById("loading-dialog")! as any;
@@ -441,6 +549,11 @@ export default class Editor {
             }, true);
 
             document.getElementById("reset-layout-button")!.addEventListener("click", ToolBarActions.resetLayout);
+            document.getElementById("new-viewport-window-button")?.addEventListener("click", () => spawnEditorWindow("Viewport"));
+            document.getElementById("new-code-editor-window-button")?.addEventListener("click", () => spawnEditorWindow("CodeEditor"));
+            document.getElementById("new-hierarchy-window-button")?.addEventListener("click", () => spawnEditorWindow("Hierarchy"));
+            document.getElementById("new-assets-window-button")?.addEventListener("click", () => spawnEditorWindow("Assets"));
+            document.getElementById("new-inspector-window-button")?.addEventListener("click", () => spawnEditorWindow("Inspector"));
 
             this.runButton = document.getElementById("run-button")! as HTMLButtonElement;
 
@@ -448,14 +561,11 @@ export default class Editor {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             this.runButtonIcon = this.runButton.querySelector("sl-icon")! as any;
 
-            document.getElementById("create-object-button")!.addEventListener("click", Editor.hierarchyWindow.createObject.bind(Editor.hierarchyWindow));
-
         } catch (error) {
             console.error(`Error: Failed to initialize UI: ${error}`);
         }
 
-        Editor.hierarchyWindow.update(); //FIXME: why is this even needed?
-        Editor.updateInspectorFields();
+        Editor.updateWindowFields();
         Editor.loadEngineFiles();
 
         Editor._defaultLayer = new Layer();
@@ -506,14 +616,19 @@ export default class Editor {
         console.log("All flint files loaded");
     }
 
-    public static updateInspectorFields() {
-        Editor.inspectorWindow.update();
-        requestAnimationFrame(Editor.updateInspectorFields);
+    public static updateWindowFields() {
+        refreshEditorWindows();
+        requestAnimationFrame(Editor.updateWindowFields);
     }
 
     public static onProjectLoad() {
         Editor.runButton.disabled = false;
         Editor.syncSettingsFromProjectConfig();
-        // Editor.hierarchy.onUpdate();
+        refreshEditorWindows("Hierarchy");
+        refreshEditorWindows("Inspector");
+    }
+
+    public static getPrimaryHierarchyWindow(): HierarchyWindow | undefined {
+        return getEditorWindowsOfType<HierarchyWindow>("Hierarchy")[0];
     }
 }

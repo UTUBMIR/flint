@@ -1,32 +1,22 @@
 import { type ComponentContainer, GoldenLayout, LayoutConfig, type ResolvedComponentItemConfig, RowOrColumn } from "golden-layout";
 import { CodeEditor } from "./code-editor";
 import { FloatingPanelManager, type FloatingPanelState } from "./floating-panels";
+import AssetsWindow from "./windows/assets";
+import CodeEditorWindow from "./windows/code-editor-window";
+import HierarchyWindow from "./windows/hierarchy";
+import InspectorWindow from "./windows/inspector";
+import ViewportWindow from "./windows/viewport";
+import { activeWindowService, editorAssetStore, editorSelectionService } from "./window-services";
+import type { EditorWindow, SpawnWindowOptions, WindowDefinition, WindowManagerApi, WindowType } from "./window-framework";
 
 const STORAGE_KEY = "flint.editor.layout";
 const HOST_ID = "layout-host";
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 const HEADER_HEIGHT = 20;
+
 let currentLayout: GoldenLayout | null = null;
 let currentFloatingPanels: FloatingPanelManager | null = null;
-
-type PanelType = "Viewport" | "CodeEditor" | "Hierarchy" | "Assets" | "Inspector";
-
-type PanelDefinition = {
-    type: PanelType;
-    templateId: string;
-};
-
-const panelDefinitions: readonly PanelDefinition[] = [
-    { type: "Viewport", templateId: "viewport-panel-template" },
-    { type: "CodeEditor", templateId: "code-editor-panel-template" },
-    { type: "Hierarchy", templateId: "hierarchy-panel-template" },
-    { type: "Assets", templateId: "assets-panel-template" },
-    { type: "Inspector", templateId: "inspector-panel-template" }
-] as const;
-
-const panelTemplateMap = new Map<PanelType, string>(
-    panelDefinitions.map(({ type, templateId }) => [type, templateId])
-);
+let editorWindowRegistry: EditorWindowRegistry | null = null;
 
 type LiveResizeRowOrColumn = RowOrColumn & {
     _dimension: "width" | "height";
@@ -48,6 +38,186 @@ type AnimatedDropTargetIndicator = {
     __flintHideTimeout?: number;
 };
 
+type StoredWindowComponentState = {
+    windowType: WindowType;
+    instanceId: string;
+    windowState?: Record<string, unknown>;
+    title?: string;
+};
+
+type StoredLayoutSnapshot = {
+    version: number;
+    dockedLayout: LayoutConfig;
+    floatingPanels: FloatingPanelState[];
+};
+
+type WindowInstanceRecord = {
+    window: EditorWindow;
+    container: ComponentContainer;
+    type: WindowType;
+};
+
+const windowDefinitions: readonly WindowDefinition[] = [
+    { type: "Viewport", title: "Viewport", create: context => new ViewportWindow(context) },
+    { type: "CodeEditor", title: "Code Editor", create: context => new CodeEditorWindow(context) },
+    { type: "Hierarchy", title: "Hierarchy", create: context => new HierarchyWindow(context) },
+    { type: "Assets", title: "Assets", create: context => new AssetsWindow(context) },
+    { type: "Inspector", title: "Inspector", create: context => new InspectorWindow(context) }
+] as const;
+
+class EditorWindowRegistry implements WindowManagerApi {
+    private readonly definitions = new Map<WindowType, WindowDefinition>();
+    private readonly instances = new Map<string, WindowInstanceRecord>();
+    private instanceCounter = 0;
+    private refreshTimeouts = new Map<WindowType | "all", number>();
+
+    public constructor(public readonly layout: GoldenLayout) {
+        for (const definition of windowDefinitions) {
+            this.definitions.set(definition.type, definition);
+        }
+    }
+
+    public refreshWindows(type?: WindowType): void {
+        const key = type ?? "all";
+        if (this.refreshTimeouts.has(key)) {
+            return;
+        }
+
+        this.refreshTimeouts.set(key, window.setTimeout(() => {
+            this.refreshTimeouts.delete(key);
+            for (const record of this.instances.values()) {
+                if (type && record.type !== type) {
+                    continue;
+                }
+                record.window.update?.();
+            }
+        }, 500));
+    }
+
+    public createWindow(container: ComponentContainer, itemConfig: ResolvedComponentItemConfig): HTMLElement {
+        const state = this.resolveWindowState(itemConfig);
+        const definition = this.definitions.get(state.windowType);
+        if (!definition) {
+            throw new Error(`Unknown window type "${state.windowType}".`);
+        }
+
+        const root = document.createElement("div");
+        root.dataset.windowType = state.windowType;
+        root.dataset.instanceId = state.instanceId;
+
+        const editorWindow = definition.create({
+            instanceId: state.instanceId,
+            type: state.windowType,
+            root,
+            container,
+            services: {
+                selection: editorSelectionService,
+                assets: editorAssetStore,
+                activeWindows: activeWindowService
+            },
+            manager: this
+        });
+
+        this.instances.set(state.instanceId, {
+            window: editorWindow,
+            container,
+            type: state.windowType
+        });
+
+        container.stateRequestEvent = () => ({
+            windowType: state.windowType,
+            instanceId: state.instanceId,
+            windowState: editorWindow.serializeState(),
+            title: container.title
+        });
+
+        container.element.appendChild(root);
+        root.addEventListener("mousedown", () => this.activateWindow(state.instanceId));
+        root.addEventListener("focusin", () => this.activateWindow(state.instanceId));
+
+        editorWindow.restoreState(state.windowState);
+        void editorWindow.initialize();
+        queueMicrotask(() => this.activateWindow(state.instanceId));
+
+        return root;
+    }
+
+    public destroyWindow(container: ComponentContainer): void {
+        const instanceId = (container.stateRequestEvent?.() as Partial<StoredWindowComponentState> | undefined)?.instanceId
+            ?? container.element.firstElementChild?.getAttribute("data-instance-id");
+        if (!instanceId) {
+            return;
+        }
+
+        const record = this.instances.get(instanceId);
+        if (!record) {
+            return;
+        }
+
+        activeWindowService.removeWindow(instanceId);
+        record.window.dispose();
+        this.instances.delete(instanceId);
+    }
+
+    public activateWindow(instanceId: string): void {
+        const record = this.instances.get(instanceId);
+        if (!record) {
+            return;
+        }
+
+        activeWindowService.setActiveWindow(record.type, instanceId);
+        record.window.onActivate?.();
+    }
+
+    public spawnWindow(type: WindowType, options?: SpawnWindowOptions): string {
+        const definition = this.definitions.get(type);
+        if (!definition) {
+            throw new Error(`Unknown window type "${type}".`);
+        }
+
+        const instanceId = this.createInstanceId(type);
+        this.layout.addComponent(type, {
+            windowType: type,
+            instanceId,
+            windowState: options?.state,
+            title: options?.title ?? definition.title
+        }, options?.title ?? definition.title);
+
+        return instanceId;
+    }
+
+    public getWindowsOfType<T extends EditorWindow>(type: WindowType): T[] {
+        const result: T[] = [];
+        for (const record of this.instances.values()) {
+            if (record.type === type) {
+                result.push(record.window as T);
+            }
+        }
+        return result;
+    }
+
+    private resolveWindowState(itemConfig: ResolvedComponentItemConfig): StoredWindowComponentState {
+        const rawState = itemConfig.componentState as Partial<StoredWindowComponentState> | undefined;
+        const windowType = (rawState?.windowType ?? itemConfig.componentType) as WindowType;
+        const instanceId = typeof rawState?.instanceId === "string"
+            ? rawState.instanceId
+            : this.createInstanceId(windowType);
+
+        const windowStateValue = rawState?.windowState;
+        return {
+            windowType,
+            instanceId,
+            ...(windowStateValue !== undefined ? { windowState: windowStateValue } : {}),
+            title: typeof rawState?.title === "string" ? rawState.title : itemConfig.title
+        };
+    }
+
+    private createInstanceId(type: WindowType): string {
+        this.instanceCounter += 1;
+        return `flint-${type.toLowerCase()}-${this.instanceCounter}`;
+    }
+}
+
 function installLiveSplitterResize() {
     const prototype = RowOrColumn.prototype as unknown as {
         onSplitterDragStart: (this: LiveResizeRowOrColumn, splitter: { element: HTMLElement }) => void;
@@ -68,7 +238,6 @@ function installLiveSplitterResize() {
 
     prototype.onSplitterDragStart = function (splitter) {
         originalDragStart.call(this, splitter);
-
         const items = this.getSplitItems(splitter);
         this._liveResizeBeforeSize = Number.parseFloat(items.before.element.style[this._dimension]) || 0;
         this._liveResizeAfterSize = Number.parseFloat(items.after.element.style[this._dimension]) || 0;
@@ -76,12 +245,7 @@ function installLiveSplitterResize() {
 
     prototype.onSplitterDrag = function (splitter, offsetX, offsetY) {
         originalDrag.call(this, splitter, offsetX, offsetY);
-
-        if (
-            this._splitterPosition === null ||
-            this._liveResizeBeforeSize === undefined ||
-            this._liveResizeAfterSize === undefined
-        ) {
+        if (this._splitterPosition === null || this._liveResizeBeforeSize === undefined || this._liveResizeAfterSize === undefined) {
             return;
         }
 
@@ -92,20 +256,14 @@ function installLiveSplitterResize() {
 
         items.before.element.style[sizeProp] = `${beforeSize}px`;
         items.after.element.style[sizeProp] = `${afterSize}px`;
-
         splitter.element.style.top = "0px";
         splitter.element.style.left = "0px";
-
         items.before.updateSize(false);
         items.after.updateSize(false);
     };
 
     prototype.onSplitterDragStop = function (splitter) {
-        if (
-            this._splitterPosition !== null &&
-            this._liveResizeBeforeSize !== undefined &&
-            this._liveResizeAfterSize !== undefined
-        ) {
+        if (this._splitterPosition !== null && this._liveResizeBeforeSize !== undefined && this._liveResizeAfterSize !== undefined) {
             const items = this.getSplitItems(splitter);
             const finalBeforeSize = this._liveResizeBeforeSize + this._splitterPosition;
             const totalSize = this._liveResizeBeforeSize + this._liveResizeAfterSize;
@@ -114,13 +272,10 @@ function installLiveSplitterResize() {
 
             items.before.size = splitterPositionInRange * totalRelativeSize;
             items.after.size = (1 - splitterPositionInRange) * totalRelativeSize;
-
             splitter.element.style.top = "0px";
             splitter.element.style.left = "0px";
-
             this._liveResizeBeforeSize = undefined;
             this._liveResizeAfterSize = undefined;
-
             globalThis.requestAnimationFrame(() => this.updateSize(false));
             return;
         }
@@ -165,7 +320,7 @@ function installAnimatedDropTargetIndicator(layout: GoldenLayout) {
     };
 }
 
-function createPanelStack(type: PanelType, title: string, size: string) {
+function createPanelStack(type: WindowType, title: string, size: string) {
     return {
         type: "stack" as const,
         size,
@@ -174,31 +329,10 @@ function createPanelStack(type: PanelType, title: string, size: string) {
             {
                 type: "component" as const,
                 componentType: type,
+                componentState: {
+                    windowType: type
+                },
                 title,
-                isClosable: true,
-                reorderEnabled: true
-            }
-        ]
-    };
-}
-
-function wrapComponentInStack(item: {
-    componentType?: PanelType;
-    title?: string;
-    size?: string;
-    componentState?: unknown;
-}) {
-    const componentType = item.componentType ?? "Viewport";
-    return {
-        type: "stack" as const,
-        size: item.size,
-        isClosable: true,
-        content: [
-            {
-                type: "component" as const,
-                componentType,
-                title: item.title ?? componentType,
-                componentState: item.componentState,
                 isClosable: true,
                 reorderEnabled: true
             }
@@ -215,6 +349,7 @@ function createViewportAndEditorStack() {
             {
                 type: "component" as const,
                 componentType: "Viewport",
+                componentState: { windowType: "Viewport" },
                 title: "Viewport",
                 isClosable: true,
                 reorderEnabled: true
@@ -222,6 +357,7 @@ function createViewportAndEditorStack() {
             {
                 type: "component" as const,
                 componentType: "CodeEditor",
+                componentState: { windowType: "CodeEditor" },
                 title: "Code Editor",
                 isClosable: true,
                 reorderEnabled: true
@@ -276,63 +412,27 @@ function createDefaultLayout(): LayoutConfig {
     };
 }
 
-function getTemplateElement(id: string): HTMLElement {
-    const element = document.getElementById(id);
-    if (!element || !(element instanceof HTMLElement)) {
-        throw new Error(`Layout template "${id}" was not found.`);
-    }
-
-    return element;
-}
-
 function bindPanelComponent(container: ComponentContainer, itemConfig: ResolvedComponentItemConfig) {
-    const componentTypeValue = itemConfig.componentType;
-    if (typeof componentTypeValue !== "string") {
-        throw new Error("GoldenLayout item is missing component type.");
+    if (!editorWindowRegistry) {
+        throw new Error("Editor window registry is not initialized.");
     }
 
-    const componentType = componentTypeValue as PanelType;
-    const templateId = panelTemplateMap.get(componentType);
-    if (!templateId) {
-        throw new Error(`Unknown GoldenLayout component type "${componentType}".`);
-    }
-
-    const template = getTemplateElement(templateId);
-    container.element.appendChild(template);
-
-    if (componentType === "CodeEditor") {
-        const codeEditorContainer = template.querySelector("#code-editor-container");
-        if (codeEditorContainer instanceof HTMLElement) {
-            CodeEditor.init(codeEditorContainer, container);
-        }
-    }
-
+    const root = editorWindowRegistry.createWindow(container, itemConfig);
     return {
         component: {
-            rootHtmlElement: template,
-            templateId
+            rootHtmlElement: root
         },
         virtual: false
     };
 }
 
 function unbindPanelComponent(container: ComponentContainer) {
-    const templatesHost = document.getElementById("layout-templates");
-    if (!templatesHost || !(templatesHost instanceof HTMLElement)) {
-        return;
-    }
-
+    editorWindowRegistry?.destroyWindow(container);
     const panelRoot = container.element.firstElementChild;
     if (panelRoot instanceof HTMLElement) {
-        templatesHost.appendChild(panelRoot);
+        panelRoot.remove();
     }
 }
-
-type StoredLayoutSnapshot = {
-    version: number;
-    dockedLayout: LayoutConfig;
-    floatingPanels: FloatingPanelState[];
-};
 
 function loadStoredLayout(): StoredLayoutSnapshot | null {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -369,17 +469,18 @@ function makeItemDockable(item: unknown, parentType?: string): unknown {
     const typedItem = item as {
         type?: string;
         content?: unknown[];
-        title?: string;
-        componentType?: PanelType;
-        size?: string;
-        componentState?: unknown;
+        componentType?: WindowType;
+        componentState?: Record<string, unknown>;
         isClosable?: boolean;
-        reorderEnabled?: boolean;
         header?: Record<string, unknown>;
     };
 
     if (typedItem.type === "component" && parentType !== "stack") {
-        return wrapComponentInStack(typedItem);
+        return {
+            type: "stack" as const,
+            isClosable: true,
+            content: [typedItem]
+        };
     }
 
     if (typedItem.type === "stack") {
@@ -468,19 +569,18 @@ export function initializeEditorLayout(): GoldenLayout {
 
     const layout = new GoldenLayout(host, bindPanelComponent, unbindPanelComponent);
     currentLayout = layout;
+    editorWindowRegistry = new EditorWindowRegistry(layout);
+    CodeEditor.setWindowSpawner(type => editorWindowRegistry!.spawnWindow(type));
+
     let saveTimeout: number | undefined;
     currentFloatingPanels = new FloatingPanelManager(layout, host, () => {
         window.clearTimeout(saveTimeout);
-        saveTimeout = window.setTimeout(() => {
-            saveLayout(layout);
-        }, 100);
+        saveTimeout = window.setTimeout(() => saveLayout(layout), 100);
     });
 
     layout.addEventListener("stateChanged", () => {
         window.clearTimeout(saveTimeout);
-        saveTimeout = window.setTimeout(() => {
-            saveLayout(layout);
-        }, 100);
+        saveTimeout = window.setTimeout(() => saveLayout(layout), 100);
     });
 
     const storedSnapshot = loadStoredLayout();
@@ -498,4 +598,20 @@ export function initializeEditorLayout(): GoldenLayout {
     }
 
     return layout;
+}
+
+export function spawnEditorWindow(type: WindowType, options?: SpawnWindowOptions): string {
+    if (!editorWindowRegistry) {
+        throw new Error("Editor window registry is not initialized.");
+    }
+
+    return editorWindowRegistry.spawnWindow(type, options);
+}
+
+export function refreshEditorWindows(type?: WindowType): void {
+    editorWindowRegistry?.refreshWindows(type);
+}
+
+export function getEditorWindowsOfType<T extends EditorWindow>(type: WindowType): T[] {
+    return editorWindowRegistry?.getWindowsOfType<T>(type) ?? [];
 }

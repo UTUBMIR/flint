@@ -1,6 +1,7 @@
 import type { ComponentContainer } from "golden-layout";
 import { System } from "@flint/runtime/system";
 import ProjectConfig from "./project/project-config";
+import type { WindowType } from "./window-framework";
 
 type ExportResult = {
     defaultExport?: string;
@@ -19,97 +20,106 @@ function parseExports(code: string): ExportResult {
     while (i < tokens.length) {
         const token = tokens[i];
 
-        if (token === 'export' && tokens[i + 1] === 'default') {
+        if (token === "export" && tokens[i + 1] === "default") {
             i += 2;
             const nextToken = tokens[i];
             if (nextToken) {
-                if (nextToken === 'function' || nextToken === 'class' || nextToken === 'const' || nextToken === 'let' || nextToken === 'var') {
+                if (nextToken === "function" || nextToken === "class" || nextToken === "const" || nextToken === "let" || nextToken === "var") {
                     const nameToken = tokens[i + 1];
                     if (nameToken) {
-                        result.defaultExport = nameToken.replace(/[({]/g, '');
+                        result.defaultExport = nameToken.replace(/[({]/g, "");
                         i += 1;
                     }
                 } else {
-                    result.defaultExport = nextToken.replace(/;/, '');
+                    result.defaultExport = nextToken.replace(/;/g, "");
                 }
             }
-        } else if (token === 'export') {
+        } else if (token === "export") {
             const nextToken = tokens[i + 1];
-            if (nextToken === '{') {
+            if (nextToken === "{") {
                 i += 2;
-                while (i < tokens.length && tokens[i] !== '}') {
-                    const name = tokens[i]!.replace(/,/, '');
-                    if (name) result.exports!.push(name);
+                while (i < tokens.length && tokens[i] !== "}") {
+                    const name = tokens[i]!.replace(/,/g, "");
+                    if (name) {
+                        result.exports!.push(name);
+                    }
                     i++;
                 }
-            } else if (nextToken === 'function' || nextToken === 'class' || nextToken === 'const' || nextToken === 'let' || nextToken === 'var' || nextToken === 'type' || nextToken === 'interface') {
+            } else if (nextToken === "function" || nextToken === "class" || nextToken === "const" || nextToken === "let" || nextToken === "var" || nextToken === "type" || nextToken === "interface") {
                 const nameToken = tokens[i + 2];
-                if (nameToken) result.exports!.push(nameToken.replace(/[({;]/g, ''));
+                if (nameToken) {
+                    result.exports!.push(nameToken.replace(/[({;]/g, ""));
+                }
                 i += 2;
-            } else if (nextToken === 'async') {
-                const afterAsync = tokens[i + 2];
-                if (afterAsync === 'function') {
-                    const nameToken = tokens[i + 3];
-                    if (nameToken) result.exports!.push(nameToken.replace(/[({;]/g, ''));
-                    i += 3;
+            } else if (nextToken === "async" && tokens[i + 2] === "function") {
+                const nameToken = tokens[i + 3];
+                if (nameToken) {
+                    result.exports!.push(nameToken.replace(/[({;]/g, ""));
                 }
-            } else if (nextToken === '*') {
-                if (tokens[i + 2] === 'from') {
-                    const modulePath = tokens[i + 3];
-                    if (modulePath) result.exports!.push(modulePath.replace(/['";]/g, ''));
-                    i += 4;
-                }
+                i += 3;
             }
         }
         i++;
     }
 
-    if (result.exports!.length === 0) delete result.exports;
+    if (result.exports!.length === 0) {
+        delete result.exports;
+    }
+
     return result;
 }
 
 function toModuleSpecifier(filePath: string): string {
     const normalized = filePath.replace(/\\/g, "/");
-    if (normalized.endsWith(".d.ts")) return normalized.slice(0, -".d.ts".length);
+    if (normalized.endsWith(".d.ts")) {
+        return normalized.slice(0, -".d.ts".length);
+    }
+
     return normalized.replace(/\.(ts|tsx|js|jsx|json)$/i, "");
 }
 
-interface EditorTab {
-    path: string;
-    model: {
-        getValue: () => string;
-        getLineContent: (line: number) => string;
-        getLineCount: () => number;
-        getValueInRange: (range: { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number }) => string;
-        getWordUntilPosition: (position: { lineNumber: number; column: number }) => { word: string; startColumn: number; endColumn: number };
-        onDidChangeContent: (callback: () => void) => void;
-    };
-    originalContent: string;
+interface EditorModel {
+    getValue: () => string;
+    getLineContent: (line: number) => string;
+    getLineCount: () => number;
+    getValueInRange: (range: { startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number }) => string;
+    getWordUntilPosition: (position: { lineNumber: number; column: number }) => { word: string; startColumn: number; endColumn: number };
+    onDidChangeContent: (callback: () => void) => void;
 }
 
 interface IStandaloneCodeEditor {
-    getModel: () => EditorTab["model"] | null;
-    setModel: (model: EditorTab["model"]) => void;
+    getModel: () => EditorModel | null;
+    setModel: (model: EditorModel) => void;
     focus: () => void;
     addCommand: (keybinding: number, handler: () => void) => void;
 }
 
-export class CodeEditor {
-    private static container: HTMLElement | null = null;
-    private static panelContainer: ComponentContainer | null = null;
-    private static editor: IStandaloneCodeEditor | null = null;
-    private static model: EditorTab["model"] | null = null;
-    private static currentPath: string = "";
-    private static tabs: Map<string, EditorTab> = new Map();
-    private static activeTabPath: string | null = null;
-    private static isInitialized: boolean = false;
-    private static modulesByPath: Map<string, ModuleExports> = new Map();
-    private static completionsInstalled: boolean = false;
-    private static hasUnsavedChanges: boolean = false;
-    private static autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-    private static monacoLoadPromise: Promise<void> | null = null;
+type EditorTab = {
+    path: string;
+    model: EditorModel;
+    originalContent: string;
+};
 
-    private static readonly autoSaveDelayMs: number = 300;
+type EditorWindowController = {
+    instanceId: string;
+    container: HTMLElement;
+    panelContainer: ComponentContainer | null;
+    editor: IStandaloneCodeEditor;
+    model: EditorModel | null;
+    currentPath: string;
+    tabs: Map<string, EditorTab>;
+    activeTabPath: string | null;
+    hasUnsavedChanges: boolean;
+    autoSaveTimer: ReturnType<typeof setTimeout> | null;
+    setTitle: (title: string) => void;
+};
+
+type WindowSpawner = (type: WindowType) => string;
+
+export class CodeEditor {
+    private static readonly windows = new Map<string, EditorWindowController>();
+    private static activeWindowId: string | null = null;
+    private static spawnWindow: WindowSpawner | null = null;
 
     private static readonly typeNames: Record<string, string> = {
         "ts": "typescript",
@@ -119,10 +129,22 @@ export class CodeEditor {
         "json": "json"
     };
 
+    private static modulesByPath: Map<string, ModuleExports> = new Map();
+    private static completionsInstalled = false;
+    private static monacoLoadPromise: Promise<void> | null = null;
+    private static libsLoaded = false;
+    private static beforeUnloadInstalled = false;
+
+    private static readonly autoSaveDelayMs = 300;
+
     private constructor() { }
 
     private static get Monaco() {
         return window.monaco;
+    }
+
+    public static setWindowSpawner(spawner: WindowSpawner): void {
+        this.spawnWindow = spawner;
     }
 
     private static getMonacoVsPath(): string {
@@ -143,35 +165,6 @@ export class CodeEditor {
     private static getLanguageFromPath(path: string): string {
         const ext = path.split(".").at(-1) ?? "";
         return this.typeNames[ext] ?? "typescript";
-    }
-
-    public static isReady(): boolean {
-        return this.isInitialized;
-    }
-
-    private static attachModelListeners(model: EditorTab["model"]): void {
-        model.onDidChangeContent(() => {
-            this.checkForUnsavedChanges();
-            this.scheduleAutoSave();
-        });
-    }
-
-    private static scheduleAutoSave(): void {
-        if (!this.currentPath || !this.editor || !this.model) return;
-
-        if (this.autoSaveTimer) {
-            clearTimeout(this.autoSaveTimer);
-        }
-
-        this.autoSaveTimer = setTimeout(() => {
-            this.autoSaveTimer = null;
-            void this.saveCurrentFile();
-        }, this.autoSaveDelayMs);
-    }
-
-    private static focusEditorPanel(): void {
-        this.panelContainer?.focus();
-        this.editor?.focus();
     }
 
     private static hasTypescriptSupport(): boolean {
@@ -248,18 +241,76 @@ export class CodeEditor {
         }
     }
 
-    private static libsLoaded: boolean = false;
-
-    public static async init(container: HTMLElement, panelContainer?: ComponentContainer): Promise<void> {
-        this.container = container;
-        this.panelContainer = panelContainer ?? this.panelContainer;
-
-        if (this.isInitialized) return;
-
+    public static async createWindow(
+        instanceId: string,
+        container: HTMLElement,
+        setTitle: (title: string) => void,
+        panelContainer?: ComponentContainer
+    ): Promise<void> {
         await this.waitForMonaco();
+        this.installGlobalMonacoSettings();
+        this.installBeforeUnloadGuard();
 
         const Monaco = this.Monaco;
+        const editor = Monaco.editor.create(container, {
+            value: "// Welcome to Flint Code Editor\n// Double-click a file in the Assets panel to open it here.",
+            language: "typescript",
+            automaticLayout: true
+        }) as IStandaloneCodeEditor;
 
+        const controller: EditorWindowController = {
+            instanceId,
+            container,
+            panelContainer: panelContainer ?? null,
+            editor,
+            model: editor.getModel(),
+            currentPath: "",
+            tabs: new Map(),
+            activeTabPath: null,
+            hasUnsavedChanges: false,
+            autoSaveTimer: null,
+            setTitle
+        };
+
+        if (controller.model) {
+            this.attachModelListeners(controller, controller.model);
+        }
+
+        editor.addCommand(Monaco.KeyMod.CtrlCmd | Monaco.KeyCode.KeyS, () => {
+            void this.saveCurrentFile(instanceId);
+        });
+
+        this.windows.set(instanceId, controller);
+        if (!this.activeWindowId) {
+            this.activeWindowId = instanceId;
+        }
+    }
+
+    public static destroyWindow(instanceId: string): void {
+        const controller = this.windows.get(instanceId);
+        if (!controller) {
+            return;
+        }
+
+        if (controller.autoSaveTimer) {
+            clearTimeout(controller.autoSaveTimer);
+        }
+
+        this.windows.delete(instanceId);
+        if (this.activeWindowId === instanceId) {
+            const nextWindow = this.windows.keys().next();
+            this.activeWindowId = nextWindow.done ? null : nextWindow.value;
+        }
+    }
+
+    public static activateWindow(instanceId: string): void {
+        if (this.windows.has(instanceId)) {
+            this.activeWindowId = instanceId;
+        }
+    }
+
+    private static installGlobalMonacoSettings(): void {
+        const Monaco = this.Monaco;
         Monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
             target: Monaco.languages.typescript.ScriptTarget.ESNext,
             module: Monaco.languages.typescript.ModuleKind.ESNext,
@@ -280,153 +331,224 @@ export class CodeEditor {
 
         Monaco.languages.typescript.typescriptDefaults.setMaximumWorkerIdleTime(2 * 60 * 1000);
         Monaco.editor.setTheme("vs-dark");
+    }
 
-        this.editor = Monaco.editor.create(container, {
-            value: "// Welcome to Flint Code Editor\n// Double-click a file in the Assets panel to open it here.",
-            language: "typescript",
-            automaticLayout: true
-        });
-
-        const model = this.editor.getModel();
-        if (model) {
-            this.model = model;
-            this.attachModelListeners(model);
+    private static installBeforeUnloadGuard(): void {
+        if (this.beforeUnloadInstalled) {
+            return;
         }
-        this.isInitialized = true;
 
-        this.editor.addCommand(Monaco.KeyMod.CtrlCmd | Monaco.KeyCode.KeyS, () => {
-            void this.saveCurrentFile();
-        });
+        this.beforeUnloadInstalled = true;
+        window.addEventListener("beforeunload", event => {
+            const hasUnsavedChanges = [...this.windows.values()].some(windowController => {
+                this.checkForUnsavedChanges(windowController);
+                return windowController.hasUnsavedChanges;
+            });
 
-        window.addEventListener("beforeunload", (event) => {
-            this.checkForUnsavedChanges();
-            if (this.hasUnsavedChanges) {
+            if (hasUnsavedChanges) {
                 event.preventDefault();
                 event.returnValue = "";
             }
         });
     }
 
-    private static async ensureLibrariesLoaded(): Promise<void> {
-        if (this.libsLoaded) return;
-        
-        if (!System.fileSystem.started) {
+    private static attachModelListeners(controller: EditorWindowController, model: EditorModel): void {
+        model.onDidChangeContent(() => {
+            this.checkForUnsavedChanges(controller);
+            this.scheduleAutoSave(controller);
+        });
+    }
+
+    private static scheduleAutoSave(controller: EditorWindowController): void {
+        if (!controller.currentPath || !controller.model) {
             return;
         }
 
-        this.libsLoaded = true;
-        await this.loadFlintLibrary();
-        await this.loadAssetsLibrary();
-        await this.loadProjectFiles();
+        if (controller.autoSaveTimer) {
+            clearTimeout(controller.autoSaveTimer);
+        }
+
+        controller.autoSaveTimer = setTimeout(() => {
+            controller.autoSaveTimer = null;
+            void this.saveCurrentFile(controller.instanceId);
+        }, this.autoSaveDelayMs);
     }
 
-    private static async loadProjectFiles(): Promise<void> {
-        if (ProjectConfig.config.rootPath === "virtual") return;
-        
-        const files: { path: string; text: string }[] = [];
-        
-        const loadDirectory = async (dirPath: string, basePath: string = "") => {
-            try {
-                const entries = await System.fileSystem.listDir(dirPath);
-                
-                for (const entry of entries) {
-                    const fullPath = `${dirPath}/${entry}`;
-                    const isFile = entry.includes(".");
-                    
-                    if (isFile) {
-                        try {
-                            const text = await System.fileSystem.readTextFile(fullPath);
-                            const filePath = basePath ? `${basePath}/${entry}` : entry;
-                            files.push({ path: filePath, text });
-                        } catch (e) {
-                            console.warn(`Failed to read file: ${fullPath}`, e);
-                        }
-                    } else {
-                        const subPath = basePath ? `${basePath}/${entry}` : entry;
-                        await loadDirectory(fullPath, subPath);
-                    }
-                }
-            } catch (e) {
-                console.warn(`Failed to read directory: ${dirPath}`, e);
-            }
-        };
-        
-        await loadDirectory(".");
-        this.addExtraLibs(files);
+    private static focusWindow(controller: EditorWindowController): void {
+        controller.panelContainer?.focus();
+        controller.editor.focus();
     }
 
-    public static async openFile(path: string): Promise<void> {
-        if (!this.editor || !this.isInitialized) return;
+    private static getWindow(instanceId: string): EditorWindowController {
+        const controller = this.windows.get(instanceId);
+        if (!controller) {
+            throw new Error(`Code editor window "${instanceId}" was not found.`);
+        }
+
+        return controller;
+    }
+
+    private static getOrCreateActiveWindowId(): string | null {
+        if (this.activeWindowId && this.windows.has(this.activeWindowId)) {
+            return this.activeWindowId;
+        }
+
+        const firstWindow = this.windows.keys().next();
+        if (!firstWindow.done) {
+            this.activeWindowId = firstWindow.value;
+            return this.activeWindowId;
+        }
+
+        if (this.spawnWindow) {
+            this.activeWindowId = this.spawnWindow("CodeEditor");
+            return this.activeWindowId;
+        }
+
+        return null;
+    }
+
+    public static async openFile(path: string, instanceId?: string): Promise<void> {
+        const targetWindowId = instanceId ?? this.getOrCreateActiveWindowId();
+        if (!targetWindowId) {
+            return;
+        }
+
+        const controller = this.windows.get(targetWindowId);
+        if (!controller) {
+            setTimeout(() => {
+                void this.openFile(path, targetWindowId);
+            }, 0);
+            return;
+        }
 
         await this.ensureLibrariesLoaded();
 
-        const existingTab = this.tabs.get(path);
+        const existingTab = controller.tabs.get(path);
         if (existingTab) {
-            this.switchToTab(path);
+            this.switchToTab(controller, path);
             return;
         }
 
         const text = await System.fileSystem.readTextFile(path);
         const language = this.getLanguageFromPath(path);
 
-        const model = this.Monaco.editor.createModel(text, language);
-        this.attachModelListeners(model);
-        this.editor.setModel(model);
-        this.model = model;
+        const model = this.Monaco.editor.createModel(text, language) as EditorModel;
+        this.attachModelListeners(controller, model);
+        controller.editor.setModel(model);
+        controller.model = model;
 
-        this.tabs.set(path, {
+        controller.tabs.set(path, {
             path,
             model,
             originalContent: text
         });
 
-        this.activeTabPath = path;
-        this.currentPath = path;
-
-        this.focusEditorPanel();
+        controller.activeTabPath = path;
+        controller.currentPath = path;
+        controller.setTitle(path);
+        this.focusWindow(controller);
     }
 
-    private static switchToTab(path: string): void {
-        const tab = this.tabs.get(path);
-        if (!tab || !this.editor) return;
-
-        this.editor.setModel(tab.model);
-        this.model = tab.model;
-        this.activeTabPath = path;
-        this.currentPath = path;
-        this.focusEditorPanel();
-    }
-
-    public static async saveCurrentFile(): Promise<void> {
-        if (!this.currentPath || !this.editor || !this.model) return;
-
-        if (this.autoSaveTimer) {
-            clearTimeout(this.autoSaveTimer);
-            this.autoSaveTimer = null;
+    private static switchToTab(controller: EditorWindowController, path: string): void {
+        const tab = controller.tabs.get(path);
+        if (!tab) {
+            return;
         }
 
-        const text = this.model.getValue();
-        await System.fileSystem.writeTextFile(this.currentPath, text);
+        controller.editor.setModel(tab.model);
+        controller.model = tab.model;
+        controller.activeTabPath = path;
+        controller.currentPath = path;
+        controller.setTitle(path);
+        this.focusWindow(controller);
+    }
 
-        const tab = this.tabs.get(this.currentPath);
+    public static async saveCurrentFile(instanceId?: string): Promise<void> {
+        const resolvedInstanceId = instanceId ?? this.activeWindowId;
+        if (!resolvedInstanceId) {
+            return;
+        }
+
+        const controller = this.windows.get(resolvedInstanceId);
+        if (!controller || !controller.currentPath || !controller.model) {
+            return;
+        }
+
+        if (controller.autoSaveTimer) {
+            clearTimeout(controller.autoSaveTimer);
+            controller.autoSaveTimer = null;
+        }
+
+        const text = controller.model.getValue();
+        await System.fileSystem.writeTextFile(controller.currentPath, text);
+
+        const tab = controller.tabs.get(controller.currentPath);
         if (tab) {
             tab.originalContent = text;
         }
-        this.hasUnsavedChanges = false;
+        controller.hasUnsavedChanges = false;
     }
 
-    private static checkForUnsavedChanges(): void {
-        const tab = this.tabs.get(this.currentPath);
-        if (!tab || !this.model) {
-            this.hasUnsavedChanges = false;
+    private static checkForUnsavedChanges(controller: EditorWindowController): void {
+        const tab = controller.tabs.get(controller.currentPath);
+        if (!tab || !controller.model) {
+            controller.hasUnsavedChanges = false;
             return;
         }
-        const currentContent = this.model.getValue();
-        this.hasUnsavedChanges = currentContent !== tab.originalContent;
+
+        controller.hasUnsavedChanges = controller.model.getValue() !== tab.originalContent;
+    }
+
+    private static async ensureLibrariesLoaded(): Promise<void> {
+        if (this.libsLoaded || !System.fileSystem.started) {
+            return;
+        }
+
+        this.libsLoaded = true;
+        await this.loadFlintFolder("flint");
+        await this.loadAssetsFolder("assets");
+        await this.loadProjectFiles();
+    }
+
+    private static async loadProjectFiles(): Promise<void> {
+        if (ProjectConfig.config.rootPath === "virtual") {
+            return;
+        }
+
+        const files: { path: string; text: string }[] = [];
+
+        const loadDirectory = async (dirPath: string, basePath = "") => {
+            try {
+                const entries = await System.fileSystem.listDir(dirPath);
+
+                for (const entry of entries) {
+                    const fullPath = `${dirPath}/${entry}`;
+                    const isFile = entry.includes(".");
+
+                    if (isFile) {
+                        try {
+                            const text = await System.fileSystem.readTextFile(fullPath);
+                            const filePath = basePath ? `${basePath}/${entry}` : entry;
+                            files.push({ path: filePath, text });
+                        } catch (error) {
+                            console.warn(`Failed to read file: ${fullPath}`, error);
+                        }
+                    } else {
+                        const subPath = basePath ? `${basePath}/${entry}` : entry;
+                        await loadDirectory(fullPath, subPath);
+                    }
+                }
+            } catch (error) {
+                console.warn(`Failed to read directory: ${dirPath}`, error);
+            }
+        };
+
+        await loadDirectory(".");
+        this.addExtraLibs(files);
     }
 
     public static addExtraLibs(files: { path: string; text: string }[]): void {
-        const modules: ModuleExports[] = files.map((file) => ({
+        const modules: ModuleExports[] = files.map(file => ({
             path: toModuleSpecifier(file.path),
             ...parseExports(file.text)
         }));
@@ -443,7 +565,10 @@ export class CodeEditor {
 
     private static upsertModules(modules: ModuleExports[]): void {
         for (const mod of modules) {
-            if (!mod || typeof mod.path !== "string") continue;
+            if (!mod || typeof mod.path !== "string") {
+                continue;
+            }
+
             this.modulesByPath.set(mod.path, mod);
         }
     }
@@ -464,10 +589,12 @@ export class CodeEditor {
                 lineNumber++;
                 continue;
             }
+
             if (/^\s*import\b/.test(line)) {
                 lineNumber++;
                 continue;
             }
+
             break;
         }
 
@@ -500,21 +627,24 @@ export class CodeEditor {
             this.upsertModules(modules);
             return;
         }
+
         this.completionsInstalled = true;
         this.upsertModules(modules);
 
         const Monaco = this.Monaco;
-        const languages = ["typescript", "javascript"];
 
-        for (const language of languages) {
-            const monaco = this.Monaco as { languages?: { registerCompletionItemProvider?: (language: string, provider: { triggerCharacters: string[]; provideCompletionItems: (model: import("monaco-editor").ITextModel, position: import("monaco-editor").Position) => { suggestions: unknown[] } }) => void } };
+        for (const language of ["typescript", "javascript"]) {
+            const monaco = this.Monaco as { languages?: { registerCompletionItemProvider?: (language: string, provider: { triggerCharacters?: string[]; provideCompletionItems: (model: import("monaco-editor").ITextModel, position: import("monaco-editor").Position) => { suggestions: unknown[] } }) => void } };
+
             monaco.languages?.registerCompletionItemProvider?.(language, {
-                triggerCharacters: ["'", '"', "/", "\\"],
+                triggerCharacters: ["'", "\"", "/", "\\"],
                 provideCompletionItems: (model, position) => {
                     const line = model.getLineContent(position.lineNumber);
                     const prefix = line.slice(0, Math.max(0, position.column - 1));
                     const match = prefix.match(/(?:from\s+|import\s+)(["'])([^"']*)$/);
-                    if (!match) return { suggestions: [] };
+                    if (!match) {
+                        return { suggestions: [] };
+                    }
 
                     const typed = match[2] ?? "";
                     const normalizedTyped = typed.replace(/\\\\/g, "/");
@@ -530,30 +660,28 @@ export class CodeEditor {
                     const suggestions: any[] = [];
 
                     if (normalizedTyped.endsWith("/")) {
-                        const basePath = normalizedTyped.slice(0, -1);
-                        const segments = basePath.split("/");
-                        const prefixToMatch = segments.join("/");
-                        
+                        const prefixToMatch = normalizedTyped.slice(0, -1);
                         const pathCompletions = new Set<string>();
-                        
+
                         for (const mod of this.modulesByPath.values()) {
-                            const modulePath = mod.path;
-                            if (typeof modulePath !== "string") continue;
-                            
-                            if (modulePath.startsWith(prefixToMatch + "/")) {
-                                const remainder = modulePath.slice(prefixToMatch.length + 1);
-                                const nextSegment = remainder.split("/")[0];
-                                if (nextSegment) {
-                                    pathCompletions.add(nextSegment);
-                                }
+                            if (typeof mod.path !== "string" || !mod.path.startsWith(prefixToMatch + "/")) {
+                                continue;
+                            }
+
+                            const remainder = mod.path.slice(prefixToMatch.length + 1);
+                            const nextSegment = remainder.split("/")[0];
+                            if (nextSegment) {
+                                pathCompletions.add(nextSegment);
                             }
                         }
-                        
+
                         for (const completion of pathCompletions) {
                             const fullPath = normalizedTyped + completion;
-                            if (seen.has(fullPath)) continue;
+                            if (seen.has(fullPath)) {
+                                continue;
+                            }
+
                             seen.add(fullPath);
-                            
                             suggestions.push({
                                 label: completion,
                                 kind: Monaco.languages.CompletionItemKind.Folder,
@@ -564,18 +692,25 @@ export class CodeEditor {
                         }
                     } else {
                         for (const mod of this.modulesByPath.values()) {
-                            const modulePath = mod.path;
-                            if (typeof modulePath !== "string") continue;
-                            if (normalizedTyped && !modulePath.startsWith(normalizedTyped)) continue;
-                            if (seen.has(modulePath)) continue;
-                            seen.add(modulePath);
+                            if (typeof mod.path !== "string") {
+                                continue;
+                            }
 
+                            if (normalizedTyped && !mod.path.startsWith(normalizedTyped)) {
+                                continue;
+                            }
+
+                            if (seen.has(mod.path)) {
+                                continue;
+                            }
+
+                            seen.add(mod.path);
                             suggestions.push({
-                                label: modulePath,
+                                label: mod.path,
                                 kind: Monaco.languages.CompletionItemKind.Module,
-                                insertText: modulePath,
+                                insertText: mod.path,
                                 range,
-                                detail: this.hasImport(model, modulePath, "module", "") ? "Already imported" : "Module"
+                                detail: this.hasImport(model, mod.path, "module", "") ? "Already imported" : "Module"
                             });
                         }
                     }
@@ -586,7 +721,9 @@ export class CodeEditor {
 
             Monaco.languages.registerCompletionItemProvider(language, {
                 provideCompletionItems: (model: any, position: any) => {
-                    if (this.isInImportPath(model, position)) return { suggestions: [] };
+                    if (this.isInImportPath(model, position)) {
+                        return { suggestions: [] };
+                    }
 
                     const word = model.getWordUntilPosition(position);
                     const range = {
@@ -600,37 +737,42 @@ export class CodeEditor {
                     const suggestions: any[] = [];
 
                     for (const mod of this.modulesByPath.values()) {
-                        if (!mod || typeof mod.path !== "string") continue;
-                        const modulePath = mod.path;
+                        if (typeof mod.path !== "string") {
+                            continue;
+                        }
 
                         if (typeof mod.defaultExport === "string" && mod.defaultExport.length > 0) {
-                            const name = mod.defaultExport;
+                            suggestions.push({
+                                label: mod.defaultExport,
+                                kind: Monaco.languages.CompletionItemKind.Class,
+                                insertText: mod.defaultExport,
+                                detail: `Auto import default from '${mod.path}'`,
+                                range,
+                                additionalTextEdits: this.hasImport(model, mod.path, "default", mod.defaultExport)
+                                    ? []
+                                    : [{ range: insertRange, text: `import ${mod.defaultExport} from "${mod.path}";\n` }]
+                            });
+                        }
+
+                        if (!Array.isArray(mod.exports)) {
+                            continue;
+                        }
+
+                        for (const name of mod.exports) {
+                            if (!name) {
+                                continue;
+                            }
+
                             suggestions.push({
                                 label: name,
                                 kind: Monaco.languages.CompletionItemKind.Class,
                                 insertText: name,
-                                detail: "Auto import default from '" + modulePath + "'",
+                                detail: `Auto import from '${mod.path}'`,
                                 range,
-                                additionalTextEdits: this.hasImport(model, modulePath, "default", name)
+                                additionalTextEdits: this.hasImport(model, mod.path, "named", name)
                                     ? []
-                                    : [{ range: insertRange, text: `import ${name} from "${modulePath}";\n` }]
+                                    : [{ range: insertRange, text: `import { ${name} } from "${mod.path}";\n` }]
                             });
-                        }
-
-                        if (Array.isArray(mod.exports)) {
-                            for (const name of mod.exports) {
-                                if (typeof name !== "string" || name.length === 0) continue;
-                                suggestions.push({
-                                    label: name,
-                                    kind: Monaco.languages.CompletionItemKind.Class,
-                                    insertText: name,
-                                    detail: "Auto import from '" + modulePath + "'",
-                                    range,
-                                    additionalTextEdits: this.hasImport(model, modulePath, "named", name)
-                                        ? []
-                                        : [{ range: insertRange, text: `import { ${name} } from "${modulePath}";\n` }]
-                                });
-                            }
                         }
                     }
 
@@ -640,10 +782,10 @@ export class CodeEditor {
         }
     }
 
-    public static async loadAssetsFolder(assetsFolderPath: string = "assets"): Promise<void> {
+    public static async loadAssetsFolder(assetsFolderPath = "assets"): Promise<void> {
         const files: { path: string; text: string }[] = [];
 
-        const loadDirectory = async (dirPath: string, baseAlias: string = "") => {
+        const loadDirectory = async (dirPath: string, baseAlias = "") => {
             try {
                 const entries = await System.fileSystem.listDir(dirPath);
 
@@ -656,16 +798,16 @@ export class CodeEditor {
                             const text = await System.fileSystem.readTextFile(fullPath);
                             const aliasPath = baseAlias ? `${baseAlias}/${entry}` : entry;
                             files.push({ path: aliasPath, text });
-                        } catch (e) {
-                            console.warn(`Failed to read file: ${fullPath}`, e);
+                        } catch (error) {
+                            console.warn(`Failed to read file: ${fullPath}`, error);
                         }
                     } else {
                         const subAlias = baseAlias ? `${baseAlias}/${entry}` : entry;
                         await loadDirectory(fullPath, subAlias);
                     }
                 }
-            } catch (e) {
-                console.warn(`Failed to read directory: ${dirPath}`, e);
+            } catch (error) {
+                console.warn(`Failed to read directory: ${dirPath}`, error);
             }
         };
 
@@ -673,10 +815,10 @@ export class CodeEditor {
         this.addExtraLibs(files);
     }
 
-    public static async loadFlintFolder(flintFolderPath: string = "flint"): Promise<void> {
+    public static async loadFlintFolder(flintFolderPath = "flint"): Promise<void> {
         const files: Array<{ path: string; text: string }> = [];
 
-        const loadDirectory = async (dirPath: string, basePath: string = "") => {
+        const loadDirectory = async (dirPath: string, basePath = "") => {
             try {
                 const entries = await System.fileSystem.listDir(dirPath);
 
@@ -689,28 +831,20 @@ export class CodeEditor {
                             const text = await System.fileSystem.readTextFile(fullPath);
                             const flintPath = basePath ? `${basePath}/${entry}` : entry;
                             files.push({ path: `@flint/${flintPath}`, text });
-                        } catch (e) {
-                            console.warn(`Failed to read file: ${fullPath}`, e);
+                        } catch (error) {
+                            console.warn(`Failed to read file: ${fullPath}`, error);
                         }
                     } else {
                         const subPath = basePath ? `${basePath}/${entry}` : entry;
                         await loadDirectory(fullPath, subPath);
                     }
                 }
-            } catch (e) {
-                console.warn(`Failed to read directory: ${dirPath}`, e);
+            } catch (error) {
+                console.warn(`Failed to read directory: ${dirPath}`, error);
             }
         };
 
         await loadDirectory(flintFolderPath);
         this.addExtraLibs(files);
-    }
-
-    private static async loadFlintLibrary(): Promise<void> {
-        await this.loadFlintFolder("flint");
-    }
-
-    private static async loadAssetsLibrary(): Promise<void> {
-        await this.loadAssetsFolder("assets");
     }
 }

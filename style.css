@@ -21,8 +21,8 @@
     box-sizing: border-box;
 }
 
-#inspector-body sl-tree-item::part(label),
-#inspector-body sl-tree-item {
+.inspector-panel-body [data-role="inspector-body"] sl-tree-item::part(label),
+.inspector-panel-body [data-role="inspector-body"] sl-tree-item {
     display: block !important;
     width: 100%;
 }
@@ -302,8 +302,7 @@ sl-details::part(header) {
     opacity: 0.6;
 }
 
-#create-object-button::part(base),
-#assets-back-button::part(base) {
+.floating-panel-action::part(base) {
     padding: 0;
 }
 
@@ -632,6 +631,7 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
     padding: 1px;
 }
 
+.flint-viewport-root,
 #root {
     position: relative;
     width: 100%;
@@ -641,19 +641,19 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
     touch-action: none;
 }
 
-#assets-window {
+.assets-panel-body {
     display: flex;
     flex-direction: column;
 }
 
-#assets-grid {
+.assets-panel-body [data-role="assets-grid"] {
     display: flex;
     flex-wrap: wrap;
     flex-direction: row;
     gap: var(--sl-spacing-medium);
 }
 
-#assets-grid .asset-card {
+.assets-panel-body [data-role="assets-grid"] .asset-card {
     flex: 0 1 var(--asset-max-width);
     max-width: var(--asset-max-width);
     min-width: 120px;
@@ -709,21 +709,28 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
     user-select: none;
 }
 
-#inspector-body {
+.inspector-panel-body [data-role="inspector-body"] {
     width: 100%;
 }
 
-#inspector-body sl-tree-item::part(label),
-#inspector-body sl-tree-item {
+.inspector-panel-body [data-role="inspector-body"] sl-tree-item::part(label),
+.inspector-panel-body [data-role="inspector-body"] sl-tree-item {
     display: block !important;
     width: 100%;
 }
 
-#add-component-button {
+.inspector-panel-body [data-role="add-component-button"] {
     display: none;
     width: 50%;
     margin-top: var(--sl-spacing-small);
     font-size: var(--sl-font-size-large);
+}
+
+.floating-panel-actions-inline {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: var(--sl-spacing-small);
 }
 
 .inspector-field {
@@ -858,7 +865,7 @@ legend {
     background: #1e1e1e;
 }
 
-.code-editor-panel #code-editor-container {
+.flint-code-editor-container {
     width: 100%;
     height: 100%;
     overflow: hidden;

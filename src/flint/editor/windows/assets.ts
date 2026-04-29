@@ -1,300 +1,201 @@
 import { Project } from "../project/project";
-import { type DropdownType } from "../editor";
 import ProjectConfig from "../project/project-config";
-import { AssetRegistry, AssetType } from "../../runtime/assets";
+import { AssetRegistry } from "../../runtime/assets";
 import { System } from "../../runtime/system";
+import { BaseEditorWindow, type EditorWindowState, type WindowContext } from "../window-framework";
+import type { AssetData } from "../asset-types";
 
-import type SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox.js";
-import type SlCopyButton from "@shoelace-style/shoelace/dist/components/copy-button/copy-button.js";
-import type SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog.js";
-import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
-import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
-import type SlSelect from "@shoelace-style/shoelace/dist/components/select/select.js";
-
-export type AssetData = {
-    id: string;
-    name: string;
-    type: "folder" | "component" | "json" | "file";
-    path: string; // Full path, e.g., "/Folder 1/Component 1"
-    data: string;
-};
-
-export default class Assets {
-    public element: HTMLDivElement;
-    public gridElement: HTMLDivElement;
-    public contextDropdownElement: DropdownType;
-    public contextMenuElement: HTMLElement;
-
-    private scheduledRerender = false;
-
+export default class AssetsWindow extends BaseEditorWindow {
+    private readonly gridElement: HTMLDivElement;
+    private readonly contextDropdownElement: HTMLElement & { show: () => void; reposition: () => void };
+    private readonly contextMenuElement: HTMLElement;
+    private readonly backButton: HTMLButtonElement;
     private cachedWidth = 0;
     private cachedHeight = 0;
+    private scheduledRerender = false;
+    private currentPath = "/assets";
     private allAssets: AssetData[] = [];
-    public currentPath = "/assets"; // tracks which folder we are currently in
-    private backButton: HTMLButtonElement;
 
-    public constructor(element: HTMLDivElement, gridElement: HTMLDivElement) {
-        this.element = element;
-        this.gridElement = gridElement;
+    public constructor(context: WindowContext) {
+        super(context);
 
-        this.contextDropdownElement = this.element.querySelector("#assets-context-dropdown") as DropdownType;
-        this.contextMenuElement = this.contextDropdownElement.querySelector("#assets-context-menu") as HTMLElement;
+        this.root.className = "panel-content";
+        this.root.innerHTML = `
+            <div class="panel-body assets-panel-body">
+                <sl-dropdown data-role="context-dropdown" style="position: absolute;">
+                    <sl-menu data-role="context-menu">
+                        <sl-menu-label>Create</sl-menu-label>
+                        <sl-menu-item data-role="new-folder" value="new-folder">
+                            <sl-icon slot="prefix" name="folder2"></sl-icon>
+                            New folder
+                        </sl-menu-item>
+                        <sl-menu-item data-role="new-component" value="new-component">
+                            <sl-icon slot="prefix" name="code-slash"></sl-icon>
+                            New component
+                        </sl-menu-item>
+                        <sl-menu-item data-role="new-json" value="new-json">
+                            <sl-icon slot="prefix" name="text-left"></sl-icon>
+                            New JSON file
+                        </sl-menu-item>
+                    </sl-menu>
+                </sl-dropdown>
+                <sl-tooltip content="Go to previous folder">
+                    <sl-icon-button data-role="back-button" class="floating-panel-action"
+                        name="arrow-90deg-left"></sl-icon-button>
+                </sl-tooltip>
+                <div data-role="assets-grid"></div>
+            </div>
+        `;
 
+        this.gridElement = this.query<HTMLDivElement>('[data-role="assets-grid"]');
+        this.contextDropdownElement = this.query('[data-role="context-dropdown"]') as HTMLElement & { show: () => void; reposition: () => void };
+        this.contextMenuElement = this.query('[data-role="context-menu"]');
+        this.backButton = this.query('[data-role="back-button"]');
+    }
 
-        this.backButton = document.getElementById("assets-back-button") as HTMLButtonElement;
-
+    public override initialize(): void {
         this.setupButtons();
         this.setupContextMenu();
-        this.setupToolbar();
+        this.registerCleanup(this.context.services.assets.subscribe(assets => {
+            this.allAssets = [...assets];
+            this.requestRerender();
+        }));
         this.requestRerender();
     }
 
-    private setupToolbar() {
-        {
-            const createAssetDialog = document.getElementById("create-asset-dialog")! as SlDialog;
-            const createButton = createAssetDialog!.querySelector("sl-button") as SlButton;
-            const preloadCheckbox = createAssetDialog!.querySelector("sl-checkbox") as SlCheckbox;
-            const typeSelect = createAssetDialog!.querySelector("sl-select")! as SlSelect;
-            const createInput = createAssetDialog!.querySelector("sl-input") as SlInput;
+    public override onActivate(): void {
+        this.context.services.activeWindows.setActiveWindow("Assets", this.instanceId);
+        this.context.services.activeWindows.setAssetsWindowPath(this.instanceId, this.currentPath);
+    }
 
-            for (const type of Object.keys(AssetType).filter(key => isNaN(Number(key)))) {
-                typeSelect.append(Object.assign(document.createElement("sl-option"), {
-                    textContent: type,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    value: (AssetType as any)[type]
-                }));
-            }
-            typeSelect.setAttribute("value", "0");
+    public override serializeState(): EditorWindowState {
+        return {
+            currentPath: this.currentPath
+        };
+    }
 
-            document.getElementById("new-asset-button")!.addEventListener("click", function () {
-                createButton.disabled = true;
-                createInput.value = "";
-                createAssetDialog.show();
-            });
+    public override restoreState(state: EditorWindowState): void {
+        const currentPath = state?.currentPath;
+        if (typeof currentPath === "string" && currentPath.length > 0) {
+            this.currentPath = currentPath;
+        }
+    }
 
-            createInput.addEventListener("sl-input", () => {
-                createButton.disabled = createInput.value.trim() === "";
-            });
+    public getCurrentPath(): string {
+        return this.currentPath;
+    }
 
-            createButton.addEventListener("click", () => {
-                createAssetDialog.hide();
-                AssetRegistry.register({
+    private setupButtons(): void {
+        const buttonConfigs: { selector: string; type: AssetData["type"]; label: string }[] = [
+            { selector: '[data-role="new-folder"]', type: "folder", label: "New Folder" },
+            { selector: '[data-role="new-json"]', type: "json", label: "New JSON" }
+        ];
+
+        for (const config of buttonConfigs) {
+            this.listen(this.query(config.selector), "click", () => {
+                const siblings = this.allAssets.filter(asset => asset.path.startsWith(this.currentPath + "/") && asset.type === config.type);
+                const count = siblings.length + 1;
+                this.context.services.assets.add({
                     id: crypto.randomUUID(),
-                    url: createInput.value.trim(),
-                    type: +typeSelect.value,
-                    preload: preloadCheckbox.checked
+                    name: `${config.label} ${count}`,
+                    type: config.type,
+                    path: `${this.currentPath}${this.currentPath === "/" ? "" : "/"}${config.label} ${count}`,
+                    data: ""
                 });
             });
         }
-        {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const viewAssetsDialog: any = document.getElementById("view-assets-dialog")!;
-            const assetsTable = viewAssetsDialog.querySelector("table")! as HTMLTableElement;
 
-            document.getElementById("view-assets-button")!.addEventListener("click", () => {
-                this.fillAssetTable(assetsTable);
-                viewAssetsDialog.show();
-            });
-        }
-    }
-
-    private fillAssetTable(table: HTMLTableElement) {
-        const body = table.tBodies[0];
-        if (!body) throw new Error("Assets table must have a body!");
-
-        body.innerHTML = "";
-
-        for (const asset of AssetRegistry.meta.values()) {
-            const row = body.insertRow();
-
-            row.insertCell().innerText = asset.url;
-
-            const idCell = row.insertCell();
-            idCell.style.display = "flex";
-
-            const idCopyButton = document.createElement("sl-copy-button") as SlCopyButton;
-            idCopyButton.value = asset.id;
-            idCopyButton.style.marginLeft = "auto";
-
-            idCell.append(document.createTextNode(asset.id), idCopyButton);
-
-            row.insertCell().innerText = AssetType[asset.type];
-
-            const checkbox = document.createElement("sl-checkbox") as SlCheckbox;
-            checkbox.checked = asset.preload;
-
-            checkbox.addEventListener("sl-change", () => {
-                asset.preload = checkbox.checked;
-            });
-
-            row.insertCell().append(checkbox);
-        }
-    }
-
-    private setupButtons() {
-        const buttonConfigs: { id: string; type: AssetData["type"]; label: string }[] = [
-            { id: "new-folder-button", type: "folder", label: "New Folder" },
-            { id: "new-json-button", type: "json", label: "New JSON" }
-        ];
-
-        buttonConfigs.forEach(({ id, type, label }) => {
-            document.getElementById(id)!.addEventListener("click", () => {
-                const siblings = this.allAssets.filter(a => a.path.startsWith(this.currentPath + "/") && a.type === type);
-                const count = siblings.length + 1;
-                const newAsset: AssetData = {
-                    id: crypto.randomUUID(),
-                    name: `${label} ${count}`,
-                    type,
-                    path: `${this.currentPath}${this.currentPath === "/" ? "" : "/"}${label} ${count}`,
-                    data: ""
-                };
-                this.addAsset(newAsset);
-            });
-        });
-
-        document.getElementById("new-component-button")!.addEventListener("click", () => {
+        this.listen(this.query('[data-role="new-component"]'), "click", () => {
+            this.onActivate();
             Project.showCreateComponentWindow();
         });
-        document.getElementById("new-component-general-button")!.addEventListener("click", () => {
-            Project.showCreateComponentWindow();
-        });
-        document.getElementById("upload-file-button")!.addEventListener("click", () => {
-            this.uploadFileToCurrentFolder();
-        });
 
-        this.backButton.addEventListener("click", () => {
+        this.listen(this.backButton, "click", () => {
             this.goBack();
-            this.updateBackButton();
-        });
-
-        this.updateBackButton();
-    }
-
-    private updateBackButton() {
-        this.backButton.disabled = this.currentPath === "/";
-    };
-
-    private goBack() {
-        if (this.currentPath === "/") return; // already at root
-        const parts = this.currentPath.split("/").filter(Boolean);
-        parts.pop(); // go up one folder
-        this.currentPath = "/" + parts.join("/");
-        if (this.currentPath === "") this.currentPath = "/";
-        this.requestRerender();
-    }
-
-    private async uploadFileToCurrentFolder() {
-        const file = await new Promise<File | null>((resolve) => {
-            const input = document.createElement("input");
-            input.type = "file";
-            input.addEventListener("change", () => {
-                resolve(input.files?.[0] ?? null);
-            }, { once: true });
-            input.click();
-        });
-
-        if (!file) {
-            return;
-        }
-
-        const relativeFolderPath = this.currentPath.replace(/^\/+/, "");
-        const relativeFilePath = relativeFolderPath ? `${relativeFolderPath}/${file.name}` : file.name;
-        const fullAssetPath = "/" + relativeFilePath;
-
-        await System.fileSystem.writeFile(relativeFilePath, new Uint8Array(await file.arrayBuffer()));
-
-        this.removeAsset(fullAssetPath);
-        this.addAsset({
-            id: crypto.randomUUID(),
-            name: file.name,
-            type: file.name.endsWith(".ts") ? "component" : file.name.endsWith(".json") ? "json" : "file",
-            path: fullAssetPath,
-            data: ""
         });
     }
 
-
-    private setupContextMenu() {
-        this.contextDropdownElement.addEventListener("sl-after-show", () => {
+    private setupContextMenu(): void {
+        this.listen(this.contextDropdownElement, "sl-after-show" as keyof HTMLElementEventMap, () => {
             if (this.cachedWidth === 0) {
                 this.cachedWidth = this.contextMenuElement.clientWidth;
                 this.cachedHeight = this.contextMenuElement.clientHeight;
             }
         });
 
-        this.gridElement.addEventListener("contextmenu", (e) => {
-            e.preventDefault();
-            if (e.target !== this.gridElement) return;
+        this.listen(this.gridElement, "contextmenu", event => {
+            event.preventDefault();
+            if (event.target !== this.gridElement) {
+                return;
+            }
 
             this.contextDropdownElement.show();
-
             if (this.cachedWidth === 0) {
-                this.positionDropdown(e);
-                this.contextDropdownElement.addEventListener(
-                    "sl-after-show",
-                    () => this.positionDropdown(e),
-                    { once: true }
-                );
-            }
-            else {
-                this.positionDropdown(e);
+                this.positionDropdown(event);
+                this.contextDropdownElement.addEventListener("sl-after-show", () => this.positionDropdown(event), { once: true });
+            } else {
+                this.positionDropdown(event);
             }
         });
     }
 
-    private positionDropdown(e: MouseEvent) {
+    private positionDropdown(event: MouseEvent): void {
         const container = this.contextDropdownElement.offsetParent instanceof HTMLElement
             ? this.contextDropdownElement.offsetParent
-            : this.element;
+            : this.root;
         const rect = container.getBoundingClientRect();
         const scrollLeft = container.scrollLeft;
         const scrollTop = container.scrollTop;
         const maxX = Math.max(scrollLeft, scrollLeft + container.clientWidth - this.cachedWidth);
         const maxY = Math.max(scrollTop, scrollTop + container.clientHeight - this.cachedHeight);
-        const x = Math.min(maxX, Math.max(scrollLeft, e.clientX - rect.left + scrollLeft));
-        const y = Math.min(maxY, Math.max(scrollTop, e.clientY - rect.top + scrollTop));
+        const x = Math.min(maxX, Math.max(scrollLeft, event.clientX - rect.left + scrollLeft));
+        const y = Math.min(maxY, Math.max(scrollTop, event.clientY - rect.top + scrollTop));
 
         Object.assign(this.contextDropdownElement.style, { left: `${x}px`, top: `${y}px` });
         this.contextDropdownElement.reposition();
     }
 
-    /** Adds asset to store and re-renders current folder */
-    public addAsset(asset: AssetData) {
-        this.allAssets.push(asset);
-        this.requestRerender();
-    }
+    public requestRerender(): void {
+        if (this.scheduledRerender) {
+            return;
+        }
 
-    /** Removes asset and all nested assets if folder */
-    public removeAsset(path: string) {
-        this.allAssets = this.allAssets.filter(a => !a.path.startsWith(path));
-        this.requestRerender();
-    }
-
-    /** Clears all assets */
-    public clearAssets() {
-        this.allAssets = [];
-        this.requestRerender();
-    }
-
-    public requestRerender() {
-        if (this.scheduledRerender) return;
         this.scheduledRerender = true;
-
         queueMicrotask(() => {
             this.scheduledRerender = false;
             this.renderCurrentFolder();
         });
     }
 
-    /** Renders only assets in the current folder */
-    private renderCurrentFolder() {
+    private goBack(): void {
+        if (this.currentPath === "/") {
+            return;
+        }
+
+        const parts = this.currentPath.split("/").filter(Boolean);
+        parts.pop();
+        this.currentPath = "/" + parts.join("/");
+        if (this.currentPath === "") {
+            this.currentPath = "/";
+        }
+        this.context.services.activeWindows.setAssetsWindowPath(this.instanceId, this.currentPath);
+        this.requestRerender();
+    }
+
+    private enterFolder(path: string): void {
+        this.currentPath = path;
+        this.context.services.activeWindows.setAssetsWindowPath(this.instanceId, this.currentPath);
+        this.requestRerender();
+    }
+
+    private renderCurrentFolder(): void {
         this.gridElement.innerHTML = "";
 
         const parentPath = this.currentPath === "/" ? "/" : this.currentPath + "/";
         const children = this.allAssets
-            .filter(a => {
-                const rest = a.path.replace(parentPath, "");
-                return a.path.startsWith(parentPath) && !rest.includes("/");
+            .filter(asset => {
+                const rest = asset.path.replace(parentPath, "");
+                return asset.path.startsWith(parentPath) && !rest.includes("/");
             })
             .sort((a, b) => {
                 const typeOrder = (asset: AssetData) => {
@@ -307,29 +208,30 @@ export default class Assets {
                 const typeDiff = typeOrder(a) - typeOrder(b);
                 if (typeDiff !== 0) return typeDiff;
 
-                // sorting by name inside type
                 const nameA = a.name.toLowerCase();
                 const nameB = b.name.toLowerCase();
                 return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
             });
 
-        children.forEach(a => this.renderAsset(a));
-        this.updateBackButton();
+        for (const child of children) {
+            this.renderAsset(child);
+        }
+
+        this.backButton.disabled = this.currentPath === "/";
     }
 
-
-    private getIconForType(type: AssetData["type"]) {
-        return type === "folder" ? "folder2" :
-            type === "component" ? "code-slash" :
-                type === "json" ? "text-left" : "file";
+    private getIconForType(type: AssetData["type"]): string {
+        return type === "folder" ? "folder2"
+            : type === "component" ? "code-slash"
+                : type === "json" ? "text-left"
+                    : "file";
     }
 
-    private renderAsset(asset: AssetData) {
+    private renderAsset(asset: AssetData): void {
         const card = document.createElement("div");
         card.className = "asset-card";
         card.draggable = asset.type === "component";
         card.dataset.path = asset.path;
-
         card.innerHTML = `
             <sl-card class="asset-card-inner">
                 <sl-icon name="${this.getIconForType(asset.type)}" class="asset-icon"></sl-icon>
@@ -337,74 +239,27 @@ export default class Assets {
             </sl-card>
         `;
 
-        const nameEl = card.querySelector(".asset-name") as HTMLSpanElement;
-
         if (asset.type === "component") {
             if (asset.data === undefined) {
-                const found = ProjectConfig.config.components.find(c => c.file === asset.path)?.name;
-                asset.data = found!;
+                const found = ProjectConfig.config.components.find(component => component.file === asset.path)?.name;
+                asset.data = found ?? "";
             }
 
-            card.addEventListener("dragstart", (ev: DragEvent) => {
-                ev.dataTransfer!.items.add(asset.data, "application/x-component-name");
+            card.addEventListener("dragstart", event => {
+                event.dataTransfer?.items.add(asset.data, "application/x-component-name");
             });
         }
 
+        card.addEventListener("mousedown", () => this.onActivate());
         card.addEventListener("dblclick", async () => {
+            this.onActivate();
             if (asset.type === "folder") {
                 this.enterFolder(asset.path);
             } else {
-                await this.onAssetOpen(asset);
+                await Project.openInFileEditor(asset.path);
             }
         });
-        this.setupAssetNameEdit(nameEl, asset);
 
         this.gridElement.appendChild(card);
-    }
-
-    private setupAssetNameEdit(_nameEl: HTMLSpanElement, _asset: AssetData) {
-        // nameEl.addEventListener("dblclick", async () => {
-        //     if (nameEl.querySelector("sl-input")) return;
-
-        //     const oldLabel = nameEl.textContent || "";
-        //     const input = document.createElement("sl-input") as HTMLInputElement;
-        //     input.type = "text";
-        //     input.value = oldLabel;
-        //     input.style.width = "120px";
-
-        //     nameEl.textContent = "";
-        //     nameEl.appendChild(input);
-
-        //     await customElements.whenDefined("sl-input");
-
-        //     input.focus();
-        //     input.select();
-
-        //     const exitEdit = (save: boolean) => {
-        //         const newText = save ? input.value || oldLabel : oldLabel;
-        //         const oldPath = asset.path;
-        //         asset.name = newText;
-        //         asset.path = oldPath.split("/").slice(0, -1).concat(newText).join("/") || "/";
-        //         nameEl.textContent = newText;
-        //         input.remove();
-        //         this.renderCurrentFolder();
-        //     };
-
-        //     input.addEventListener("sl-blur", () => exitEdit(true));
-        //     input.addEventListener("keydown", (e: KeyboardEvent) => {
-        //         if (e.key === "Enter") exitEdit(true);
-        //         if (e.key === "Escape") exitEdit(false);
-        //     });
-        // });TODO: Implement this
-    }
-
-    private enterFolder(path: string) {
-        this.currentPath = path;
-        this.requestRerender();
-    }
-
-    private async onAssetOpen(asset: AssetData) {
-        if (asset.type === "folder") return;
-        await Project.openInFileEditor(asset.path);
     }
 }

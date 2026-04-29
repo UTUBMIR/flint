@@ -124,19 +124,54 @@
                     <sl-button size="small" slot="trigger">Window</sl-button>
                     <sl-menu>
                         <sl-menu-label>Layout</sl-menu-label>
+                        <sl-menu-item>
+                            <sl-icon slot="prefix" name="window"></sl-icon>
+                            New
+                            <sl-menu slot="submenu">
+                                <sl-menu-item id="new-viewport-window-button" value="new-viewport-window">
+                                    <sl-icon slot="prefix" name="badge-3d"></sl-icon>
+                                    Viewport
+                                </sl-menu-item>
+                                <sl-menu-item id="new-code-editor-window-button" value="new-code-editor-window">
+                                    <sl-icon slot="prefix" name="braces"></sl-icon>
+                                    Editor
+                                </sl-menu-item>
+                                <sl-menu-item id="new-hierarchy-window-button" value="new-hierarchy-window">
+                                    <sl-icon slot="prefix" name="diagram-3"></sl-icon>
+                                    Hierarchy
+                                </sl-menu-item>
+                                <sl-menu-item id="new-assets-window-button" value="new-assets-window">
+                                    <sl-icon slot="prefix" name="boxes"></sl-icon>
+                                    Assets
+                                </sl-menu-item>
+                                <sl-menu-item id="new-inspector-window-button" value="new-inspector-window">
+                                    <sl-icon slot="prefix" name="list-columns-reverse"></sl-icon>
+                                    Inspector
+                                </sl-menu-item>
+                            </sl-menu>
+                        </sl-menu-item>
                         <sl-menu-item id="reset-layout-button" value="reset-layout">
                             <sl-icon slot="prefix" name="arrow-clockwise"></sl-icon>
                             Reset Layout
                         </sl-menu-item>
                     </sl-menu>
                 </sl-dropdown>
-                <sl-button size="small">Help</sl-button>
+                <sl-dropdown>
+                    <sl-button size="small" slot="trigger">Help</sl-button>
+                    <sl-menu>
+                        <sl-menu-label>Problems</sl-menu-label>
+                        <sl-menu-item id="auto-fix-problems" value="fix-problems">
+                            <sl-icon slot="prefix" name="wrench-adjustable"></sl-icon>
+                            Auto Fix Problems
+                        </sl-menu-item>
+                    </sl-menu>
+                </sl-dropdown>
             </sl-button-group>
         </div>
 
         <sl-dialog id="settings-window" label="Settings" style="--width: 50vw;">
             <sl-tab-group placement="start">
-                
+
             </sl-tab-group>
 
         </sl-dialog>
@@ -185,15 +220,16 @@
                             <sl-icon slot="prefix" name="box"></sl-icon>
                             New GameObject
                         </sl-menu-item>
-                        <sl-menu-item class="danger-background danger-label danger-prefix"
-                            id="delete-button" value="delete">
+                        <sl-menu-item class="danger-background danger-label danger-prefix" id="delete-button"
+                            value="delete">
                             <sl-icon slot="prefix" name="trash"></sl-icon>
                             Delete
                         </sl-menu-item>
                     </sl-menu>
                 </sl-dropdown>
                 <sl-tooltip content="Create object">
-                    <sl-icon-button id="create-object-button" class="floating-panel-action" name="plus-square"></sl-icon-button>
+                    <sl-icon-button id="create-object-button" class="floating-panel-action"
+                        name="plus-square"></sl-icon-button>
                 </sl-tooltip>
                 <sl-tree id="hierarchy-tree" style="--indent-guide-width: 1px;"></sl-tree>
             </div>
@@ -219,7 +255,8 @@
                     </sl-menu>
                 </sl-dropdown>
                 <sl-tooltip content="Go to previous folder">
-                    <sl-icon-button id="assets-back-button" class="floating-panel-action" name="arrow-90deg-left"></sl-icon-button>
+                    <sl-icon-button id="assets-back-button" class="floating-panel-action"
+                        name="arrow-90deg-left"></sl-icon-button>
                 </sl-tooltip>
                 <div id="assets-grid"></div>
             </div>

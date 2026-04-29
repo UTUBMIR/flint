@@ -71,6 +71,12 @@ export class System {
     private static _deltaTime: number;
 
     private static rootDiv: HTMLDivElement;
+    private static readonly canvasBindings: {
+        canvas: HTMLCanvasElement;
+        ctx: RenderingContext;
+        resize: () => void;
+        observer: ResizeObserver;
+    }[] = [];
 
     private static _rootSize = new Vector2();
     public static get rootSize(): Vector2 {
@@ -105,6 +111,18 @@ export class System {
 
     public static setCursor(cursor: string) {
         System.rootDiv.style.cursor = cursor;
+    }
+
+    public static setRootElement(rootElement: HTMLDivElement): void {
+        this.configureRootElement(rootElement);
+        this.rootDiv = rootElement;
+
+        for (const binding of this.canvasBindings) {
+            binding.observer.disconnect();
+            this.rootDiv.appendChild(binding.canvas);
+            binding.resize();
+            binding.observer.observe(this.rootDiv);
+        }
     }
 
 
@@ -311,6 +329,12 @@ export class System {
 
         resize();
         ro.observe(this.rootDiv);
+        this.canvasBindings.push({
+            canvas,
+            ctx,
+            resize,
+            observer: ro
+        });
     }
 
     private static initRootDiv(id: string = "root") {
@@ -319,13 +343,15 @@ export class System {
             throw new Error(`Html element with type "div" and id "${id}" was not found!`);
         }
 
+        this.setRootElement(div);
+    }
+
+    private static configureRootElement(div: HTMLDivElement): void {
         // Keep game-layer z-index ordering contained within the viewport root so
         // editor overlays and floating panels can stack above the game surface.
         div.style.position = "relative";
         div.style.zIndex = "0";
         div.style.isolation = "isolate";
-
-        this.rootDiv = div;
     }
 
     private static sendEventToLayers(event: Event): void {

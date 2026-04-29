@@ -25,11 +25,14 @@ const shoelaceIcons = [
     "arrow-clockwise",
     "box",
     "box-arrow-in-down-right",
+    "window",
     "box-arrow-up-right",
+    "wrench-adjustable",
     "boxes",
     "check2-circle",
     "code-slash",
     "controller",
+    "diagram-3",
     "download",
     "exclamation-octagon",
     "exclamation-triangle",
@@ -41,14 +44,18 @@ const shoelaceIcons = [
     "gear",
     "info-circle",
     "layers",
+    "list-columns-reverse",
     "list-ul",
+    "lock-fill",
     "play",
     "plus-lg",
     "plus-square",
     "stop",
     "text-left",
     "trash",
-    "upload"
+    "upload",
+    "badge-3d",
+    "braces"
 ];
 
 fs.rmSync(monacoDir, { recursive: true, force: true });

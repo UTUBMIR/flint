@@ -1,15 +1,16 @@
 import type Component from "@flint//runtime/component";
 import { System } from "@flint/runtime/system";
-import Editor, { Notifier } from "@flint/editor/editor";
+import { Notifier } from "@flint/editor/editor";
 import Bundler from "./bundler";
 import ModuleLoader from "./module-loader";
 import { Project } from "./project";
 import ProjectConfig from "./project-config";
 import { AbstractFileSystem } from "@flint/shared/file-system";
-import type { AssetData } from "../windows/assets";
+import type { AssetData } from "../asset-types";
 import { AssetRegistry } from "@flint/runtime/assets";
 import { ProjectLoader } from "@flint/runtime/project-loader";
 import { HotReload } from "@flint/runtime/hot-reload";
+import { editorAssetStore } from "../window-services";
 
 import * as basicComponents from "@flint/runtime/components/index";
 import * as physicsComponents from "@flint/runtime/components/physics-index";
@@ -75,10 +76,7 @@ export class Builder {
             Bundler.files.set(path, text);
         }
 
-        Editor.assetsWindow.clearAssets();
-        for (const asset of textAssets) {
-            Editor.assetsWindow.addAsset(asset as AssetData);//FIXME: WTF?!? This should not be here
-        }
+        editorAssetStore.setAssets(textAssets as AssetData[]);
 
         try {
             const enableSourceMap = sourceMap ?? ProjectConfig.config?.generateJsMap ?? false;

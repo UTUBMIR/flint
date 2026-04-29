@@ -8,7 +8,7 @@ import type { IRenderer } from "../shared/irenderer";
 import { Color, type ColorString } from "../shared/graphics";
 import { Rect } from "../shared/primitives";
 import Vector2 from "../shared/vector2";
-import Editor from "./editor";
+import { editorSelectionService } from "./window-services";
 import { Drag } from "./interaction";
 import { System } from "../runtime/system";
 import type { PhysicsWorld } from "@flint/runtime/physics-world";
@@ -99,7 +99,7 @@ class DragComponent extends Shape {
     }
 
     private get selectedObject() {
-        return Editor.inspectorWindow.currentObject;
+        return editorSelectionService.getSelectedGameObject();
     }
 
     private getWorldConverters() {
