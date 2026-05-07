@@ -12,7 +12,7 @@ export default [
             format: "es",
 
             generatedCode: {
-                preset: "es2024",
+                preset: "es2015",
                 constBindings: true,
                 arrowFunctions: true,
                 objectShorthand: true
@@ -36,7 +36,7 @@ export default [
             format: "es",
 
             generatedCode: {
-                preset: "es2024",
+                preset: "es2015",
                 constBindings: true,
                 arrowFunctions: true,
                 objectShorthand: true
