@@ -31,12 +31,12 @@ jobs:
         run: npm run build:libs
         
       - name: Build site
-        run: npm run build
+        run: npm run build:cdn
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: ./cdn
 
   deploy:
     needs: build
