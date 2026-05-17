@@ -57,9 +57,15 @@ export default class InspectorWindow extends BaseEditorWindow {
     private readonly bodyElement: HTMLDivElement;
     private readonly dropTarget: HTMLDivElement;
     private readonly addComponentButton: HTMLButtonElement;
+    private readonly contextDropdownElement: HTMLElement & { show: () => void; reposition: () => void };
+    private readonly contextMenuElement: HTMLElement;
+    private readonly deleteButton: HTMLButtonElement;
     private currentObjectId: UUID | null = null;
     private followingSelection = true;
     private components: InspectorComponent[] = [];
+    private contextComponent: Component | null = null;
+    private cachedContextMenuWidth = 0;
+    private cachedContextMenuHeight = 0;
     private readonly dialog: HTMLElement & { show: () => void; hide: () => void };
     private readonly dialogSelect: HTMLSelectElement;
     private readonly dialogAddButton: HTMLButtonElement;
@@ -70,6 +76,14 @@ export default class InspectorWindow extends BaseEditorWindow {
         this.root.className = "panel-content";
         this.root.innerHTML = `
             <div class="panel-body inspector-panel-body" data-role="drop-target">
+                <sl-dropdown data-role="context-dropdown" style="position: absolute;">
+                    <sl-menu data-role="context-menu">
+                        <sl-menu-item class="danger-background danger-label danger-prefix" data-role="delete-component-button" value="delete">
+                            <sl-icon slot="prefix" name="trash"></sl-icon>
+                            Delete
+                        </sl-menu-item>
+                    </sl-menu>
+                </sl-dropdown>
                 <div data-role="inspector-body"></div>
                 <sl-button data-role="add-component-button">Add component</sl-button>
             </div>
@@ -78,6 +92,9 @@ export default class InspectorWindow extends BaseEditorWindow {
         this.bodyElement = this.query('[data-role="inspector-body"]');
         this.dropTarget = this.query('[data-role="drop-target"]');
         this.addComponentButton = this.query('[data-role="add-component-button"]');
+        this.contextDropdownElement = this.query('[data-role="context-dropdown"]') as HTMLElement & { show: () => void; reposition: () => void };
+        this.contextMenuElement = this.query('[data-role="context-menu"]');
+        this.deleteButton = this.query('[data-role="delete-component-button"]');
         this.dialog = document.getElementById("add-component-dialog")! as HTMLElement & { show: () => void; hide: () => void };
         this.dialogSelect = this.dialog.getElementsByTagName("sl-select")[0] as unknown as HTMLSelectElement;
         this.dialogAddButton = this.dialog.getElementsByTagName("sl-button")[0] as unknown as HTMLButtonElement;
@@ -100,6 +117,35 @@ export default class InspectorWindow extends BaseEditorWindow {
 
         this.listen(this.addComponentButton, "click", () => {
             void this.addComponent();
+        });
+
+        this.listen(this.contextDropdownElement, "sl-after-show" as keyof HTMLElementEventMap, () => {
+            if (this.cachedContextMenuWidth === 0) {
+                this.cachedContextMenuWidth = this.contextMenuElement.clientWidth;
+                this.cachedContextMenuHeight = this.contextMenuElement.clientHeight;
+            }
+        });
+
+        this.listen(this.bodyElement, "contextmenu", event => {
+            const component = this.getComponentAtEvent(event);
+            if (!component || component === this.currentObject?.transform) {
+                return;
+            }
+
+            event.preventDefault();
+            this.contextComponent = component;
+            this.contextDropdownElement.show();
+
+            if (this.cachedContextMenuWidth === 0) {
+                this.positionContextDropdown(event);
+                this.contextDropdownElement.addEventListener("sl-after-show", () => this.positionContextDropdown(event), { once: true });
+            } else {
+                this.positionContextDropdown(event);
+            }
+        });
+
+        this.listen(this.deleteButton, "click", () => {
+            this.deleteContextComponent();
         });
 
         this.listen(this.dialogSelect, "sl-change" as keyof HTMLElementEventMap, () => {
@@ -127,6 +173,40 @@ export default class InspectorWindow extends BaseEditorWindow {
         }));
 
         this.refreshControls();
+        this.renderCurrentObject();
+    }
+
+    private positionContextDropdown(event: MouseEvent): void {
+        const container = this.contextDropdownElement.offsetParent instanceof HTMLElement
+            ? this.contextDropdownElement.offsetParent
+            : this.root;
+        const rect = container.getBoundingClientRect();
+        const scrollLeft = container.scrollLeft;
+        const scrollTop = container.scrollTop;
+        const maxX = Math.max(scrollLeft, scrollLeft + container.clientWidth - this.cachedContextMenuWidth);
+        const maxY = Math.max(scrollTop, scrollTop + container.clientHeight - this.cachedContextMenuHeight);
+        const x = Math.min(maxX, Math.max(scrollLeft, event.clientX - rect.left + scrollLeft));
+        const y = Math.min(maxY, Math.max(scrollTop, event.clientY - rect.top + scrollTop));
+
+        Object.assign(this.contextDropdownElement.style, { left: `${x}px`, top: `${y}px` });
+        this.contextDropdownElement.reposition();
+    }
+
+    private getComponentAtEvent(event: MouseEvent): Component | null {
+        const path = event.composedPath();
+        return this.components.find(component => path.includes(component.element))?.component ?? null;
+    }
+
+    private deleteContextComponent(): void {
+        const component = this.contextComponent;
+        const currentObject = this.currentObject;
+        this.contextComponent = null;
+
+        if (!component || !currentObject || component === currentObject.transform) {
+            return;
+        }
+
+        currentObject.removeComponentInstance(component);
         this.renderCurrentObject();
     }
 

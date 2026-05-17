@@ -120,7 +120,25 @@ export default class GameObject {
         }
 
         this.components[index]!.destroy();
-        this.components = this.components.splice(index, 1);
+        this.components.splice(index, 1);
+        return true;
+    }
+
+    /**
+     * Detaches and destroys a specific component instance.
+     */
+    public removeComponentInstance(component: Component): boolean {
+        const index = this.components.indexOf(component);
+        if (index === -1) {
+            return false;
+        }
+
+        if (this.isAttached) {
+            component.detach();
+        }
+
+        component.destroy();
+        this.components.splice(index, 1);
         return true;
     }
 
