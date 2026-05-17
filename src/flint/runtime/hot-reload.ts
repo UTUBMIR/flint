@@ -1,4 +1,5 @@
 import type Component from "./component";
+import Metadata, { MetadataKeys } from "../shared/metadata";
 import { System } from "./system";
 
 export class HotReload {
@@ -29,6 +30,10 @@ export class HotReload {
     public static reloadComponent(name: string, componentType: typeof Component): void {
         const previousType = System.components.get(name);
         System.components.set(name, componentType);
+
+        if (Metadata.enabled && Metadata.getClass(componentType.prototype, MetadataKeys.EditorName, false) === undefined) {
+            Metadata.setClass(componentType.prototype, MetadataKeys.EditorName, name);
+        }
 
         if (!previousType?.prototype) {
             return;

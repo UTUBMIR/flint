@@ -2,6 +2,7 @@
 import type GameObject from "../../runtime/game-object";
 import type Component from "../../runtime/component";
 import { System, type UUID } from "../../runtime/system";
+import Metadata, { MetadataKeys } from "../../shared/metadata";
 import { ComponentBuilder } from "../component-builder";
 import { CasingHandler } from "../casing-handler";
 import { BaseEditorWindow, type EditorWindowControl, type EditorWindowState, type WindowContext } from "../window-framework";
@@ -13,7 +14,7 @@ class InspectorComponent {
 
     public constructor(public readonly component: Component) {
         this.element = Object.assign(document.createElement("sl-details"), {
-            summary: System.getComponentName(Object.getPrototypeOf(component)),
+            summary: this.getDisplayName(component),
             open: true,
             draggable: true
         });
@@ -30,7 +31,7 @@ class InspectorComponent {
             }
 
             event.dataTransfer!.setData("application/x-component-ref", JSON.stringify({
-                name: System.getComponentName(Object.getPrototypeOf(component)),
+                name: System.getComponentName(component),
                 id: component.gameObject.id
             }));
         });
@@ -44,6 +45,11 @@ class InspectorComponent {
 
     public generateContent(): void {
         this.element.appendChild(ComponentBuilder.build(this.component));
+    }
+
+    private getDisplayName(component: Component): string {
+        return Metadata.getClass(component, MetadataKeys.EditorName)
+            ?? System.getComponentName(component);
     }
 }
 
@@ -186,13 +192,11 @@ export default class InspectorWindow extends BaseEditorWindow {
         this.dialogSelect.innerHTML = "";
 
         for (const [name, component] of System.components) {
-            if (component.name === undefined) {
-                continue;
-            }
-
             this.dialogSelect.append(Object.assign(document.createElement("sl-option"), {
                 value: name,
-                textContent: CasingHandler.splitPascalCase(name)
+                textContent: CasingHandler.splitPascalCase(
+                    Metadata.getClass(component.prototype, MetadataKeys.EditorName, false) ?? name
+                )
             }));
         }
 

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type Component from "./../runtime/component";
+import Component from "./../runtime/component";
+import GameObject from "../runtime/game-object";
 import type { FieldBehavior } from "./fields/field-behaviour";
 import type { FieldRenderer } from "./fields/field-renderer";
 import { NumberRenderer } from "./fields/renderers/number-renderer";
@@ -26,6 +27,9 @@ export class RendererRegistry {
         if (type == null) return undefined;
 
         function check(r: { canRender: (t: string) => boolean }, t: any) {
+            if (RendererRegistry.isComponentValue(t) && r.canRender("component")) return true;
+            if (RendererRegistry.isGameObjectValue(t) && r.canRender("gameobject")) return true;
+
             const tTypeof = typeof t;
             const ctorName = t?.constructor?.name?.toLowerCase();
             return r.canRender(tTypeof) || (ctorName ? r.canRender(ctorName) : false);
@@ -45,6 +49,31 @@ export class RendererRegistry {
 
     public static getRendererByTypeName(typeName: string) {
         return this.renderers.find(r => (r.canRender(typeName.toLowerCase())));
+    }
+
+    private static isComponentValue(value: any): boolean {
+        return value instanceof Component || (
+            value !== null &&
+            typeof value === "object" &&
+            "transform" in value &&
+            typeof value.attach === "function" &&
+            typeof value.start === "function" &&
+            typeof value.update === "function" &&
+            typeof value.detach === "function" &&
+            typeof value.destroy === "function"
+        );
+    }
+
+    private static isGameObjectValue(value: any): boolean {
+        return value instanceof GameObject || (
+            value !== null &&
+            typeof value === "object" &&
+            typeof value.id === "string" &&
+            typeof value.addComponent === "function" &&
+            typeof value.getAllComponents === "function" &&
+            value.transform !== null &&
+            typeof value.transform === "object"
+        );
     }
 }
 
@@ -120,7 +149,7 @@ export class ComponentBuilder {
     }
 
 
-    public static field(root: Component, path: string[]): HTMLElement {
+    public static field(root: Component, path: string[], seen = new WeakSet<object>()): HTMLElement {
         const key = this.lastKey(path);
         const value = this.get(root, path);
 
@@ -168,21 +197,30 @@ export class ComponentBuilder {
         }
 
         // Nested object -> return a tree node
-        return this.tree(root, path);
+        return this.tree(root, path, seen);
     }
 
-    public static tree(root: Component, path: string[]): HTMLElement {
+    public static tree(root: Component, path: string[], seen = new WeakSet<object>()): HTMLElement {
         const obj = this.get(root, path);
         const treeItem = document.createElement("sl-tree-item") as any;
         treeItem.expanded = true;
         treeItem.textContent = this.lastKey(path) || "root";
+
+        if (obj && typeof obj === "object") {
+            if (seen.has(obj)) {
+                treeItem.textContent = `${this.lastKey(path) || "root"} [Circular]`;
+                return treeItem;
+            }
+
+            seen.add(obj);
+        }
 
         for (const key of Object.keys(obj)) {
             if (Metadata.getField(root, key, MetadataKeys.HideInInspector) ??
                 Metadata.getField(root, key, MetadataKeys.NonSerialized)) continue;
 
             const childPath = [...path, key];
-            const child = this.field(root, childPath);
+            const child = this.field(root, childPath, seen);
             const childWrapper = document.createElement("div");
             childWrapper.appendChild(child);
 

@@ -5,6 +5,7 @@ import defaultPlayConfig from "./config/play-config.json" with { type: 'json' };
 import type { AxisBinding } from "../shared/input-axis";
 import InputAxis from "../shared/input-axis";
 import type Component from "./component";
+import Metadata, { MetadataKeys } from "../shared/metadata";
 
 //default components
 import type RendererComponent from "./renderer-component";
@@ -131,10 +132,22 @@ export class System {
 
     public static registerComponent(name: string, component: typeof Component) {
         System.components.set(name, component);
+
+        if (Metadata.enabled && Metadata.getClass(component.prototype, MetadataKeys.EditorName, false) === undefined) {
+            Metadata.setClass(component.prototype, MetadataKeys.EditorName, name);
+        }
     }
 
     public static getComponentName(component: typeof Component | Component) {
         const base = typeof component === "function" ? component : component.constructor;
+        const metadataName = typeof component === "function"
+            ? Metadata.getClass(component.prototype, MetadataKeys.EditorName, false)
+            : Metadata.getClass(component, MetadataKeys.EditorName);
+
+        if (metadataName) {
+            return metadataName;
+        }
+
         for (const [name, value] of System.components) {
             if (value === base) {
                 return name;
@@ -145,7 +158,7 @@ export class System {
             return "Transform";
         }
 
-        return "Transform"; // FIXME: Add an actual fallback
+        return "Unknown";
     }
 
     private static setupAudio() {
