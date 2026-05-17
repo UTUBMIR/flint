@@ -405,11 +405,11 @@ export class Project {
         const fileContent = `import Component from "@flint/runtime/component";
 
 export class ${name} extends Component {
-    override start(): void {
+    start(): void {
         // Code that should run once on start
     }
 
-    override update(): void {
+    update(): void {
         // Code that should run every frame
     }
 }
