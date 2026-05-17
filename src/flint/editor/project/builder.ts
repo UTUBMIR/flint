@@ -64,7 +64,12 @@ export class Builder {
         });
     }
 
-    public static async compile(emitErrorMessages: boolean = true, entryPoint?: string, sourceMap?: boolean): Promise<boolean> {
+    public static async compile(
+        emitErrorMessages: boolean = true,
+        entryPoint?: string,
+        sourceMap?: boolean,
+        options: { stripEditorDecorators?: boolean } = {}
+    ): Promise<boolean> {
         const textFilesResult = await Project.getAllTextFiles();
         const textFiles = textFilesResult.files;
         const textAssets = textFilesResult.assets;
@@ -80,7 +85,7 @@ export class Builder {
 
         try {
             const enableSourceMap = sourceMap ?? ProjectConfig.config?.generateJsMap ?? false;
-            const result = (await Bundler.bundle(entryPoint, enableSourceMap)).outputFiles[0]?.text;
+            const result = (await Bundler.bundle(entryPoint, enableSourceMap, options)).outputFiles[0]?.text;
 
             if (!result) return false;
 
@@ -115,7 +120,7 @@ export class Builder {
         Bundler.files.set("index.ts", ProjectConfig.userIndex);
         Bundler.files.set("main.ts", this.makeMainTs(projectData, false));
 
-        if (!await Builder.compile(true, "/main.ts")) return false;
+        if (!await Builder.compile(true, "/main.ts", false, { stripEditorDecorators: true })) return false;
 
         await System.fileSystem.writeTextFile(
             "build/index.html",

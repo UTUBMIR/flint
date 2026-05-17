@@ -9,6 +9,9 @@ export default class Bundler {
     public static flintFiles = new Map<string, string>();
 
     private static esbuild: typeof import("esbuild-wasm");
+    private static stripEditorDecorators = false;
+    private static readonly editorDecoratorPattern =
+        /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector)(\s*\([^)]*\))?\s*$/gm;
     private static readonly virtualFsPlugin = {
         name: "virtual-fs",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,7 +83,7 @@ export default class Bundler {
                     }
 
                     return {
-                        contents: content,
+                        contents: Bundler.transformSource(content, flintPath),
                         loader: flintPath.endsWith(".ts") ? "ts" : flintPath.endsWith(".js") ? "js" : "json"
                     };
                 }
@@ -94,7 +97,8 @@ export default class Bundler {
                         Bundler.flintFiles.get(normalizedPath.replace(".ts", ".js"));
                     if (content) {
                         return {
-                            contents: content, loader: normalizedPath.endsWith(".ts") ? "ts" : normalizedPath.endsWith(".js") ? "js" : "json"
+                            contents: Bundler.transformSource(content, normalizedPath),
+                            loader: normalizedPath.endsWith(".ts") ? "ts" : normalizedPath.endsWith(".js") ? "js" : "json"
                         };
                     }
 
@@ -103,7 +107,7 @@ export default class Bundler {
                 }
 
                 return {
-                    contents: content,
+                    contents: Bundler.transformSource(content, normalizedPath),
                     loader: normalizedPath.endsWith(".ts") ? "ts" : "json"
                 };
             });
@@ -113,6 +117,14 @@ export default class Bundler {
 
 
     private constructor() { }
+
+    private static transformSource(content: string, path: string): string {
+        if (!this.stripEditorDecorators || !path.endsWith(".ts")) {
+            return content;
+        }
+
+        return content.replace(this.editorDecoratorPattern, "");
+    }
 
     public static async init() {
         if (!Bundler.esbuild) {
@@ -127,21 +139,32 @@ export default class Bundler {
     }
 
 
-    public static async bundle(entryPoint: string = "/index.ts", sourceMap?: boolean) {
-        return await Bundler.esbuild.build({
-            entryPoints: [entryPoint],
-            bundle: true,
-            write: false,
-            format: "esm",
-            target: ["es2024"],
-            plugins: [Bundler.virtualFsPlugin],
-            external: ["@flint/"],
-            platform: "browser",
-            minify: true,
-            keepNames: false,
-            tsconfigRaw: ProjectConfig.tsConfig,
-            treeShaking: true,
-            ...(sourceMap ? {sourcemap: "inline"} : {})
-        });
+    public static async bundle(
+        entryPoint: string = "/index.ts",
+        sourceMap?: boolean,
+        options: { stripEditorDecorators?: boolean } = {}
+    ) {
+        const previousStripEditorDecorators = Bundler.stripEditorDecorators;
+        Bundler.stripEditorDecorators = options.stripEditorDecorators ?? false;
+
+        try {
+            return await Bundler.esbuild.build({
+                entryPoints: [entryPoint],
+                bundle: true,
+                write: false,
+                format: "esm",
+                target: ["es2024"],
+                plugins: [Bundler.virtualFsPlugin],
+                external: ["@flint/"],
+                platform: "browser",
+                minify: true,
+                keepNames: false,
+                tsconfigRaw: ProjectConfig.tsConfig,
+                treeShaking: true,
+                ...(sourceMap ? {sourcemap: "inline"} : {})
+            });
+        } finally {
+            Bundler.stripEditorDecorators = previousStripEditorDecorators;
+        }
     }
 }
