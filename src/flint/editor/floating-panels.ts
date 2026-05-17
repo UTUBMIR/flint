@@ -1,4 +1,6 @@
-import type { ComponentItem, ComponentItemConfig, ContentItem, GoldenLayout, Stack, Tab } from "golden-layout";
+import type { ComponentContainer, ComponentItem, ComponentItemConfig, ContentItem, GoldenLayout, Stack, Tab } from "golden-layout";
+import { renderWindowControls } from "./window-controls";
+import type { EditorWindowControl } from "./window-framework";
 
 const FLOATING_OVERLAY_ID = "layout-floating-host";
 const FLOATING_STACK_ID_PREFIX = "flint-floating-stack-";
@@ -57,6 +59,7 @@ type DockArea = {
 };
 
 type InternalComponentItem = ComponentItem & {
+    container?: ComponentContainer;
     enterDragMode: (width: number, height: number) => void;
     exitDragMode: () => void;
     drag: () => void;
@@ -116,6 +119,7 @@ type FloatingPanel = {
     floatingStack: InternalStack;
     shell: HTMLElement;
     title: HTMLElement;
+    actions: HTMLElement;
     body: HTMLElement;
     handleTitleChanged: (updatedTitle: string) => void;
     bounds: Bounds;
@@ -390,7 +394,8 @@ export class FloatingPanelManager {
     public constructor(
         private readonly layout: GoldenLayout,
         private readonly host: HTMLElement,
-        private readonly onChanged: () => void
+        private readonly onChanged: () => void,
+        private readonly getWindowControls: (componentItem: ComponentItem) => readonly EditorWindowControl[] = () => []
     ) {
         this.internalLayout = layout as InternalLayout;
         this.overlay = this.createOverlay();
@@ -535,6 +540,14 @@ export class FloatingPanelManager {
 
             if (destroyItems) {
                 panel.floatingStack.destroy();
+            }
+        }
+    }
+
+    public refreshWindowControls(instanceId: string): void {
+        for (const panel of this.panels.values()) {
+            if (this.getPanelInstanceId(panel) === instanceId) {
+                this.renderPanelControls(panel);
             }
         }
     }
@@ -879,6 +892,10 @@ export class FloatingPanelManager {
         const actions = document.createElement("div");
         actions.className = "flint-floating-window-actions";
 
+        const windowControls = document.createElement("div");
+        windowControls.className = "flint-floating-window-controls";
+        actions.appendChild(windowControls);
+
         const dockButton = document.createElement("button");
         dockButton.type = "button";
         dockButton.className = "flint-floating-window-button flint-floating-window-dock";
@@ -926,18 +943,35 @@ export class FloatingPanelManager {
         };
         componentItem.on("titleChanged", handleTitleChanged);
 
-        return {
+        const panel = {
             componentId,
             componentItem,
             floatingStack,
             shell,
             title,
+            actions: windowControls,
             body,
             handleTitleChanged,
             bounds: this.clampBounds(options.bounds ?? this.createDefaultBounds(componentItem.element.getBoundingClientRect())),
             zIndex: options.zIndex ?? this.bumpZIndex(),
             dockTarget: options.dockTarget ?? null
         };
+        this.renderPanelControls(panel);
+        return panel;
+    }
+
+    private renderPanelControls(panel: FloatingPanel): void {
+        renderWindowControls(panel.actions, this.getWindowControls(panel.componentItem));
+    }
+
+    private getPanelInstanceId(panel: FloatingPanel): string | null {
+        const state = panel.componentItem.container?.stateRequestEvent?.() as { instanceId?: string } | undefined;
+        if (typeof state?.instanceId === "string") {
+            return state.instanceId;
+        }
+
+        const root = panel.componentItem.element.querySelector<HTMLElement>("[data-instance-id]");
+        return root?.dataset.instanceId ?? null;
     }
 
     private bumpZIndex(): number {

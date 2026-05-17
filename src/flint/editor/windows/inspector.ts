@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { ComponentContainer } from "golden-layout";
 import type GameObject from "../../runtime/game-object";
 import type Component from "../../runtime/component";
 import { System, type UUID } from "../../runtime/system";
 import { ComponentBuilder } from "../component-builder";
 import { CasingHandler } from "../casing-handler";
-import { BaseEditorWindow, type EditorWindowState, type WindowContext } from "../window-framework";
+import { BaseEditorWindow, type EditorWindowControl, type EditorWindowState, type WindowContext } from "../window-framework";
 import { Notifier } from "../editor";
 
 class InspectorComponent {
@@ -58,7 +57,6 @@ export default class InspectorWindow extends BaseEditorWindow {
     private readonly dialog: HTMLElement & { show: () => void; hide: () => void };
     private readonly dialogSelect: HTMLSelectElement;
     private readonly dialogAddButton: HTMLButtonElement;
-    private lockButton!: HTMLElement;
 
     public constructor(context: WindowContext) {
         super(context);
@@ -122,7 +120,7 @@ export default class InspectorWindow extends BaseEditorWindow {
             }
         }));
 
-        this.updateLockButton();
+        this.refreshControls();
         this.renderCurrentObject();
     }
 
@@ -133,30 +131,25 @@ export default class InspectorWindow extends BaseEditorWindow {
         };
     }
 
-    public toggleFollowSelection(): void {
+    public override getControls(): readonly EditorWindowControl[] {
+        return [{
+            id: "inspector-lock",
+            icon: this.followingSelection ? "unlock-fill" : "lock-fill",
+            title: this.followingSelection
+                ? "Lock inspector to current object"
+                : "Unlock inspector to follow selection",
+            ariaLabel: this.followingSelection ? "Lock inspector" : "Unlock inspector",
+            active: !this.followingSelection,
+            onClick: () => this.toggleFollowSelection()
+        }];
+    }
+
+    private toggleFollowSelection(): void {
         this.followingSelection = !this.followingSelection;
-        this.updateLockButton();
         if (this.followingSelection) {
             this.setTargetId(this.context.services.selection.getSelectedId());
         }
-    }
-
-    public updateLockButton(): void {
-        const stack = this.context.container as ComponentContainer & {
-            parent?: {
-                header?: {
-                    controlsContainerElement?: HTMLElement;
-                };
-            };
-        };
-        const lockButton = stack.parent?.header?.controlsContainerElement?.querySelector('[data-flint-inspector-lock]') as HTMLElement | null;
-        if (!lockButton) {
-            return;
-        }
-        lockButton.innerHTML = `<sl-icon name="${this.followingSelection ? "unlock-fill" : "lock-fill"}" style="font-size: 14px;"></sl-icon>`;
-        lockButton.setAttribute("title", this.followingSelection
-            ? "Unlock - inspector will follow selection"
-            : "Locked - inspector pinned to object");
+        this.refreshControls();
     }
 
     public override restoreState(state: EditorWindowState): void {
@@ -167,7 +160,7 @@ export default class InspectorWindow extends BaseEditorWindow {
         } else if (this.followingSelection) {
             this.currentObjectId = this.context.services.selection.getSelectedId();
         }
-        this.updateLockButton();
+        this.refreshControls();
     }
 
     public get currentObject(): GameObject | undefined {

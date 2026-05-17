@@ -13,6 +13,7 @@ export type WindowManagerApi = {
     layout: GoldenLayout;
     activateWindow: (instanceId: string) => void;
     refreshWindows: (type?: WindowType) => void;
+    refreshWindowControls: (instanceId: string) => void;
     spawnWindow: (type: WindowType, options?: SpawnWindowOptions) => string;
 };
 
@@ -27,6 +28,16 @@ export type WindowContext = {
 
 export type EditorWindowState = Record<string, unknown> | undefined;
 
+export type EditorWindowControl = {
+    id: string;
+    icon: string;
+    title: string;
+    ariaLabel: string;
+    active?: boolean;
+    disabled?: boolean;
+    onClick: () => void;
+};
+
 export interface EditorWindow {
     readonly type: WindowType;
     readonly instanceId: string;
@@ -34,6 +45,7 @@ export interface EditorWindow {
     initialize(): void | Promise<void>;
     restoreState(state: EditorWindowState): void;
     serializeState(): EditorWindowState;
+    getControls?(): readonly EditorWindowControl[];
     update?(): void;
     onActivate?(): void;
     dispose(): void;
@@ -56,10 +68,15 @@ export abstract class BaseEditorWindow implements EditorWindow {
     public initialize(): void | Promise<void> { }
     public restoreState(_state: EditorWindowState): void { }
     public serializeState(): EditorWindowState { return undefined; }
+    public getControls(): readonly EditorWindowControl[] { return []; }
     public onActivate(): void { }
 
     protected setTitle(title: string): void {
         this.context.container.setTitle(title);
+    }
+
+    protected refreshControls(): void {
+        this.context.manager.refreshWindowControls(this.instanceId);
     }
 
     protected query<T extends Element>(selector: string): T {

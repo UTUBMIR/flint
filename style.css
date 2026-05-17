@@ -440,6 +440,28 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
     gap: 4px;
 }
 
+.flint-floating-window-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.flint-window-control {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    border: 0;
+    padding: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .flint-floating-window-button {
     position: relative;
     width: 16px;
@@ -456,9 +478,15 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
     justify-content: center;
 }
 
+.flint-window-control:hover,
 .flint-floating-window-button:hover {
     opacity: 1;
     background: rgba(255, 255, 255, 0.08);
+}
+
+.flint-window-control.active {
+    color: #ffffff;
+    opacity: 1;
 }
 
 .flint-floating-window-dock {
@@ -471,6 +499,7 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
 }
 
 .flint-tab-undock sl-icon,
+.flint-window-control sl-icon,
 .flint-floating-window-button sl-icon {
     font-size: 12px;
     pointer-events: none;
@@ -478,12 +507,15 @@ section.lm_tabs > div.lm_tab.lm_active.lm_focused {
 
 .flint-tab-undock:hover,
 .flint-tab-undock:focus-visible,
+.flint-window-control:hover,
+.flint-window-control:focus-visible,
 .flint-floating-window-button:hover,
 .flint-floating-window-button:focus-visible {
     opacity: 1;
     background: color-mix(in srgb, var(--sl-color-neutral-900) 16%, transparent);
 }
 
+.flint-window-control:focus-visible,
 .flint-floating-window-button:focus-visible {
     outline: 1px solid rgba(214, 171, 40, 0.6);
     outline-offset: 1px;

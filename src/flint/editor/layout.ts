@@ -6,6 +6,7 @@ import CodeEditorWindow from "./windows/code-editor-window";
 import HierarchyWindow from "./windows/hierarchy";
 import InspectorWindow from "./windows/inspector";
 import ViewportWindow from "./windows/viewport";
+import { renderWindowControls } from "./window-controls";
 import { activeWindowService, editorAssetStore, editorSelectionService } from "./window-services";
 import type { EditorWindow, SpawnWindowOptions, WindowDefinition, WindowManagerApi, WindowType } from "./window-framework";
 
@@ -17,6 +18,8 @@ const HEADER_HEIGHT = 20;
 let currentLayout: GoldenLayout | null = null;
 let currentFloatingPanels: FloatingPanelManager | null = null;
 let editorWindowRegistry: EditorWindowRegistry | null = null;
+const knownWindowStacks = new Set<LayoutStackItem>();
+const windowStacksByInstanceId = new Map<string, LayoutStackItem>();
 
 type LiveResizeRowOrColumn = RowOrColumn & {
     _dimension: "width" | "height";
@@ -57,15 +60,11 @@ type WindowInstanceRecord = {
     type: WindowType;
 };
 
-type InspectorWindowLike = EditorWindow & {
-    toggleFollowSelection?: () => void;
-    updateLockButton?: () => void;
-};
-
 type LayoutComponentItem = {
     componentType?: string;
     parent?: LayoutStackItem;
     container?: ComponentContainer;
+    element?: HTMLElement;
 };
 
 type LayoutStackItem = {
@@ -73,7 +72,7 @@ type LayoutStackItem = {
     header?: { controlsContainerElement?: HTMLElement };
     on?: (event: string, callback: () => void) => void;
     getActiveContentItem?: () => LayoutComponentItem | null | undefined;
-    __flintInspectorLockBound?: boolean;
+    __flintWindowControlsBound?: boolean;
 };
 
 const windowDefinitions: readonly WindowDefinition[] = [
@@ -115,6 +114,21 @@ class EditorWindowRegistry implements WindowManagerApi {
                 record.window.update?.();
             }
         }, 500));
+    }
+
+    public refreshWindowControls(instanceId: string): void {
+        const record = this.instances.get(instanceId);
+        if (!record) {
+            return;
+        }
+
+        const stack = windowStacksByInstanceId.get(instanceId);
+        if (stack) {
+            syncWindowControlsForStack(stack);
+        } else {
+            syncWindowControls();
+        }
+        currentFloatingPanels?.refreshWindowControls(instanceId);
     }
 
     public createWindow(container: ComponentContainer, itemConfig: ResolvedComponentItemConfig): HTMLElement {
@@ -178,6 +192,7 @@ class EditorWindowRegistry implements WindowManagerApi {
         }
 
         activeWindowService.removeWindow(instanceId);
+        windowStacksByInstanceId.delete(instanceId);
         record.window.dispose();
         this.instances.delete(instanceId);
     }
@@ -363,77 +378,78 @@ function getInstanceIdFromContainer(container: ComponentContainer | undefined): 
     return root instanceof HTMLElement ? root.dataset.instanceId ?? null : null;
 }
 
-function getInspectorWindowFromItem(item: LayoutComponentItem | null | undefined): InspectorWindowLike | null {
-    const instanceId = getInstanceIdFromContainer(item?.container);
+function getInstanceIdFromItem(item: LayoutComponentItem | null | undefined): string | null {
+    const containerInstanceId = getInstanceIdFromContainer(item?.container);
+    if (containerInstanceId) {
+        return containerInstanceId;
+    }
+
+    const root = item?.element?.querySelector<HTMLElement>("[data-instance-id]");
+    return root?.dataset.instanceId ?? null;
+}
+
+function getWindowFromItem(item: LayoutComponentItem | null | undefined): EditorWindow | null {
+    const instanceId = getInstanceIdFromItem(item);
     if (!instanceId || !editorWindowRegistry) {
         return null;
     }
 
-    return editorWindowRegistry.getWindow(instanceId) as InspectorWindowLike | null;
+    return editorWindowRegistry.getWindow(instanceId) ?? null;
 }
 
-function attachInspectorLockButton(stack: LayoutStackItem | undefined): void {
+function getWindowControlsFromItem(item: LayoutComponentItem | null | undefined) {
+    return getWindowFromItem(item)?.getControls?.() ?? [];
+}
+
+function syncWindowControlsForStack(stack: LayoutStackItem | undefined): void {
     if (!stack?.isStack) {
         return;
     }
 
-    const controls = stack.header?.controlsContainerElement;
-    if (!controls) {
+    knownWindowStacks.add(stack);
+
+    const controlsHost = stack.header?.controlsContainerElement;
+    if (!controlsHost) {
         return;
     }
 
-    let lockButton = controls.querySelector<HTMLElement>("[data-flint-inspector-lock]");
-    if (!lockButton) {
-        lockButton = document.createElement("button");
-        lockButton.className = "lm_controls_button";
-        lockButton.setAttribute("type", "button");
-        lockButton.setAttribute("data-flint-inspector-lock", "true");
-        lockButton.setAttribute("aria-label", "Lock inspector");
-        lockButton.style.cssText = "background: transparent; border: none; color: inherit; cursor: pointer; padding: 2px 6px; display: flex; align-items: center;";
-
-        const stopHeaderInteraction = (event: Event) => {
-            event.preventDefault();
-            event.stopPropagation();
-        };
-
-        lockButton.addEventListener("pointerdown", stopHeaderInteraction);
-        lockButton.addEventListener("mousedown", stopHeaderInteraction);
-        lockButton.addEventListener("click", event => {
-            stopHeaderInteraction(event);
-            const inspector = getInspectorWindowFromItem(stack.getActiveContentItem?.());
-            inspector?.toggleFollowSelection?.();
-            inspector?.updateLockButton?.();
-        });
+    if (!stack.__flintWindowControlsBound) {
+        stack.on?.("activeContentItemChanged", () => syncWindowControlsForStack(stack));
+        stack.__flintWindowControlsBound = true;
     }
 
-    const updateButton = () => {
-        const inspector = getInspectorWindowFromItem(stack.getActiveContentItem?.());
-        if (!inspector) {
-            lockButton.style.display = "none";
-            return;
-        }
-
-        lockButton.style.display = "flex";
-        inspector.updateLockButton?.();
-    };
-
-    controls.prepend(lockButton);
-    if (!stack.__flintInspectorLockBound) {
-        stack.on?.("activeContentItemChanged", updateButton);
-        stack.__flintInspectorLockBound = true;
+    const activeItem = stack.getActiveContentItem?.();
+    const activeInstanceId = getInstanceIdFromItem(activeItem);
+    if (activeInstanceId) {
+        windowStacksByInstanceId.set(activeInstanceId, stack);
     }
 
-    updateButton();
+    renderWindowControls(controlsHost, getWindowControlsFromItem(activeItem), {
+        placement: "prepend",
+        extraClassName: "lm_controls_button"
+    });
 }
 
-function syncInspectorLockButtons(): void {
+function syncWindowControls(): void {
     if (!editorWindowRegistry) {
         return;
     }
 
-    for (const record of editorWindowRegistry.getRecordsOfType("Inspector")) {
-        const stack = (record.container as ComponentContainer & { parent?: LayoutStackItem }).parent;
-        attachInspectorLockButton(stack);
+    const stacks = new Set<LayoutStackItem>();
+    for (const type of ["Viewport", "CodeEditor", "Hierarchy", "Assets", "Inspector"] as const) {
+        for (const record of editorWindowRegistry.getRecordsOfType(type)) {
+            const stack = (record.container as ComponentContainer & { parent?: LayoutStackItem }).parent;
+            if (stack) {
+                stacks.add(stack);
+            }
+        }
+    }
+    for (const stack of knownWindowStacks) {
+        stacks.add(stack);
+    }
+
+    for (const stack of stacks) {
+        syncWindowControlsForStack(stack);
     }
 }
 
@@ -689,25 +705,21 @@ export function initializeEditorLayout(): GoldenLayout {
     editorWindowRegistry = new EditorWindowRegistry(layout);
     CodeEditor.setWindowSpawner(type => editorWindowRegistry!.spawnWindow(type));
 
-    (layout as unknown as { on: (event: string, callback: (item: unknown) => void) => void }).on("itemCreated", (event: unknown) => {
-        const item = (event as { _target?: unknown })._target as LayoutComponentItem | undefined;
-        if (item?.componentType !== "Inspector") {
-            return;
-        }
-
-        attachInspectorLockButton(item.parent);
-    });
-
     let saveTimeout: number | undefined;
     currentFloatingPanels = new FloatingPanelManager(layout, host, () => {
         window.clearTimeout(saveTimeout);
         saveTimeout = window.setTimeout(() => saveLayout(layout), 100);
+    }, componentItem => getWindowControlsFromItem(componentItem as LayoutComponentItem));
+
+    (layout as unknown as { on: (event: string, callback: (item: unknown) => void) => void }).on("itemCreated", (event: unknown) => {
+        const item = (event as { _target?: unknown })._target as LayoutComponentItem | undefined;
+        syncWindowControlsForStack(item?.parent);
     });
 
     layout.addEventListener("stateChanged", () => {
         window.clearTimeout(saveTimeout);
         saveTimeout = window.setTimeout(() => saveLayout(layout), 100);
-        syncInspectorLockButtons();
+        syncWindowControls();
     });
 
     const storedSnapshot = loadStoredLayout();
@@ -717,13 +729,13 @@ export function initializeEditorLayout(): GoldenLayout {
         layout.loadLayout(layoutConfig);
         installAnimatedDropTargetIndicator(layout);
         currentFloatingPanels.restore(storedSnapshot?.floatingPanels ?? []);
-        syncInspectorLockButtons();
+        syncWindowControls();
     } catch (error) {
         console.warn("Failed to load stored GoldenLayout config, restoring defaults.", error);
         localStorage.removeItem(STORAGE_KEY);
         layout.loadLayout(createDefaultLayout());
         installAnimatedDropTargetIndicator(layout);
-        syncInspectorLockButtons();
+        syncWindowControls();
     }
 
     return layout;
