@@ -13,6 +13,14 @@ type MetadataFieldContext =
     ClassFieldDecoratorContext<object, unknown> |
     ClassAccessorDecoratorContext<object, unknown>;
 
+type FieldInspectorType =
+    StringConstructor |
+    NumberConstructor |
+    BooleanConstructor |
+    (abstract new (...args: any[]) => any);
+
+type FieldInspectorTarget = string | FieldInspectorType;
+
 function getMetadataFieldName(context: MetadataFieldContext): string {
     if (context.private) {
         throw new Error("Metadata decorators do not support private fields.");
@@ -45,6 +53,39 @@ function defineFieldMetadata(
     });
 }
 
+function isComponentType(type: FieldInspectorType): boolean {
+    const proto = type.prototype;
+    return proto !== undefined &&
+        "transform" in proto &&
+        typeof proto.attach === "function" &&
+        typeof proto.start === "function" &&
+        typeof proto.update === "function" &&
+        typeof proto.detach === "function" &&
+        typeof proto.destroy === "function";
+}
+
+function isGameObjectType(type: FieldInspectorType): boolean {
+    const proto = type.prototype;
+    return proto !== undefined &&
+        typeof proto.addComponent === "function" &&
+        typeof proto.getAllComponents === "function" &&
+        typeof proto.getComponent === "function";
+}
+
+function getFieldInspectorName(inspector: FieldInspectorTarget): string {
+    if (typeof inspector === "string") {
+        return inspector;
+    }
+
+    if (inspector === String) return "string";
+    if (inspector === Number) return "number";
+    if (inspector === Boolean) return "boolean";
+    if (isComponentType(inspector)) return "component";
+    if (isGameObjectType(inspector)) return "gameobject";
+
+    return inspector.name.toLowerCase();
+}
+
 /**
  * Turns off serialization for field.
  */
@@ -54,16 +95,16 @@ export function NonSerialized(_: undefined, context: MetadataFieldContext) {
 
 
 /**
- * Sets a custom renderer for a field
- * @param renderer - Renderer name
+ * Sets a custom inspector for a field
+ * @param inspector - Inspector name or value type used to infer an inspector
  */
 
-
-export function FieldRenderer(renderer: string) {
+export function FieldInspector(inspector: FieldInspectorTarget) {
     return function (_: undefined, context: MetadataFieldContext) {
-        defineFieldMetadata(context, MetadataKeys.FieldRenderer, renderer);
+        defineFieldMetadata(context, MetadataKeys.FieldRenderer, getFieldInspectorName(inspector));
     };
 }
+
 /**
  * Explicitly hides field from inspector
  */

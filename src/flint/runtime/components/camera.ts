@@ -1,4 +1,4 @@
-import { FieldRenderer } from "@flint/shared/metadata";
+import { FieldInspector } from "@flint/shared/metadata";
 import type { ColorString } from "../../shared/graphics";
 import Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
@@ -31,7 +31,7 @@ export default class Camera extends RendererComponent {
         this.backgroundColor = backgroundColor ?? "#222" as ColorString;
     }
 
-    @FieldRenderer("color")
+    @FieldInspector("color")
     public backgroundColor: ColorString;
 
     public get position(): Vector2 {

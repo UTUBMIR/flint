@@ -1,19 +1,19 @@
 import type { IRenderer } from "../../shared/irenderer";
 import type { ColorString } from "../../shared/graphics";
-import { FieldRenderer } from "@flint/shared/metadata";
+import { FieldInspector } from "@flint/shared/metadata";
 import Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
 import { System } from "../system";
 import type { PhysicsWorld } from "@flint/runtime/physics-world";
 
 export default class Shape extends RendererComponent {
-    @FieldRenderer("color")
+    @FieldInspector("color")
     protected fillColor: ColorString;
 
-    @FieldRenderer("color")
+    @FieldInspector("color")
     protected lineColor: ColorString;
 
-    @FieldRenderer("color")
+    @FieldInspector("color")
     protected shadowColor: ColorString;
 
     public constructor(fillColor?: ColorString, lineColor?: ColorString, shadowColor?: ColorString) {
