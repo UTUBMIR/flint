@@ -214,12 +214,27 @@ class EditorWindowRegistry implements WindowManagerApi {
         }
 
         const instanceId = this.createInstanceId(type);
-        this.layout.addComponent(type, {
+        const title = options?.title ?? definition.title;
+        const componentState: StoredWindowComponentState = {
             windowType: type,
             instanceId,
-            windowState: options?.state,
-            title: options?.title ?? definition.title
-        }, options?.title ?? definition.title);
+            title,
+            ...(options?.state !== undefined ? { windowState: options.state } : {})
+        };
+        const componentConfig = {
+            type: "component",
+            componentType: type,
+            componentState,
+            title,
+            isClosable: true,
+            reorderEnabled: true
+        };
+
+        if (currentFloatingPanels) {
+            currentFloatingPanels.spawnFloatingComponent(componentConfig);
+        } else {
+            this.layout.addComponent(type, componentState, title);
+        }
 
         return instanceId;
     }

@@ -653,12 +653,20 @@ export class FloatingPanelManager {
         const orderedStates = [...states].sort((left, right) => left.zIndex - right.zIndex);
         for (const state of orderedStates) {
             const created = this.layout.newItem(state.componentConfig as ComponentItemConfig) as InternalComponentItem;
-            this.attachDetachedComponent(created, {
+            this.floatComponent(created, {
                 bounds: state.bounds,
                 dockTarget: state.dockTarget,
                 zIndex: state.zIndex
             });
         }
+    }
+
+    public spawnFloatingComponent(componentConfig: Record<string, unknown>, options: FloatOptions = {}): void {
+        const created = this.layout.newItem(componentConfig as ComponentItemConfig) as InternalComponentItem;
+        this.floatComponent(created, {
+            ...options,
+            bounds: options.bounds ?? this.createResetBounds()
+        });
     }
 
     public floatComponent(componentItem: ComponentItem, options: FloatOptions = {}): void {
@@ -1409,7 +1417,12 @@ export class FloatingPanelManager {
             return this.boundsFromViewportRect(sourceRect);
         }
 
+        return this.createResetBounds();
+    }
+
+    private createResetBounds(): Bounds {
         const hostRect = this.host.getBoundingClientRect();
+
         return this.clampBounds({
             x: (hostRect.width - DEFAULT_FLOAT_WIDTH) / 2,
             y: (hostRect.height - DEFAULT_FLOAT_HEIGHT) / 2,
