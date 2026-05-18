@@ -90,7 +90,7 @@ function getFieldInspectorName(inspector: FieldInspectorTarget): string {
  * Turns off serialization for field.
  */
 export function NonSerialized(_: undefined, context: MetadataFieldContext) {
-    defineFieldMetadata(context, MetadataKeys.NonSerialized, true);
+    defineFieldMetadata(context, MetadataKeys?.NonSerialized, true);
 }
 
 
@@ -110,14 +110,14 @@ export function FieldInspector(inspector: FieldInspectorTarget) {
  */
 
 export function HideInInspector(_: undefined, context: MetadataFieldContext) {
-    defineFieldMetadata(context, MetadataKeys.HideInInspector, true);
+    defineFieldMetadata(context, MetadataKeys?.HideInInspector, true);
 }
 /**
  * Explicitly shows field to inspector
  */
 
 export function ShowInInspector(_: undefined, context: MetadataFieldContext) {
-    defineFieldMetadata(context, MetadataKeys.HideInInspector, false);
+    defineFieldMetadata(context, MetadataKeys?.HideInInspector, false);
 }
 
 
