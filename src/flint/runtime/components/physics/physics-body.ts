@@ -1,5 +1,6 @@
-import Planck, * as P from "@flint/public/planck";
-import { NonSerialized } from "@flint/shared/metadata";
+import type * as P from "@flint/public/planck";
+import Planck from "@flint/public/planck";
+import { NonSerialized, SelectInspector } from "@flint/shared/metadata";
 
 import Component from "@flint/runtime/component";
 import type { PhysicsWorld } from "@flint/runtime/physics-world";
@@ -9,6 +10,7 @@ export default class PhysicsBody extends Component {
     @NonSerialized
     public body!: P.Body;
 
+    @SelectInspector(["dynamic", "static", "kinematic"])
     public type: "dynamic" | "static" | "kinematic" = "dynamic";
 
     public mass: number = 1;

@@ -11,7 +11,7 @@ export default class Bundler {
     private static esbuild: typeof import("esbuild-wasm");
     private static stripEditorDecorators = false;
     private static readonly editorDecoratorPattern =
-        /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector)(\s*\([^)]*\))?\s*$/gm;
+        /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector)(\s*\([^)]*\))?\s*$/gm;
     private static readonly virtualFsPlugin = {
         name: "virtual-fs",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,7 +161,7 @@ export default class Bundler {
                 keepNames: false,
                 tsconfigRaw: ProjectConfig.tsConfig,
                 treeShaking: true,
-                ...(sourceMap ? {sourcemap: "inline"} : {})
+                ...(sourceMap ? { sourcemap: "inline" } : {})
             });
         } finally {
             Bundler.stripEditorDecorators = previousStripEditorDecorators;

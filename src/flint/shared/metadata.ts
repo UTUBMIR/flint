@@ -5,6 +5,7 @@ import { System, type UUID } from "../runtime/system";
 export const MetadataKeys = {
     NonSerialized: Symbol.for("shared.non-serialized"),
     FieldInspector: Symbol.for("editor.field-renderer"),
+    FieldInspectorOptions: Symbol.for("editor.field-renderer-options"),
     HideInInspector: Symbol.for("editor.hide-in-inspector"),
     EditorName: Symbol.for("editor.editor-name")
 };
@@ -102,6 +103,16 @@ export function NonSerialized(_: undefined, context: MetadataFieldContext) {
 export function FieldInspector(inspector: FieldInspectorTarget) {
     return function (_: undefined, context: MetadataFieldContext) {
         defineFieldMetadata(context, MetadataKeys?.FieldInspector, getFieldInspectorName(inspector));
+    };
+}
+
+/**
+ * Renders a string field as an inspector select with the given options.
+ */
+export function SelectInspector(options: readonly string[]) {
+    return function (_: undefined, context: MetadataFieldContext) {
+        defineFieldMetadata(context, MetadataKeys.FieldInspector, "select");
+        defineFieldMetadata(context, MetadataKeys.FieldInspectorOptions, [...options]);
     };
 }
 

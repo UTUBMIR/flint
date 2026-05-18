@@ -1,6 +1,6 @@
 import type { IRenderer } from "../../shared/irenderer";
 import type { ColorString, TextAlign, TextBaseLine } from "../../shared/graphics";
-import { FieldInspector } from "@flint/shared/metadata";
+import { FieldInspector, SelectInspector } from "@flint/shared/metadata";
 import Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
 import { System } from "../system";
@@ -16,7 +16,10 @@ export default class Label extends RendererComponent {
     @FieldInspector("color")
     public shadowColor: ColorString;
 
+    @SelectInspector(["top", "hanging", "alphabetic", "ideographic", "bottom", "middle"])
     public TextBaseLine: TextBaseLine = "hanging";
+
+    @SelectInspector(["left", "right", "center", "start", "end"])
     public textAlign: TextAlign = "left";
 
     public text: string = "Label text";

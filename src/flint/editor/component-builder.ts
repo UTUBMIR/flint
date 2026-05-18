@@ -13,6 +13,7 @@ import { AngleRenderer } from "./fields/renderers/angle-renderer";
 import { BooleanRenderer } from "./fields/renderers/boolean-renderer";
 import { GameObjectRenderer } from "./fields/renderers/game-object-renderer";
 import { ComponentRenderer } from "./fields/renderers/component-renderer";
+import { SelectRenderer } from "./fields/renderers/select-renderer";
 import { CasingHandler } from "./casing-handler";
 
 
@@ -281,6 +282,7 @@ RendererRegistry.register(new ColorRenderer());
 RendererRegistry.register(new BooleanRenderer());
 RendererRegistry.register(new StringRenderer());
 RendererRegistry.register(new AngleRenderer());
+RendererRegistry.register(new SelectRenderer());
 
 RendererRegistry.register(new GameObjectRenderer());
 RendererRegistry.register(new ComponentRenderer());
