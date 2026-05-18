@@ -181,16 +181,17 @@ class LoaderPlugins {
 function restorePrototypesDeep(
     loaded: StrongRef<any>,
     template: any,
-    useModules: boolean = true
+    useModules: boolean = true,
+    componentInstance?: Component
 ): void {
     if (!loaded.value || !template) return;
 
-    // 1. trying plugin
+    // 1. trying plugin - check for explicit SerializeType metadata first
     if (useModules) {
         const plugin = LoaderPlugins.getDeserializeByShape(template);
         if (plugin && plugin.phase === LoadPhase.Deserialize) {
             const restored = new (template.constructor as any)();
-            plugin.deserialize(loaded, restored, ProjectLoader.context ?? new LoadContext()); // TODO: Set current context as argument
+            plugin.deserialize(loaded, restored, ProjectLoader.context ?? new LoadContext());
             return;
         }
     }
@@ -223,13 +224,23 @@ function restorePrototypesDeep(
             continue;
         }
 
-        const fieldPlugin = LoaderPlugins.getDeserializeByShape(tVal);
+        let fieldTemplate = tVal;
+        
+        // Check for SerializeType metadata on this specific field of the component
+        if (componentInstance) {
+            const serializeType = Metadata.getField(componentInstance, key, MetadataKeys.SerializeType);
+            if (serializeType) {
+                fieldTemplate = new (serializeType as any)();
+            }
+        }
+
+        const fieldPlugin = LoaderPlugins.getDeserializeByShape(fieldTemplate);
         if (fieldPlugin && fieldPlugin.phase === LoadPhase.Deserialize) {
-            const restoredField = new (tVal.constructor as any)();
+            const restoredField = new (fieldTemplate.constructor as any)();
             fieldPlugin.deserialize(new StrongRef(loaded.value, key), restoredField, ProjectLoader.context ?? new LoadContext());
         } else {
-            Object.setPrototypeOf(lVal, Object.getPrototypeOf(tVal));
-            restorePrototypesDeep(new StrongRef(loaded.value, key), tVal, true);
+            Object.setPrototypeOf(lVal, Object.getPrototypeOf(fieldTemplate));
+            restorePrototypesDeep(new StrongRef(loaded.value, key), fieldTemplate, true);
         }
     }
 }
@@ -304,7 +315,8 @@ export class ProjectLoader {
                         restorePrototypesDeep(
                             new StrongRef(rawComp, "data"),
                             instance,
-                            false
+                            false,
+                            !(instance instanceof Transform) ? instance : undefined
                         );
 
                         Object.assign(instance, rawComp.data);

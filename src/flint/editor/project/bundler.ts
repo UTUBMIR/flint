@@ -11,9 +11,9 @@ export default class Bundler {
     private static esbuild: typeof import("esbuild-wasm");
     private static stripEditorDecorators = false;
     private static readonly inspectorMetadataImport =
-        'import { FieldInspector as __FlintFieldInspector, SelectInspector as __FlintSelectInspector } from "@flint/shared/metadata";';
+        'import { FieldInspector as __FlintFieldInspector, SelectInspector as __FlintSelectInspector, SerializeType as __FlintSerializeType } from "@flint/shared/metadata";';
     private static readonly editorDecoratorPattern =
-        /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector)(\s*\([^)]*\))?\s*$/gm;
+        /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector|SerializeType)(\s*\([^)]*\))?\s*$/gm;
     private static readonly virtualFsPlugin = {
         name: "virtual-fs",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -154,14 +154,27 @@ export default class Bundler {
             const field = line.match(/^(\s*)(?:(public|protected)\s+)?([A-Za-z_$][\w$]*)([!?])?\s*:\s*([^=;]+)([=;].*)?$/);
             if (field) {
                 const hasExplicitInspectorMetadata = decorators.some(decorator =>
-                    /^@(HideInInspector|NonSerialized|FieldInspector|SelectInspector)\b/.test(decorator)
+                    /^@(HideInInspector|NonSerialized|FieldInspector|SelectInspector|SerializeType)\b/.test(decorator)
                 );
 
                 if (!hasExplicitInspectorMetadata) {
                     const indent = field[1] ?? "";
-                    const inferredDecorator = this.inferInspectorDecorator(field[5] ?? "");
-                    if (inferredDecorator) {
-                        output.push(`${indent}${inferredDecorator}`);
+                    const inferredDecorators: string[] = [];
+                    
+                    const inspectorDecorator = this.inferInspectorDecorator(field[5] ?? "");
+                    if (inspectorDecorator) {
+                        inferredDecorators.push(inspectorDecorator);
+                    }
+                    
+                    const serializeTypeDecorator = this.inferSerializeTypeDecorator(field[5] ?? "");
+                    if (serializeTypeDecorator) {
+                        inferredDecorators.push(serializeTypeDecorator);
+                    }
+                    
+                    if (inferredDecorators.length > 0) {
+                        for (const decorator of inferredDecorators) {
+                            output.push(`${indent}${decorator}`);
+                        }
                         changed = true;
                     }
                 }
@@ -214,6 +227,42 @@ export default class Bundler {
 
         if (/(^|\.)GameObject$/.test(typeName)) {
             return '@__FlintFieldInspector("gameobject")';
+        }
+
+        return null;
+    }
+
+    private static inferSerializeTypeDecorator(typeAnnotation: string): string | null {
+        const parts = this.splitUnionType(typeAnnotation)
+            .map(part => part.trim())
+            .filter(part => part !== "undefined" && part !== "null");
+
+        if (parts.length !== 1) {
+            return null;
+        }
+
+        const typeName = parts[0]!.replace(/^readonly\s+/, "");
+        
+        // Match common serializable types
+        if (/(^|\.)Vector2$/.test(typeName)) {
+            return `@__FlintSerializeType(${typeName})`;
+        }
+
+        if (/(^|\.)Component$/.test(typeName)) {
+            return `@__FlintSerializeType(${typeName})`;
+        }
+
+        if (/(^|\.)GameObject$/.test(typeName)) {
+            return `@__FlintSerializeType(${typeName})`;
+        }
+
+        if (/(^|\.)Layer$/.test(typeName)) {
+            return `@__FlintSerializeType(${typeName})`;
+        }
+
+        // For generic types like Map<K, V>, Store the constructor reference if it matches known serializable generics
+        if (/^(Map|Set|Array)\s*</.test(typeName)) {
+            return `@__FlintSerializeType(${typeName.split(/\s*</, 1)[0]})`;
         }
 
         return null;

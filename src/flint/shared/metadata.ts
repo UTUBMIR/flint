@@ -7,7 +7,8 @@ export const MetadataKeys = {
     FieldInspector: Symbol.for("editor.field-renderer"),
     FieldInspectorOptions: Symbol.for("editor.field-renderer-options"),
     HideInInspector: Symbol.for("editor.hide-in-inspector"),
-    EditorName: Symbol.for("editor.editor-name")
+    EditorName: Symbol.for("editor.editor-name"),
+    SerializeType: Symbol.for("shared.serialize-type")
 };
 
 type MetadataFieldContext =
@@ -129,6 +130,16 @@ export function HideInInspector(_: undefined, context: MetadataFieldContext) {
 
 export function ShowInInspector(_: undefined, context: MetadataFieldContext) {
     defineFieldMetadata(context, MetadataKeys?.HideInInspector, false);
+}
+
+/**
+ * Explicitly sets the type to serialize/deserialize this field as.
+ * Overrides automatic type inference from instance creation.
+ */
+export function SerializeType(type: abstract new () => any) {
+    return function (_: undefined, context: MetadataFieldContext) {
+        defineFieldMetadata(context, MetadataKeys.SerializeType, type);
+    };
 }
 
 
