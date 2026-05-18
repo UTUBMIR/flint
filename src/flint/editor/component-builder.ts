@@ -161,7 +161,7 @@ export class ComponentBuilder {
             fieldParentPath = root;
         }
 
-        const meta = Metadata.getField(fieldParentPath, key, MetadataKeys.FieldRenderer);
+        const meta = Metadata.getField(fieldParentPath, key, MetadataKeys.FieldInspector);
 
         const render = (renderer: FieldRenderer) => {
             const wrapped = this.wrapField(this.lastKey(path),
