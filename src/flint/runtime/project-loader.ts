@@ -238,7 +238,8 @@ function restorePrototypesDeep(
         if (fieldPlugin && fieldPlugin.phase === LoadPhase.Deserialize) {
             const restoredField = new (fieldTemplate.constructor as any)();
             fieldPlugin.deserialize(new StrongRef(loaded.value, key), restoredField, ProjectLoader.context ?? new LoadContext());
-        } else {
+        }
+        else if (fieldTemplate) { // NOTE: Before, this was an "else" wihthout a condition
             Object.setPrototypeOf(lVal, Object.getPrototypeOf(fieldTemplate));
             restorePrototypesDeep(new StrongRef(loaded.value, key), fieldTemplate, true);
         }
