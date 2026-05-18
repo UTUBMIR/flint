@@ -904,25 +904,25 @@ const closeIcon = document.createElement("sl-icon");
         windowControls.className = "flint-floating-window-controls";
         actions.appendChild(windowControls);
 
-        const dockButton = document.createElement("button");
-        dockButton.type = "button";
-        dockButton.className = "flint-floating-window-button flint-floating-window-dock";
-        dockButton.title = "Dock panel";
-        dockButton.setAttribute("aria-label", "Dock panel");
-        const dockIcon = document.createElement("sl-icon");
-        dockIcon.setAttribute("name", "box-arrow-in-down-right");
-        dockIcon.setAttribute("aria-hidden", "true");
-        dockButton.appendChild(dockIcon);
-        dockButton.addEventListener("click", event => {
+        const closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.className = "flint-floating-window-button flint-floating-window-close";
+        closeButton.title = "Close panel";
+        closeButton.setAttribute("aria-label", "Close panel");
+        const closeIcon = document.createElement("sl-icon");
+        closeIcon.setAttribute("name", "x-lg");
+        closeIcon.setAttribute("aria-hidden", "true");
+        closeButton.appendChild(closeIcon);
+        closeButton.addEventListener("click", event => {
             event.preventDefault();
             event.stopPropagation();
             const panel = this.panels.get(componentId);
             if (panel) {
-                this.dockPanel(panel);
+                panel.componentItem.remove();
             }
         });
 
-        actions.appendChild(dockButton);
+        actions.appendChild(closeButton);
         header.appendChild(title);
         header.appendChild(actions);
 
