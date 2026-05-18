@@ -10,6 +10,8 @@ export default class Bundler {
 
     private static esbuild: typeof import("esbuild-wasm");
     private static stripEditorDecorators = false;
+    private static readonly inspectorMetadataImport =
+        'import { FieldInspector as __FlintFieldInspector, SelectInspector as __FlintSelectInspector } from "@flint/shared/metadata";';
     private static readonly editorDecoratorPattern =
         /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector)(\s*\([^)]*\))?\s*$/gm;
     private static readonly virtualFsPlugin = {
@@ -107,7 +109,7 @@ export default class Bundler {
                 }
 
                 return {
-                    contents: Bundler.transformSource(content, normalizedPath),
+                    contents: Bundler.transformSource(content, normalizedPath, true),
                     loader: normalizedPath.endsWith(".ts") ? "ts" : "json"
                 };
             });
@@ -118,12 +120,110 @@ export default class Bundler {
 
     private constructor() { }
 
-    private static transformSource(content: string, path: string): string {
-        if (!this.stripEditorDecorators || !path.endsWith(".ts")) {
+    private static transformSource(content: string, path: string, autoDetectInspectors = false): string {
+        if (!path.endsWith(".ts")) {
             return content;
         }
 
-        return content.replace(this.editorDecoratorPattern, "");
+        if (this.stripEditorDecorators) {
+            return content.replace(this.editorDecoratorPattern, "");
+        }
+
+        if (!autoDetectInspectors || path.endsWith(".d.ts")) {
+            return content;
+        }
+
+        return this.addInferredInspectorDecorators(content);
+    }
+
+    private static addInferredInspectorDecorators(content: string): string {
+        const lines = content.split(/\r?\n/);
+        const output: string[] = [];
+        let changed = false;
+        let decorators: string[] = [];
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+
+            if (trimmed.startsWith("@")) {
+                output.push(line);
+                decorators.push(trimmed);
+                continue;
+            }
+
+            const field = line.match(/^(\s*)(?:(public|protected)\s+)?([A-Za-z_$][\w$]*)([!?])?\s*:\s*([^=;]+)([=;].*)?$/);
+            if (field) {
+                const hasExplicitInspectorMetadata = decorators.some(decorator =>
+                    /^@(HideInInspector|NonSerialized|FieldInspector|SelectInspector)\b/.test(decorator)
+                );
+
+                if (!hasExplicitInspectorMetadata) {
+                    const indent = field[1] ?? "";
+                    const inferredDecorator = this.inferInspectorDecorator(field[5] ?? "");
+                    if (inferredDecorator) {
+                        output.push(`${indent}${inferredDecorator}`);
+                        changed = true;
+                    }
+                }
+
+                output.push(line);
+                decorators = [];
+                continue;
+            }
+
+            output.push(line);
+
+            if (trimmed.length > 0) {
+                decorators = [];
+            }
+        }
+
+        if (!changed) {
+            return content;
+        }
+
+        return `${this.inspectorMetadataImport}\n${output.join("\n")}`;
+    }
+
+    private static inferInspectorDecorator(typeAnnotation: string): string | null {
+        const parts = this.splitUnionType(typeAnnotation)
+            .map(part => part.trim())
+            .filter(part => part !== "undefined" && part !== "null");
+
+        if (parts.length === 0) {
+            return null;
+        }
+
+        const selectOptions = parts.map(part => {
+            const match = part.match(/^"([^"]*)"$/);
+            return match?.[1];
+        });
+
+        if (selectOptions.every((option): option is string => option !== undefined)) {
+            return `@__FlintSelectInspector(${JSON.stringify(selectOptions)})`;
+        }
+
+        if (parts.length !== 1) {
+            return null;
+        }
+
+        const typeName = parts[0]!.replace(/^readonly\s+/, "");
+        if (/(^|\.)Component$/.test(typeName)) {
+            return '@__FlintFieldInspector("component")';
+        }
+
+        if (/(^|\.)GameObject$/.test(typeName)) {
+            return '@__FlintFieldInspector("gameobject")';
+        }
+
+        return null;
+    }
+
+    private static splitUnionType(typeAnnotation: string): string[] {
+        return typeAnnotation
+            .split("|")
+            .map(part => part.trim())
+            .filter(part => part.length > 0);
     }
 
     public static async init() {

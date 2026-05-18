@@ -40,7 +40,7 @@ export default class GameObject {
     }
 
     protected updateComponents(): void {
-        for (const c of this.components) {c.update(); c.gameObject = this;};
+        for (const c of this.components) { c.update(); c.gameObject = this; };
     }
 
     public detach(): void {
@@ -78,7 +78,7 @@ export default class GameObject {
             component.gameObject = this;
             this.components.push(component);
         }
-        //NOTE: adding and attaching separatly to prevent dependency errors
+        // NOTE: adding and attaching separatly to prevent dependency errors
         if (this.isAttached) {
             for (const component of components) {
                 component.attach();
@@ -114,7 +114,7 @@ export default class GameObject {
         if (index === -1) {
             return false;
         }
-        
+
         if (this.isAttached) {
             this.components[index]!.detach();
         }
