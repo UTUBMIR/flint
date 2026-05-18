@@ -634,7 +634,7 @@ export class HelloWorld extends Label {
     override text = "Hello world!";
     override fontSize = 32;
 
-    start(): void {
+    start() {
         // start() runs once when the game begins.
         console.log("Hello world!");
     }
@@ -650,12 +650,12 @@ import { System } from "@flint/runtime/system";
 export class Rotate extends Component {
     rotationSpeed = 2;
 
-    start(): void {
+    start() {
         // Make the rectangle a little wider when the game starts.
         this.transform.size.x = 2;
     }
 
-    update(): void {
+    update() {
         // Rotate smoothly. deltaTime keeps the speed stable on high and low fps.
         this.transform.rotation += this.rotationSpeed * System.deltaTime;
     }
