@@ -562,12 +562,12 @@ export class FloatingPanelManager {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "flint-tab-undock";
-        button.setAttribute("aria-label", "Float panel");
-        button.title = "Float panel";
-        const undockIcon = document.createElement("sl-icon");
-        undockIcon.setAttribute("name", "box-arrow-up-right");
-        undockIcon.setAttribute("aria-hidden", "true");
-        button.appendChild(undockIcon);
+        button.setAttribute("aria-label", "Close panel");
+        button.title = "Close panel";
+const closeIcon = document.createElement("sl-icon");
+        closeIcon.setAttribute("name", "x-lg");
+        closeIcon.setAttribute("aria-hidden", "true");
+        button.appendChild(closeIcon);
         button.addEventListener("pointerdown", event => {
             event.preventDefault();
             event.stopPropagation();
@@ -575,7 +575,7 @@ export class FloatingPanelManager {
         button.addEventListener("click", event => {
             event.preventDefault();
             event.stopPropagation();
-            this.floatComponent(tab.componentItem);
+            tab.componentItem.remove();
         });
         tabElement.appendChild(button);
 
