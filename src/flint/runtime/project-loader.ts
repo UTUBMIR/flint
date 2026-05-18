@@ -201,8 +201,8 @@ function restorePrototypesDeep(
         const lVal = loaded.value[key];
         const tVal = template[key];
 
-        if (!lVal || !tVal) continue;
-        if (typeof lVal !== "object" || typeof tVal !== "object") continue;
+        if (!lVal /* || !tVal */) continue; // FIXME: This was commented out to support type inference (when field is empty by deault)
+        if (typeof lVal !== "object" /* ||  typeof tVal !== "object" */) continue;
 
         if (Array.isArray(lVal) && Array.isArray(tVal)) {
             const tItem = tVal[0];
@@ -225,7 +225,7 @@ function restorePrototypesDeep(
         }
 
         let fieldTemplate = tVal;
-        
+
         // Check for SerializeType metadata on this specific field of the component
         if (componentInstance) {
             const serializeType = Metadata.getField(componentInstance, key, MetadataKeys.SerializeType);
