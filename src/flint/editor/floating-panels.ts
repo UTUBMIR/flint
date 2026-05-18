@@ -918,7 +918,7 @@ const closeIcon = document.createElement("sl-icon");
             event.stopPropagation();
             const panel = this.panels.get(componentId);
             if (panel) {
-                panel.componentItem.remove();
+                this.closeFloatingPanel(panel);
             }
         });
 
@@ -1136,6 +1136,15 @@ const closeIcon = document.createElement("sl-icon");
         }
 
         throw new Error("Unable to find a dock target for floating panel.");
+    }
+
+    public closeFloatingPanel(panel: FloatingPanel): void {
+        this.panels.delete(panel.componentId);
+        panel.shell.remove();
+        panel.componentItem.off("titleChanged", panel.handleTitleChanged);
+        panel.floatingStack.removeChild(panel.componentItem, true);
+        panel.floatingStack.destroy();
+        this.onChanged();
     }
 
     public hasActiveDockPreview(): boolean {
