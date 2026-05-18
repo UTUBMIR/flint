@@ -627,14 +627,14 @@ export default class Editor {
                 path: "assets/hello-world.ts",
                 content: `import Label from "@flint/runtime/components/label";
 
-// Components are small scripts you attach to GameObjects.
+// Components are (often) small scripts you attach to GameObjects.
 // This one extends Label, so it already knows how to draw text on screen.
 export class HelloWorld extends Label {
     // Label already has these fields, so we override their default values here.
-    public override text = "Hello world!";
-    public override fontSize = 32;
+    override text = "Hello world!";
+    override fontSize = 32;
 
-    override start(): void {
+    start(): void {
         // start() runs once when the game begins.
         console.log("Hello world!");
     }
@@ -648,14 +648,14 @@ import { System } from "@flint/runtime/system";
 // This is the simplest kind of Flint component.
 // It extends Component directly, then changes its GameObject's Transform.
 export class Rotate extends Component {
-    public rotationSpeed = 2;
+    rotationSpeed = 2;
 
-    override start(): void {
+    start(): void {
         // Make the rectangle a little wider when the game starts.
         this.transform.size.x = 2;
     }
 
-    override update(): void {
+    update(): void {
         // Rotate smoothly. deltaTime keeps the speed stable on high and low fps.
         this.transform.rotation += this.rotationSpeed * System.deltaTime;
     }
