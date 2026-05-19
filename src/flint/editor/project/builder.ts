@@ -120,7 +120,7 @@ export class Builder {
         Bundler.files.set("index.ts", ProjectConfig.userIndex);
         Bundler.files.set("main.ts", this.makeMainTs(projectData, false));
 
-        if (!await Builder.compile(true, "/main.ts", false, { stripEditorDecorators: true })) return false;
+        if (!await Builder.compile(true, "/main.ts", false, { stripEditorDecorators: false })) return false;
 
         await System.fileSystem.writeTextFile(
             "build/index.html",
@@ -198,7 +198,7 @@ import { ProjectLoader } from "@flint/runtime/project-loader";
     const runtime = new Runtime({
         components: components,
         projectData,
-        enableMetadata: false,
+        enableMetadata: true,
         world
     });
     
@@ -209,7 +209,7 @@ import { ProjectLoader } from "@flint/runtime/project-loader";
 
     await runtime.start();
 })();`;
-    }
+    } // FIXME: Metadata should not be included in release build
 
     private static makeHtml(js: string, preview: boolean) {
         return `

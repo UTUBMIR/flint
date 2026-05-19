@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { ContactImpulse } from "planck-js";
 import Metadata, { MetadataKeys } from "../shared/metadata";
 import { AssetRegistry, AssetRequestSystem, type AssetMeta } from "./assets";
 import Component from "./component";
@@ -77,8 +78,23 @@ function hasSameShape(
     if (!value || !template) return false;
     if (typeof value !== "object" || typeof template !== "object") return false;
 
-    const valueKeys = Object.keys(value);
-    const templateKeys = Object.keys(template);
+    function extractAllKeys(value: any) {
+        let proto = value;
+        const keys: string[] = [];
+
+        while (proto) {
+            for (const valueKey in value) {
+                keys.push(valueKey);
+            }
+
+            proto = Object.getPrototypeOf(proto);
+        }
+        return keys;
+    }
+
+    const valueKeys = extractAllKeys(value);
+
+    const templateKeys = extractAllKeys(template);
 
     if (strict && valueKeys.length !== templateKeys.length) {
         return false;
@@ -239,11 +255,12 @@ function restorePrototypesDeep(
             const restoredField = new (fieldTemplate.constructor as any)();
             fieldPlugin.deserialize(new StrongRef(loaded.value, key), restoredField, ProjectLoader.context ?? new LoadContext());
         }
-        else if (fieldTemplate) { // NOTE: Before, this was an "else" wihthout a condition
+        else if (fieldTemplate !== null && fieldTemplate !== undefined) { // NOTE: Before, this was an "else" without a condition
             Object.setPrototypeOf(lVal, Object.getPrototypeOf(fieldTemplate));
             restorePrototypesDeep(new StrongRef(loaded.value, key), fieldTemplate, true);
         }
     }
+    console.log(loaded.value);
 }
 
 
@@ -301,11 +318,19 @@ export class ProjectLoader {
 
                     scheduler.add(LoadPhase.Create, () => {
                         if (instance instanceof Transform) {
+                            console.log("Before restore 1: ");
+                            console.log(rawComp);
+                            console.log(instance);
+                            console.log("Restore...");
                             restorePrototypesDeep(
                                 new StrongRef(rawComp, "data"),
                                 instance,
                                 false
                             );
+                            console.log("After restore 1: ");
+                            console.log(rawComp);
+                            console.log(instance);
+                            console.log("And, that's it!");
                             Object.assign(go.transform, rawComp.data);
                         } else {
                             go.addComponent(instance);

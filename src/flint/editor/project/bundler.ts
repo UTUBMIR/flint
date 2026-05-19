@@ -13,7 +13,7 @@ export default class Bundler {
     private static readonly inspectorMetadataImport =
         'import { FieldInspector as __FlintFieldInspector, SelectInspector as __FlintSelectInspector, SerializeType as __FlintSerializeType } from "@flint/shared/metadata";';
     private static readonly editorDecoratorPattern =
-        /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector|SerializeType)(\s*\([^)]*\))?\s*$/gm;
+        /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector)(\s*\([^)]*\))?\s*$/gm;
     private static readonly virtualFsPlugin = {
         name: "virtual-fs",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -160,17 +160,17 @@ export default class Bundler {
                 if (!hasExplicitInspectorMetadata) {
                     const indent = field[1] ?? "";
                     const inferredDecorators: string[] = [];
-                    
+
                     const inspectorDecorator = this.inferInspectorDecorator(field[5] ?? "");
                     if (inspectorDecorator) {
                         inferredDecorators.push(inspectorDecorator);
                     }
-                    
+
                     const serializeTypeDecorator = this.inferSerializeTypeDecorator(field[5] ?? "");
                     if (serializeTypeDecorator) {
                         inferredDecorators.push(serializeTypeDecorator);
                     }
-                    
+
                     if (inferredDecorators.length > 0) {
                         for (const decorator of inferredDecorators) {
                             output.push(`${indent}${decorator}`);
@@ -242,7 +242,7 @@ export default class Bundler {
         }
 
         const typeName = parts[0]!.replace(/^readonly\s+/, "");
-        
+
         // Match common serializable types
         if (/(^|\.)Vector2$/.test(typeName)) {
             return `@__FlintSerializeType(${typeName})`;
