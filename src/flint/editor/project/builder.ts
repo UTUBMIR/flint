@@ -120,7 +120,7 @@ export class Builder {
         Bundler.files.set("index.ts", ProjectConfig.userIndex);
         Bundler.files.set("main.ts", this.makeMainTs(projectData, false));
 
-        if (!await Builder.compile(true, "/main.ts", false, { stripEditorDecorators: false })) return false;
+        if (!await Builder.compile(true, "/main.ts", false, { stripEditorDecorators: true })) return false;
 
         await System.fileSystem.writeTextFile(
             "build/index.html",
@@ -137,7 +137,7 @@ export class Builder {
         Bundler.files.set("index.ts", ProjectConfig.userIndex);
         Bundler.files.set("main.ts", this.makeMainTs(projectData, true));
 
-        if (!await Builder.compile(true, "/main.ts")) return false;
+        if (!await Builder.compile(true, "/main.ts", undefined, { stripEditorDecorators: true })) return false;
 
         const html = this.makeHtml(Builder.compiled, true);
 

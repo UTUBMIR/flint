@@ -10,10 +10,16 @@ export default class Bundler {
 
     private static esbuild: typeof import("esbuild-wasm");
     private static stripEditorDecorators = false;
-    private static readonly inspectorMetadataImport =
-        'import { FieldInspector as __FlintFieldInspector, SelectInspector as __FlintSelectInspector, SerializeType as __FlintSerializeType } from "@flint/shared/metadata";';
     private static readonly editorDecoratorPattern =
         /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector)(\s*\([^)]*\))?\s*$/gm;
+
+    private static getInspectorMetadataImport(): string {
+        if (this.stripEditorDecorators) {
+            return 'import { SerializeType as __FlintSerializeType } from "@flint/shared/metadata";';
+        }
+        return 'import { FieldInspector as __FlintFieldInspector, SelectInspector as __FlintSelectInspector, SerializeType as __FlintSerializeType } from "@flint/shared/metadata";';
+    }
+
     private static readonly virtualFsPlugin = {
         name: "virtual-fs",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,7 +132,11 @@ export default class Bundler {
         }
 
         if (this.stripEditorDecorators) {
-            return content.replace(this.editorDecoratorPattern, "");
+            const stripped = content.replace(this.editorDecoratorPattern, "");
+            if (!autoDetectInspectors || path.endsWith(".d.ts")) {
+                return stripped;
+            }
+            return this.addInferredSerializeTypeDecorators(stripped);
         }
 
         if (!autoDetectInspectors || path.endsWith(".d.ts")) {
@@ -195,7 +205,7 @@ export default class Bundler {
             return content;
         }
 
-        return `${this.inspectorMetadataImport}\n${output.join("\n")}`;
+        return `${this.getInspectorMetadataImport()}\n${output.join("\n")}`;
     }
 
     private static inferInspectorDecorator(typeAnnotation: string): string | null {
@@ -266,6 +276,56 @@ export default class Bundler {
         }
 
         return null;
+    }
+
+    private static addInferredSerializeTypeDecorators(content: string): string {
+        const lines = content.split(/\r?\n/);
+        const output: string[] = [];
+        let changed = false;
+        let decorators: string[] = [];
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+
+            if (trimmed.startsWith("@")) {
+                output.push(line);
+                decorators.push(trimmed);
+                continue;
+            }
+
+            const field = line.match(/^(\s*)(?:(public|protected)\s+)?([A-Za-z_$][\w$]*)([!?])?\s*:\s*([^=;]+)([=;].*)?$/);
+            if (field) {
+                const hasExplicitSerializeType = decorators.some(decorator =>
+                    /^@(SerializeType|NonSerialized)\b/.test(decorator)
+                );
+
+                if (!hasExplicitSerializeType) {
+                    const indent = field[1] ?? "";
+
+                    const serializeTypeDecorator = this.inferSerializeTypeDecorator(field[5] ?? "");
+                    if (serializeTypeDecorator) {
+                        output.push(`${indent}${serializeTypeDecorator}`);
+                        changed = true;
+                    }
+                }
+
+                output.push(line);
+                decorators = [];
+                continue;
+            }
+
+            output.push(line);
+
+            if (trimmed.length > 0) {
+                decorators = [];
+            }
+        }
+
+        if (!changed) {
+            return content;
+        }
+
+        return `${this.getInspectorMetadataImport()}\n${output.join("\n")}`;
     }
 
     private static splitUnionType(typeAnnotation: string): string[] {

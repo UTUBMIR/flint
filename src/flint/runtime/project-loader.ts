@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ContactImpulse } from "planck-js";
 import Metadata, { MetadataKeys } from "../shared/metadata";
 import { AssetRegistry, AssetRequestSystem, type AssetMeta } from "./assets";
 import Component from "./component";
@@ -80,16 +79,21 @@ function hasSameShape(
 
     function extractAllKeys(value: any) {
         let proto = value;
-        const keys: string[] = [];
+        const keys: (string | symbol)[] = [];
 
-        while (proto) {
-            for (const valueKey in value) {
-                keys.push(valueKey);
-            }
+        while (proto && Object.getPrototypeOf(proto) !== null) {
+            keys.push(...Reflect.ownKeys(proto));
 
             proto = Object.getPrototypeOf(proto);
         }
         return keys;
+    }
+
+    function tryCatch<T>(thing: () => T) {
+        try {
+            return thing();
+        }
+        catch { /* empty */ }
     }
 
     const valueKeys = extractAllKeys(value);
@@ -103,8 +107,8 @@ function hasSameShape(
     for (const key of templateKeys) {
         if (!(key in value)) return false;
 
-        const v = value[key];
-        const t = template[key];
+        const v = tryCatch(() => value[key]);
+        const t = tryCatch(() => template[key]);
 
         if (v == null || t == null) continue;
 
