@@ -30,6 +30,7 @@ import { AbstractFileSystem } from "@flint/shared/file-system";
 import { AssetRegistry, AssetType } from "../runtime/assets";
 import { activeWindowService, editorAssetStore } from "./window-services";
 import type { ProjectData } from "../runtime/project-loader";
+import { RecentProjectsAccess } from "./recent-projects";
 
 export type ProjectTemplateFile = {
     path: string;
@@ -52,6 +53,174 @@ export type DropdownType = HTMLElement & {
     hide: () => void;
     reposition: () => void;
 };
+
+export type ProcessVariant = "neutral" | "primary" | "success" | "warning" | "danger";
+
+export type ProcessActions = {
+    update: (message: string) => void;
+    complete: (message?: string) => void;
+    fail: (message: string) => void;
+    remove: () => void;
+};
+
+export class ProcessIndicator {
+    private static container: HTMLElement;
+    private static wrapper: HTMLElement | null = null;
+    private static tag: HTMLElement & { variant?: string } | null = null;
+    private static spinner: HTMLElement | null = null;
+    private static processes: Map<string, { message: string; variant: ProcessVariant }> = new Map();
+    private static hideTimeout: number | null = null;
+
+    public static init() {
+        ProcessIndicator.container = document.getElementById("process-indicator")!;
+        ProcessIndicator.wrapper = ProcessIndicator.container.querySelector(".process-item") as HTMLElement | null;
+        ProcessIndicator.tag = ProcessIndicator.wrapper?.querySelector("sl-tag") as HTMLElement & { variant?: string } | null;
+        ProcessIndicator.spinner = ProcessIndicator.wrapper?.querySelector("sl-spinner") as HTMLElement | null;
+    }
+
+    public static startProcess(message: string, variant: ProcessVariant = "neutral"): ProcessActions {
+        if (ProcessIndicator.hideTimeout) {
+            clearTimeout(ProcessIndicator.hideTimeout);
+            ProcessIndicator._hideTag();
+        }
+
+        for (const [id, process] of ProcessIndicator.processes) {
+            if (process.variant === "success" || process.variant === "danger") {
+                ProcessIndicator.processes.delete(id);
+            }
+        }
+
+        const id = crypto.randomUUID();
+        ProcessIndicator.processes.set(id, { message, variant });
+        ProcessIndicator._render(true);
+
+        return ProcessIndicator._createActions(id);
+    }
+
+    private static _createActions(id: string): ProcessActions {
+        return {
+            update: (message: string) => {
+                const process = ProcessIndicator.processes.get(id);
+                if (process) {
+                    process.message = message;
+                    ProcessIndicator._render();
+                }
+            },
+            complete: (message?: string) => {
+                const process = ProcessIndicator.processes.get(id);
+                if (process) {
+                    process.message = message ?? process.message;
+                    process.variant = "success";
+                    ProcessIndicator._render();
+                    setTimeout(() => {
+                        ProcessIndicator.processes.delete(id);
+                        ProcessIndicator._render();
+                    }, 3000);
+                }
+            },
+            fail: (message: string) => {
+                const process = ProcessIndicator.processes.get(id);
+                if (process) {
+                    process.message = message;
+                    process.variant = "danger";
+                    ProcessIndicator._render();
+                    setTimeout(() => {
+                        ProcessIndicator.processes.delete(id);
+                        ProcessIndicator._render();
+                    }, 5000);
+                }
+            },
+            remove: () => {
+                ProcessIndicator.processes.delete(id);
+                ProcessIndicator._render();
+            }
+        };
+    }
+
+    private static _render(immediate = false) {
+        const firstProcess = ProcessIndicator.processes.values().next().value;
+
+        if (firstProcess && ProcessIndicator.tag && ProcessIndicator.spinner) {
+            ProcessIndicator.tag.innerHTML = firstProcess.message;
+            ProcessIndicator.tag.variant = firstProcess.variant;
+            ProcessIndicator.spinner.style.display = firstProcess.variant === "success" || firstProcess.variant === "danger" ? "none" : "";
+            ProcessIndicator.wrapper!.style.display = "";
+            if (ProcessIndicator.hideTimeout) {
+                clearTimeout(ProcessIndicator.hideTimeout);
+                ProcessIndicator.hideTimeout = null;
+            }
+        } else if (ProcessIndicator.tag && ProcessIndicator.spinner) {
+            ProcessIndicator.spinner.style.display = "none";
+            if (immediate || ProcessIndicator.processes.size === 0) {
+                ProcessIndicator._hideTag();
+            } else {
+                if (ProcessIndicator.hideTimeout) {
+                    clearTimeout(ProcessIndicator.hideTimeout);
+                }
+                ProcessIndicator.hideTimeout = setTimeout(() => {
+                    ProcessIndicator._hideTag();
+                }, 200);
+            }
+        }
+    }
+
+    private static _hideTag() {
+        if (ProcessIndicator.wrapper) {
+            ProcessIndicator.wrapper.style.display = "none";
+        }
+        ProcessIndicator.hideTimeout = null;
+    }
+
+    public static clearAll() {
+        ProcessIndicator.processes.clear();
+        ProcessIndicator._render();
+    }
+}
+
+export type UnsavedChoice = "save" | "discard" | "cancel";
+
+export class UnsavedChangesDialog {
+    private static dialog: HTMLElement & { show: () => void; hide: () => void };
+    private static saveBtn: HTMLElement;
+    private static discardBtn: HTMLElement;
+    private static cancelBtn: HTMLElement;
+    private static resolveCallback: ((choice: UnsavedChoice) => void) | null = null;
+
+    public static init() {
+        UnsavedChangesDialog.dialog = document.getElementById("unsaved-changes-dialog") as HTMLElement & { show: () => void; hide: () => void };
+        UnsavedChangesDialog.saveBtn = document.getElementById("unsaved-save-btn")!;
+        UnsavedChangesDialog.discardBtn = document.getElementById("unsaved-discard-btn")!;
+        UnsavedChangesDialog.cancelBtn = document.getElementById("unsaved-cancel-btn")!;
+
+        UnsavedChangesDialog.saveBtn.addEventListener("click", () => {
+            UnsavedChangesDialog.resolveCallback?.("save");
+            UnsavedChangesDialog.dialog.hide();
+        });
+
+        UnsavedChangesDialog.discardBtn.addEventListener("click", () => {
+            UnsavedChangesDialog.resolveCallback?.("discard");
+            UnsavedChangesDialog.dialog.hide();
+        });
+
+        UnsavedChangesDialog.cancelBtn.addEventListener("click", () => {
+            UnsavedChangesDialog.resolveCallback?.("cancel");
+            UnsavedChangesDialog.dialog.hide();
+        });
+
+        UnsavedChangesDialog.dialog.addEventListener("sl-request-close", (event: any) => {
+            if (event.detail?.source === "overlay") {
+                event.preventDefault();
+            }
+        });
+    }
+
+    public static async show(): Promise<UnsavedChoice> {
+        return new Promise((resolve) => {
+            UnsavedChangesDialog.resolveCallback = resolve;
+            UnsavedChangesDialog.dialog.show();
+        });
+    }
+}
 
 export class Notifier {
     public static escapeHtml(html: string) {
@@ -91,7 +260,7 @@ export class Notifier {
 class ToolBarActions {
     private constructor() { }
 
-    private static async getPicker() {
+    private static getPicker() {
         if (window.showDirectoryPicker as unknown) {
             return window.showDirectoryPicker({ mode: "readwrite", id: "project" });
         }
@@ -100,15 +269,47 @@ class ToolBarActions {
         }
     }
 
+    public static async pickProjectDirectory(): Promise<FileSystemDirectoryHandle> {
+        return ToolBarActions.getPicker();
+    }
+
     public static async newProject() {
-        await Project.newProject(await ToolBarActions.getPicker());
+        if (Project.needsSave()) {
+            const choice = await UnsavedChangesDialog.show();
+            if (choice === "cancel") {
+                return;
+            }
+            if (choice === "save") {
+                await Project.saveProject();
+            }
+        }
+
+        const handle = await ToolBarActions.getPicker();
+        await Project.newProject(handle);
+        await RecentProjectsAccess.storeHandle(handle);
         Editor.onProjectLoad();
+        Editor.loadRecentProjects();
+        Editor.loadRecentProjectsMenu();
         Notifier.notify("Project created successfully.", "success");
     }
 
     public static async openProject() {
-        await Project.openProject(await ToolBarActions.getPicker());
+        if (Project.needsSave()) {
+            const choice = await UnsavedChangesDialog.show();
+            if (choice === "cancel") {
+                return;
+            }
+            if (choice === "save") {
+                await Project.saveProject();
+            }
+        }
+
+        const handle = await ToolBarActions.getPicker();
+        await Project.openProject(handle);
+        await RecentProjectsAccess.storeHandle(handle);
         Editor.onProjectLoad();
+        Editor.loadRecentProjects();
+        Editor.loadRecentProjectsMenu();
         Notifier.notify("Project loaded successfully.", "success");
     }
 
@@ -196,15 +397,13 @@ class ToolBarActions {
     public static async buildAndRun() {
         await Project.saveProject();
         if (await Project.buildAndRun()) {
-            Notifier.notify("Project builded successfully.", "success");
+            // Notifier.notify("Project builded successfully.", "success");
         }
     }
 
     public static async compile() {
         try {
-            if (await Builder.buildForEditor(true)) {
-                Notifier.notify("Project compiled successfully.", "success");
-            }
+            await Builder.buildForEditor(true);
         }
         catch (e: unknown) {
             Notifier.notify("Could not compile the project: " + e, "warning");
@@ -219,13 +418,13 @@ class ToolBarActions {
         if (start) {
             if (await Project.run()) {
                 System.run();
-                Notifier.notify("Project started.", "primary");
+                // Notifier.notify("Project started.", "primary");
             }
         }
         else {
             System.runRenderingOnly();
             if (await Project.stop()) {
-                Notifier.notify("Project stopped.", "primary");
+                // Notifier.notify("Project stopped.", "primary");
             }
         }
     }
@@ -247,6 +446,11 @@ export default class Editor {
 
     public static loadingDialog: HTMLElement & { show: () => void, hide: () => void };
     public static loadingDialogProgressBar: HTMLElement & { value: number, indeterminate: boolean };
+
+    public static welcomePanel: HTMLElement & { show: () => void, hide: () => void };
+    public static welcomePanelNewBtn: SlButton;
+    public static welcomePanelOpenBtn: SlButton;
+    public static welcomePanelRecentList: HTMLElement;
 
     public static get defaultProject(): ProjectTemplate {
         return this.createDefaultProject();
@@ -440,6 +644,155 @@ export default class Editor {
         });
     }
 
+    private static async initWelcomePanel() {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Editor.welcomePanel = document.getElementById("welcome-panel")! as any;
+        Editor.welcomePanelNewBtn = Editor.welcomePanel.querySelectorAll("sl-button")[0] as SlButton;
+        Editor.welcomePanelOpenBtn = Editor.welcomePanel.querySelectorAll("sl-button")[1] as SlButton;
+        Editor.welcomePanelRecentList = Editor.welcomePanel.querySelector(".recent-projects-list") as HTMLElement;
+
+        Editor.welcomePanelNewBtn.addEventListener("click", async () => {
+            Editor.welcomePanel.hide();
+            await ToolBarActions.newProject();
+            if (Project.folderHandle) {
+                await RecentProjectsAccess.storeHandle(Project.folderHandle);
+            }
+            Editor.loadRecentProjects();
+        });
+
+        Editor.welcomePanelOpenBtn.addEventListener("click", async () => {
+            Editor.welcomePanel.hide();
+            await ToolBarActions.openProject();
+            if (Project.folderHandle) {
+                await RecentProjectsAccess.storeHandle(Project.folderHandle);
+            }
+            Editor.loadRecentProjects();
+        });
+
+        Editor.loadRecentProjects();
+
+        Editor.welcomePanel.addEventListener("sl-request-close", function (event: any) {
+            if (event.detail?.source === "overlay") {
+                event.preventDefault();
+            }
+        });
+
+        Editor.welcomePanel.show();
+    }
+
+    public static async loadRecentProjects() {
+        const projects = await RecentProjectsAccess.getAll();
+        Editor.welcomePanelRecentList.innerHTML = "";
+
+        for (const project of projects) {
+            const item = document.createElement("div");
+            item.className = "recent-project-item";
+
+            const icon = document.createElement("sl-icon");
+            icon.setAttribute("name", "folder2-open");
+
+            const name = document.createElement("span");
+            name.className = "recent-project-name";
+            name.textContent = project.name;
+
+            const removeBtn = document.createElement("sl-icon-button");
+            removeBtn.className = "recent-project-remove";
+            removeBtn.setAttribute("name", "x-lg");
+            removeBtn.setAttribute("label", "Remove from recent");
+            removeBtn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                await RecentProjectsAccess.remove(project.id);
+                Editor.loadRecentProjects();
+                Editor.loadRecentProjectsMenu();
+            });
+
+            item.append(icon, name, removeBtn);
+
+            item.addEventListener("click", async () => {
+                if (Project.needsSave()) {
+                    const choice = await UnsavedChangesDialog.show();
+                    if (choice === "cancel") {
+                        return;
+                    }
+                    if (choice === "save") {
+                        await Project.saveProject();
+                    }
+                }
+
+                const handle = await RecentProjectsAccess.openProject(project.id);
+                if (handle) {
+                    Editor.welcomePanel.hide();
+                    await Project.openProject(handle);
+                    Editor.onProjectLoad();
+                    Editor.loadRecentProjects();
+                    Editor.loadRecentProjectsMenu();
+                } else {
+                    Notifier.notify("Could not open project. Permission may have been revoked.", "warning");
+                    await RecentProjectsAccess.remove(project.id);
+                    Editor.loadRecentProjects();
+                    Editor.loadRecentProjectsMenu();
+                }
+            });
+
+            Editor.welcomePanelRecentList.append(item);
+        }
+    }
+
+    public static async loadRecentProjectsMenu() {
+        const menu = document.getElementById("recent-projects-menu");
+        if (!menu) return;
+
+        const projects = await RecentProjectsAccess.getAll();
+        const currentProjectId = Project.folderHandle?.name;
+
+        menu.innerHTML = "";
+
+        if (projects.length === 0) {
+            const item = document.createElement("sl-menu-item");
+            item.setAttribute("disabled", "");
+            item.textContent = "No recent projects";
+            menu.append(item);
+            return;
+        }
+
+        for (const project of projects) {
+            const item = document.createElement("sl-menu-item");
+            const isCurrent = project.id === currentProjectId;
+
+            if (isCurrent) {
+                item.innerHTML = `<sl-icon slot="prefix" name="folder2-open"></sl-icon>${project.name} <span style="opacity: 0.6; font-size: 0.85em; margin-left: 8px;">Current project</span>`;
+                item.setAttribute("disabled", "");
+            } else {
+                item.innerHTML = `<sl-icon slot="prefix" name="folder2-open"></sl-icon>${project.name}`;
+                item.addEventListener("click", async () => {
+                    if (Project.needsSave()) {
+                        const choice = await UnsavedChangesDialog.show();
+                        if (choice === "cancel") {
+                            return;
+                        }
+                        if (choice === "save") {
+                            await Project.saveProject();
+                        }
+                    }
+
+                    const handle = await RecentProjectsAccess.openProject(project.id);
+                    if (handle) {
+                        await Project.openProject(handle);
+                        Editor.onProjectLoad();
+                        Editor.loadRecentProjects();
+                        Editor.loadRecentProjectsMenu();
+                    } else {
+                        Notifier.notify("Could not open project. Permission may have been revoked.", "warning");
+                        await RecentProjectsAccess.remove(project.id);
+                        Editor.loadRecentProjects();
+                        Editor.loadRecentProjectsMenu();
+                    }
+                });
+            }
+            menu.append(item);
+        }
+    }
+
     private static fillAssetTable(table: HTMLTableElement) {
         const body = table.tBodies[0];
         if (!body) {
@@ -521,6 +874,7 @@ export default class Editor {
             Editor.settingsWindow = new SettingsWindow(document.getElementById("settings-window")! as SlDialog);
             Editor.initSettingsWindow();
             Editor.initAssetMenuActions();
+            Editor.initWelcomePanel();
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             Editor.loadingDialog = document.getElementById("loading-dialog")! as any;
@@ -536,6 +890,7 @@ export default class Editor {
 
             document.getElementById("new-project-button")!.addEventListener("click", ToolBarActions.newProject);
             document.getElementById("open-project-button")!.addEventListener("click", ToolBarActions.openProject);
+            Editor.loadRecentProjectsMenu();
 
             document.getElementById("save-project-button")!.addEventListener("click", ToolBarActions.saveProject);
             document.getElementById("export-project-gz-button")!.addEventListener("click", ToolBarActions.exportProjectArchive);
@@ -576,6 +931,13 @@ export default class Editor {
             this.runButton.addEventListener("click", ToolBarActions.runProject);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             this.runButtonIcon = this.runButton.querySelector("sl-icon")! as any;
+
+            window.addEventListener("beforeunload", (event) => {
+                if (Project.needsSave()) {
+                    event.preventDefault();
+                    event.returnValue = "";
+                }
+            });
 
         } catch (error) {
             console.error(`Error: Failed to initialize UI: ${error}`);
@@ -673,6 +1035,8 @@ export class Rotate extends Component {
     }
 
     public static async loadEngineFiles() {
+        const indicator = ProcessIndicator.startProcess("Loading engine files", "neutral");
+
         const fileList = await fetch(window.location.href.replace(/index\.html$/, "") + "/types/" + "files.json").then(r => r.json());
         const fileBaseUrl = window.location.href.replace(/index\.html$/, "") + "/src/";
 
@@ -694,7 +1058,7 @@ export class Rotate extends Component {
         }
         await Promise.all(tasks);
 
-        console.log("All flint files loaded");
+        indicator.complete("Engine loaded");
     }
 
     public static updateWindowFields() {

@@ -4,6 +4,7 @@ import { Builder } from "./builder";
 import { System, type UUID } from "../../runtime/system";
 import Metadata from "../../shared/metadata";
 import { ProjectLoader } from "../../runtime/project-loader";
+import type { BrowserFileSystem } from "../../shared/file-system";
 import { AbstractFileSystem as AbstractFileSystem } from "../../shared/file-system";
 import { AssetRegistry } from "../../runtime/assets";
 import { EditorLayer as EditorLayer } from "../editor-layer";
@@ -127,6 +128,10 @@ export class Project {
 
     public static names: Map<UUID, string> = new Map();
 
+    public static get folderHandle(): FileSystemDirectoryHandle | undefined {
+        return (System.fileSystem as BrowserFileSystem).getRootHandle();
+    }
+
     private constructor() { }
 
     static {
@@ -161,6 +166,7 @@ export class Project {
     public static async openProject(folderHandle: FileSystemDirectoryHandle) {
         await Project.startupProject(folderHandle);
         await Project.loadProject();
+        Project.markAsSaved();
         refreshEditorWindows("Hierarchy");
 
         // setInterval(async () => {
@@ -175,6 +181,7 @@ export class Project {
         }
 
         await Project.saveProject();
+        Project.markAsSaved();
         if (!System.world.getLayers().some(layer => layer instanceof EditorLayer)) {
             System.world.addLayer(new EditorLayer());
         }
@@ -248,6 +255,25 @@ export class Project {
         await System.fileSystem.writeTextFile("project.json", data);
 
         await Metadata.saveToFile(System.world.getLayers().filter(l => !(l instanceof EditorLayer)));
+
+        Project.markAsSaved();
+    }
+
+    private static lastSavedHash: string = "";
+
+    public static markAsSaved() {
+        Project.lastSavedHash = Project.computeStateHash();
+    }
+
+    public static computeStateHash(): string {
+        return ProjectLoader.serialize({ layers: System.world.getLayers().filter(l => !(l instanceof EditorLayer)), assets: AssetRegistry.serialize() });
+    }
+
+    public static needsSave(): boolean {
+        if (!Project.lastSavedHash) {
+            return false;
+        }
+        return Project.computeStateHash() !== Project.lastSavedHash;
     }
 
     private static async loadProject() {

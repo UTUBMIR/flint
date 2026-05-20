@@ -1,6 +1,6 @@
 import type Component from "@flint//runtime/component";
 import { System } from "@flint/runtime/system";
-import { Notifier } from "@flint/editor/editor";
+import { Notifier, ProcessIndicator } from "@flint/editor/editor";
 import Bundler from "./bundler";
 import ModuleLoader from "./module-loader";
 import { Project } from "./project";
@@ -70,6 +70,8 @@ export class Builder {
         sourceMap?: boolean,
         options: { stripEditorDecorators?: boolean } = {}
     ): Promise<boolean> {
+        const processActions = ProcessIndicator.startProcess("Compiling the project", "primary");
+
         const textFilesResult = await Project.getAllTextFiles();
         const textFiles = textFilesResult.files;
         const textAssets = textFilesResult.assets;
@@ -91,12 +93,15 @@ export class Builder {
 
             this.compiled = result;
 
+            processActions.complete("Compiled");
+
             return true;
         }
         catch (error) {
             if (emitErrorMessages) {
                 Notifier.notify(`${error}`, "danger", 15000);
             }
+            processActions.fail("Compilation failed");
             return false;
         }
     }

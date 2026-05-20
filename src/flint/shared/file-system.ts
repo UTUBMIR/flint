@@ -45,6 +45,10 @@ export class BrowserFileSystem extends AbstractFileSystem {
         this.rootHandle = handle;
     }
 
+    public getRootHandle(): FileSystemDirectoryHandle | undefined {
+        return this.rootHandle;
+    }
+
     public async createDir(path: string): Promise<void> {
         await this.getDirHandle(path);
     }

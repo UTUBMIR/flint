@@ -54,8 +54,15 @@
                             New Project...
                         </sl-menu-item>
                         <sl-menu-item id="open-project-button" value="open-project">
-                            <sl-icon slot="prefix" name="folder2"></sl-icon>
+                            <sl-icon slot="prefix" name="folder2-open"></sl-icon>
                             Open Project...
+                        </sl-menu-item>
+                        <sl-menu-item>
+                            <sl-icon slot="prefix" name="clock-history"></sl-icon>
+                            Recent Projects
+                            <sl-menu slot="submenu" id="recent-projects-menu">
+                                <sl-menu-item disabled>No recent projects</sl-menu-item>
+                            </sl-menu>
                         </sl-menu-item>
                         <sl-menu-item id="save-project-button" value="save-project">
                             <sl-icon slot="prefix" name="floppy"></sl-icon>
@@ -186,12 +193,26 @@
         </div>
 
         <div class="toolbar-right">
-
+            <div id="process-indicator">
+                <div class="process-item">
+                    <sl-tag size="small" pill variant="neutral">Loading engine files</sl-tag>
+                    <sl-spinner></sl-spinner>
+                </div>
+            </div>
         </div>
     </div>
 
     <sl-dialog id="loading-dialog" label="Loading">
         <sl-progress-bar></sl-progress-bar>
+    </sl-dialog>
+
+    <sl-dialog id="unsaved-changes-dialog" label="Unsaved Changes">
+        <p>You have unsaved changes. Do you want to save before continuing?</p>
+        <div slot="footer" style="display: flex; gap: 8px; justify-content: flex-end;">
+            <sl-button id="unsaved-discard-btn">Don't Save</sl-button>
+            <sl-button id="unsaved-cancel-btn" variant="neutral">Cancel</sl-button>
+            <sl-button id="unsaved-save-btn" variant="primary">Save</sl-button>
+        </div>
     </sl-dialog>
 
     <div id="layout-root">
@@ -241,7 +262,7 @@
                     <sl-menu id="assets-context-menu">
                         <sl-menu-label>Create</sl-menu-label>
                         <sl-menu-item id="new-folder-button" value="new-folder">
-                            <sl-icon slot="prefix" name="folder2"></sl-icon>
+                            <sl-icon slot="prefix" name="folder2-open"></sl-icon>
                             New folder
                         </sl-menu-item>
                         <sl-menu-item id="new-component-button" value="new-component">
@@ -288,6 +309,23 @@
         <sl-checkbox checked>Preload asset</sl-checkbox>
 
         <sl-button slot="footer" disabled>Create asset</sl-button>
+    </sl-dialog>
+
+    <sl-dialog id="welcome-panel" label="Open or Create a Project" class="welcome-panel">
+        <div class="welcome-actions">
+            <sl-button class="welcome-action-btn" size="large">
+                <sl-icon slot="prefix" name="plus-lg"></sl-icon>
+                New Project
+            </sl-button>
+            <sl-button class="welcome-action-btn" size="large">
+                <sl-icon slot="prefix" name="folder2-open"></sl-icon>
+                Open Project
+            </sl-button>
+        </div>
+        <div class="recent-projects">
+            <h3>Recent Projects</h3>
+            <div class="recent-projects-list"></div>
+        </div>
     </sl-dialog>
 
     <sl-dialog id="view-assets-dialog" label="View assets" style="--width: 900px;">

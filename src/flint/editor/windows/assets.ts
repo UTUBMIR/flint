@@ -1,7 +1,5 @@
 import { Project } from "../project/project";
 import ProjectConfig from "../project/project-config";
-import { AssetRegistry } from "../../runtime/assets";
-import { System } from "../../runtime/system";
 import { BaseEditorWindow, type EditorWindowState, type WindowContext } from "../window-framework";
 import type { AssetData } from "../asset-types";
 
@@ -26,7 +24,7 @@ export default class AssetsWindow extends BaseEditorWindow {
                     <sl-menu data-role="context-menu">
                         <sl-menu-label>Create</sl-menu-label>
                         <sl-menu-item data-role="new-folder" value="new-folder">
-                            <sl-icon slot="prefix" name="folder2"></sl-icon>
+                            <sl-icon slot="prefix" name="folder2-open"></sl-icon>
                             New folder
                         </sl-menu-item>
                         <sl-menu-item data-role="new-component" value="new-component">
@@ -221,7 +219,7 @@ export default class AssetsWindow extends BaseEditorWindow {
     }
 
     private getIconForType(type: AssetData["type"]): string {
-        return type === "folder" ? "folder2"
+        return type === "folder" ? "folder2-open"
             : type === "component" ? "code-slash"
                 : type === "json" ? "text-left"
                     : "file";
