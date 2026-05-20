@@ -102,13 +102,9 @@ export class Builder {
     }
 
     private static async loadProject(): Promise<string> {
-        const compressed = await System.fileSystem.readFile("project.gz");
-        const buffer = AbstractFileSystem.toArrayBuffer(compressed);
-        const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream("gzip"));
-        const decompressed = await new Response(stream).arrayBuffer();
-        const decodedLayers = new TextDecoder().decode(decompressed);
+        const json = await System.fileSystem.readTextFile("project.json");
 
-        return decodedLayers;
+        return json;
     }
 
     public static async build(): Promise<boolean> {

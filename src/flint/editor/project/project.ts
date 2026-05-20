@@ -245,34 +245,16 @@ export class Project {
 
     public static async saveProject() {
         const data = ProjectLoader.serialize({ layers: System.world.getLayers().filter(l => !(l instanceof EditorLayer)), assets: AssetRegistry.serialize() });
-        const blob = new Blob([data], { type: "text/plain" });
-        const cs = new CompressionStream("gzip");
-        const compressed = new Response(blob.stream().pipeThrough(cs));
-        const arrayBuffer = await compressed.arrayBuffer();
-
-        await System.fileSystem.writeFile(
-            "project.gz",
-            new Uint8Array(arrayBuffer)
-        );
+        await System.fileSystem.writeTextFile("project.json", data);
 
         await Metadata.saveToFile(System.world.getLayers().filter(l => !(l instanceof EditorLayer)));
     }
 
     private static async loadProject() {
         try {
-            const compressed = await System.fileSystem.readFile("project.gz");
+            const json = await System.fileSystem.readTextFile("project.json");
 
-            const buffer = AbstractFileSystem.toArrayBuffer(compressed);
-
-            const stream = new Blob([buffer])
-                .stream()
-                .pipeThrough(new DecompressionStream("gzip"));
-
-            const decompressed = await new Response(stream).arrayBuffer();
-
-            const decoded = new TextDecoder().decode(decompressed);
-
-            const projectData = ProjectLoader.deserialize(JSON.parse(decoded));
+            const projectData = ProjectLoader.deserialize(JSON.parse(json));
 
             const editorLayerIndex = System.world.getLayers().findIndex(l => l instanceof EditorLayer);
             const editorLayer = System.world.getLayers()[editorLayerIndex]!;
