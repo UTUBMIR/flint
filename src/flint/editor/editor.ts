@@ -6,16 +6,11 @@ import { Project } from "./project/project";
 import type HierarchyWindow from "./windows/hierarchy";
 import { EditorName as EditorName } from "./windows/hierarchy";
 
-import Camera from "../runtime/components/camera";
-import Shape from "../runtime/components/shape";
 import Transform from "../runtime/transform";
 import { System } from "../runtime/system";
 import { Builder } from "./project/builder";
-import { refreshEditorWindows, resetEditorLayout, spawnEditorWindow, getEditorWindowsOfType } from "./layout";
-import PhysicsBody from "@flint/runtime/components/physics/physics-body";
-import BoxCollider from "@flint/runtime/components/physics/box-collider";
-import Label from "@flint/runtime/components/label";
-import Image from "@flint/runtime/components/image";
+import * as Physics from "@flint/runtime/components/physics-index";
+import * as Components from "@flint/runtime/components/index";
 import type Component from "../runtime/component";
 import { CodeEditor } from "./code-editor";
 import { SettingsWindow, type SettingsChangedEventDetail, type SettingsValue } from "./settings/settings-window";
@@ -31,6 +26,8 @@ import { AssetRegistry, AssetType } from "../runtime/assets";
 import { activeWindowService, editorAssetStore } from "./window-services";
 import type { ProjectData } from "../runtime/project-loader";
 import { RecentProjectsAccess } from "./recent-projects";
+
+import { refreshEditorWindows, resetEditorLayout, spawnEditorWindow, getEditorWindowsOfType } from "./layout";
 
 export type ProjectTemplateFile = {
     path: string;
@@ -521,12 +518,13 @@ export default class Editor {
         };
 
     private static addBasicComponents() {
-        System.registerComponent("PhysicsBody", PhysicsBody);
-        System.registerComponent("BoxCollider", BoxCollider);
-        System.registerComponent("Camera", Camera);
-        System.registerComponent("Label", Label);
-        System.registerComponent("Shape", Shape);
-        System.registerComponent("Image", Image);
+        for (const [name, component] of Object.entries(Physics)) {
+            System.registerComponent(name, component as typeof Component);
+        }
+
+        for (const [name, component] of Object.entries(Components)) {
+            System.registerComponent(name, component as typeof Component);
+        }
     }
 
     private static enableLongPressContextMenu(element: EventTarget, delay = 400) {
@@ -974,7 +972,7 @@ export default class Editor {
         EditorName("Rect")(rect);
 
         const camera = new GameObject([
-            new Camera()
+            new Components.Camera()
         ]);
         EditorName("Camera")(camera);
 
