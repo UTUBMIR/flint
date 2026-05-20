@@ -193,7 +193,7 @@ export class Project {
     }
 
     public static async buildAndRun() {
-        return !!(+await Builder.build() & +await Builder.preview());
+        return !!(+await Builder.preview() & +await Builder.build());
     }
 
     public static async exportProjectArchive(): Promise<Uint8Array> {
