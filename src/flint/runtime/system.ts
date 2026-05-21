@@ -9,6 +9,7 @@ import Metadata, { MetadataKeys } from "../shared/metadata";
 
 //default components
 import type RendererComponent from "./renderer-component";
+import type Camera from "./components/camera";
 
 import { type AbstractFileSystem } from "../shared/file-system";
 import { TimerSystem } from "./timers";
@@ -31,6 +32,9 @@ export enum RunningState {
 
 export class RenderSystem {
     private components: RendererComponent[] = [];
+
+    /** The camera currently rendering this system's components. */
+    public currentCamera: Camera | null = null;
 
     public register(component: RendererComponent) {
         this.components.push(component);

@@ -78,7 +78,9 @@ export default class Camera extends RendererComponent {
 
         // Render from bottom (highest index) to top (lowest index) — matches World.render() order
         for (let i = layers.length - 1; i >= 0; i--) {
-            layers[i]!.renderSystem.render(renderer);
+            const layer = layers[i]!;
+            layer.renderSystem.currentCamera = this;
+            layer.renderSystem.render(renderer);
         }
     }
 }
