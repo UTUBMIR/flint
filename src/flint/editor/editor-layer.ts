@@ -127,19 +127,18 @@ class DragComponent extends Shape {
     }
 
     private syncEditorCameraToSelection(): void {
-        if (navigateActive) return;
+        if (!shouldFollowSelection) return;
 
         const current = this.selectedObject;
         if (!current) return;
 
-        const camera = current.getComponent(Camera)
-            ?? current.layer.getObjects().find(o => o.getComponent(Camera))?.getComponent(Camera);
-        if (!camera) return;
-
-        const targetTransform = camera.transform;
         const editorTransform = (this.gameObject.layer as EditorLayer).viewportCamera!.transform;
-        editorTransform.position.assign(targetTransform.position);
-        editorTransform.size.assign(targetTransform.size);
+        editorTransform.position.assign(current.transform.position);
+
+        const camera = current.getComponent(Camera);
+        if (camera) {
+            editorTransform.size.assign(camera.transform.size);
+        }
     }
 
     private applyVisualState(isHovered: boolean): void {
@@ -268,6 +267,16 @@ class DragComponent extends Shape {
             this.ensureDrag(handlePosition);
             this.applyVisualState(this.drag?.isHovered ?? false);
 
+            // Re-apply cursor after game's sendEventToLayers resets it on non-owned events.
+            // Only override when this gizmo is actively hovered/dragged so other gizmos' cursors aren't stomped.
+            if (this.drag) {
+                if (this.drag.isDragged()) {
+                    System.setCursor(this.drag.draggedCursor);
+                } else if (this.drag.isHovered) {
+                    System.setCursor(this.drag.hoveredCursor);
+                }
+            }
+
             super.render(renderer);
         }
         else {
@@ -296,31 +305,34 @@ class VerticalDragComponent extends DragComponent {
 
 
 let navigateActive = false;
+let shouldFollowSelection = false;
 let selectionUnsubscribe: (() => void) | null = null;
 
-/** Viewport-scoped input state — populated by ViewportWindow and consumed by ViewportNavigation. */
-export const viewportPressedKeys = new Set<string>();
-export const viewportPressedMouseButtons = new Set<number>();
-export const viewportFrameMovement = new Vector2();
+export class ViewportNavigation {
+    /** Per-instance input state — populated by each ViewportWindow's event handlers. */
+    public readonly pressedKeys = new Set<string>();
+    public readonly pressedMouseButtons = new Set<number>();
+    public readonly frameMovement = new Vector2();
 
-class ViewportNavigation {
     private panning = false;
     private speed = 10;
 
     public update(editorCamera: Camera, dt: number, ppm: number): void {
         if (System.runningState === RunningState.Stopped || System.runningState === RunningState.RunningPaused) return;
 
+        let didMove = false;
+
         // WASD movement
-        if (viewportPressedKeys.has("KeyW")) { editorCamera.position.y -= this.speed * dt; navigateActive = true; }
-        if (viewportPressedKeys.has("KeyS")) { editorCamera.position.y += this.speed * dt; navigateActive = true; }
-        if (viewportPressedKeys.has("KeyA")) { editorCamera.position.x -= this.speed * dt; navigateActive = true; }
-        if (viewportPressedKeys.has("KeyD")) { editorCamera.position.x += this.speed * dt; navigateActive = true; }
+        if (this.pressedKeys.has("KeyW")) { editorCamera.position.y -= this.speed * dt; didMove = true; }
+        if (this.pressedKeys.has("KeyS")) { editorCamera.position.y += this.speed * dt; didMove = true; }
+        if (this.pressedKeys.has("KeyA")) { editorCamera.position.x -= this.speed * dt; didMove = true; }
+        if (this.pressedKeys.has("KeyD")) { editorCamera.position.x += this.speed * dt; didMove = true; }
 
         // Middle-mouse or right-mouse pan (uses per-frame movement delta, works with pointer lock)
-        if (viewportPressedMouseButtons.has(1) || viewportPressedMouseButtons.has(2)) {
+        if (this.pressedMouseButtons.has(1) || this.pressedMouseButtons.has(2)) {
             this.panning = true;
-            navigateActive = true;
-            const delta = viewportFrameMovement;
+            didMove = true;
+            const delta = this.frameMovement;
             if (delta.x !== 0 || delta.y !== 0) {
                 editorCamera.position.x += delta.x / ppm;
                 editorCamera.position.y += delta.y / ppm;
@@ -328,21 +340,31 @@ class ViewportNavigation {
         } else {
             this.panning = false;
         }
+
+        navigateActive = didMove;
+        if (didMove) shouldFollowSelection = false;
     }
 }
 
 export class EditorLayer extends Layer {
-    private readonly navigation = new ViewportNavigation();
-    private camera: Camera | null = null;
+    /** The viewport camera that last sent an event to this layer. Set by each ViewportWindow before dispatching. */
+    public static activeViewportCamera: Camera | null = null;
 
-    /** The editor's viewport camera — used by the ViewportWindow to render all layers. */
+    /** The editor's viewport camera — returns the active viewport's camera, or null. */
     public get viewportCamera(): Camera | null {
-        return this.camera;
+        return EditorLayer.activeViewportCamera;
     }
 
     public override attach(): void {
         selectionUnsubscribe = editorSelectionService.subscribe(() => {
             navigateActive = false;
+            shouldFollowSelection = true;
+
+            // Center the active viewport camera on the newly selected object
+            const selected = editorSelectionService.getSelectedGameObject();
+            if (selected && EditorLayer.activeViewportCamera) {
+                EditorLayer.activeViewportCamera.transform.position.assign(selected.transform.position);
+            }
         });
 
         const positionDrag = new DragComponent(
@@ -380,19 +402,7 @@ export class EditorLayer extends Layer {
             new GameObject([
                 verticalDrag
             ], new Transform(new Vector2(), new Vector2(0.13, 0.7))),
-
-            new GameObject([this.camera = new Camera("rgba(0, 0, 0, 0)")])
         ]);
-    }
-
-    /** Runs viewport navigation updates. Called by ViewportWindow each frame. */
-    public updateViewportNavigation(dt: number): void {
-        const editorCamera = this.camera;
-        if (editorCamera && editorCamera.enabled) {
-            const world = System.world as Partial<{ pixelsPerMeter: number }>;
-            const ppm = typeof world.pixelsPerMeter === "number" && world.pixelsPerMeter > 0 ? world.pixelsPerMeter : 1;
-            this.navigation.update(editorCamera, dt, ppm);
-        }
     }
 
     public override destroy(): void {

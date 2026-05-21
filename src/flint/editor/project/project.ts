@@ -136,7 +136,6 @@ export class Project {
 
     private static addEditorLayer(): void {
         const layer = new EditorLayer();
-        System.eventEmitter.addEventListener(layer.onEvent.bind(layer));
         System.world.unshiftLayer(layer);
         layer.attach();
         if (System.runningState === RunningState.Running) {

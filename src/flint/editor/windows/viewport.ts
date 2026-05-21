@@ -1,18 +1,23 @@
-import Input from "../../shared/input";
-import { Renderer2D } from "../../shared/renderer2d";
-import type { IRenderer } from "../../shared/irenderer";
-import { System } from "../../runtime/system";
-import { SystemEvent } from "../../runtime/system-event";
+import Input from "@flint/shared/input";
+import { Renderer2D } from "@flint/shared/renderer2d";
+import type { IRenderer } from "@flint/shared/irenderer";
+import { System } from "@flint/runtime/system";
+import { SystemEvent } from "@flint/runtime/system-event";
+import { World } from "@flint/runtime/world";
 import { BaseEditorWindow, type WindowContext } from "../window-framework";
-import { EditorLayer, viewportPressedKeys, viewportPressedMouseButtons, viewportFrameMovement } from "../editor-layer";
-import Camera from "../../runtime/components/camera";
-import type Layer from "../../runtime/layer";
+import { EditorLayer, ViewportNavigation } from "../editor-layer";
+import Camera from "@flint/runtime/components/camera";
+import GameObject from "@flint/runtime/game-object";
+import Vector2 from "@flint/shared/vector2";
+import type Layer from "@flint/runtime/layer";
 
 export default class ViewportWindow extends BaseEditorWindow {
     private readonly canvas: HTMLCanvasElement;
     private readonly ctx: CanvasRenderingContext2D;
     private readonly renderer: IRenderer;
     private readonly renderCallback: () => void;
+    private readonly camera: Camera;
+    private readonly navigation: ViewportNavigation;
     private lastWidth = 0;
     private lastHeight = 0;
 
@@ -34,6 +39,9 @@ export default class ViewportWindow extends BaseEditorWindow {
         }
         this.ctx = ctx;
         this.renderer = new Renderer2D();
+        this.camera = new Camera("rgba(0, 0, 0, 0)");
+        this.navigation = new ViewportNavigation();
+        new GameObject([this.camera]); // wrap in GameObject for transform
 
         this.renderCallback = this.onRender.bind(this);
     }
@@ -45,25 +53,47 @@ export default class ViewportWindow extends BaseEditorWindow {
         this.canvas.tabIndex = -1;
         this.canvas.style.outline = "none";
 
-        // Cache the editor layer for dispatching events directly (skip System.eventEmitter → game layers)
-        const world = System.world;
-        const editorLayer = world?.getLayers().find(l => l instanceof EditorLayer) as EditorLayer | undefined;
-
         const stop = (ev: Event) => ev.stopPropagation();
+
+        // Only consume pointer events that started with a press on this canvas.
+        // Events that pass over the canvas during an external drag (e.g. window tab)
+        // are let through so the drag system does not freeze.
+        const ownedPointers = new Set<number>();
+
+        const updateInputPosition = (ev: PointerEvent) => {
+            if (document.pointerLockElement === this.canvas) return;
+            const rect = this.canvas.getBoundingClientRect();
+            const canvasHalf = new Vector2(rect.width, rect.height).divide(2).round();
+            Input.mousePositionPixels.set(ev.clientX - rect.left, ev.clientY - rect.top)
+                .subtract(canvasHalf)
+                .multiply(System.dpr);
+
+            const ppm = typeof (System.world as Partial<{ pixelsPerMeter: number }>).pixelsPerMeter === "number"
+                ? (System.world as { pixelsPerMeter: number }).pixelsPerMeter
+                : 1;
+            Input.mousePosition.set(
+                World.toPhysicsUnits(Input.mousePositionPixels.x, ppm),
+                World.toPhysicsUnits(Input.mousePositionPixels.y, ppm)
+            );
+        };
 
         const sendToEditorLayer = (type: string) => {
             if (type === "pointermove") {
                 System.setCursor("initial");
             }
-            if (editorLayer) {
-                editorLayer.onEvent(new SystemEvent(type));
+            const layer = System.world?.getLayers().find(l => l instanceof EditorLayer) as EditorLayer | undefined;
+            if (layer) {
+                EditorLayer.activeViewportCamera = this.camera;
+                layer.onEvent(new SystemEvent(type));
             }
         };
 
         const onPointerDown = (ev: PointerEvent) => {
+            ownedPointers.add(ev.pointerId);
             stop(ev);
+            updateInputPosition(ev);
             sendToEditorLayer("pointerdown");
-            viewportPressedMouseButtons.add(ev.button);
+            this.navigation.pressedMouseButtons.add(ev.button);
             Input.pressedMouseButtons.delete(ev.button);
             Input.updateInputAxes();
             this.canvas.focus({ preventScroll: true });
@@ -73,9 +103,13 @@ export default class ViewportWindow extends BaseEditorWindow {
         };
 
         const onPointerUp = (ev: PointerEvent) => {
+            const owned = ownedPointers.has(ev.pointerId);
+            ownedPointers.delete(ev.pointerId);
+            if (!owned && document.pointerLockElement !== this.canvas) return;
             stop(ev);
+            updateInputPosition(ev);
             sendToEditorLayer("pointerup");
-            viewportPressedMouseButtons.delete(ev.button);
+            this.navigation.pressedMouseButtons.delete(ev.button);
             Input.pressedMouseButtons.delete(ev.button);
             Input.updateInputAxes();
             if ((ev.button === 1 || ev.button === 2) && document.pointerLockElement === this.canvas) {
@@ -84,39 +118,47 @@ export default class ViewportWindow extends BaseEditorWindow {
         };
 
         const onMouseUp = (ev: MouseEvent) => {
+            if (!ownedPointers.has((ev as PointerEvent).pointerId) && document.pointerLockElement !== this.canvas) return;
             stop(ev);
             onPointerUp(ev as PointerEvent);
         };
 
         const onPointerMove = (ev: PointerEvent) => {
-            stop(ev);
+            const owned = ownedPointers.has(ev.pointerId);
+            updateInputPosition(ev);
             sendToEditorLayer("pointermove");
-            // Accumulate movement for viewport navigation and clear from shared Input
-            viewportFrameMovement.x += ev.movementX * System.dpr;
-            viewportFrameMovement.y += ev.movementY * System.dpr;
+            if (!owned) return;
+            stop(ev);
+            // Accumulate movement for this viewport's navigation and clear from shared Input
+            this.navigation.frameMovement.x += ev.movementX * System.dpr;
+            this.navigation.frameMovement.y += ev.movementY * System.dpr;
             Input.frameMovementPixels.set(0, 0);
         };
 
         const onKeyDown = (ev: KeyboardEvent) => {
+            if (document.activeElement !== this.canvas && document.pointerLockElement !== this.canvas) return;
             stop(ev);
-            viewportPressedKeys.add(ev.code);
+            this.navigation.pressedKeys.add(ev.code);
             Input.pressedKeys.delete(ev.code);
             Input.updateInputAxes();
         };
 
         const onKeyUp = (ev: KeyboardEvent) => {
+            if (document.activeElement !== this.canvas && document.pointerLockElement !== this.canvas) return;
             stop(ev);
-            viewportPressedKeys.delete(ev.code);
+            this.navigation.pressedKeys.delete(ev.code);
             Input.pressedKeys.delete(ev.code);
             Input.updateInputAxes();
         };
 
         const onWheel = (ev: WheelEvent) => {
+            if (document.activeElement !== this.canvas && document.pointerLockElement !== this.canvas) return;
             ev.preventDefault();
             stop(ev);
         };
 
         const onContextMenu = (ev: MouseEvent) => {
+            if (!ownedPointers.has((ev as PointerEvent).pointerId)) return;
             ev.preventDefault();
             stop(ev);
         };
@@ -193,8 +235,15 @@ export default class ViewportWindow extends BaseEditorWindow {
         const allLayers = world.getLayers();
         const editorLayer = allLayers.find(l => l instanceof EditorLayer) as EditorLayer | undefined;
 
-        // Update viewport navigation
-        editorLayer?.updateViewportNavigation(System.deltaTime);
+        // Update this viewport's navigation and set it as the active editor camera
+        EditorLayer.activeViewportCamera = this.camera;
+        if (this.camera.enabled) {
+            const ppm = typeof (world as Partial<{ pixelsPerMeter: number }>).pixelsPerMeter === "number"
+                && (world as { pixelsPerMeter: number }).pixelsPerMeter > 0
+                ? (world as { pixelsPerMeter: number }).pixelsPerMeter
+                : 1;
+            this.navigation.update(this.camera, System.deltaTime, ppm);
+        }
 
         // Fill canvas with the first game camera's background color (the editor camera is transparent)
         const gameCamera = ViewportWindow.findFirstEnabledCamera(
@@ -206,14 +255,11 @@ export default class ViewportWindow extends BaseEditorWindow {
             this.renderer.resetTransform();
         }
 
-        // Render every layer from the viewport camera's perspective
-        const viewportCamera = editorLayer?.viewportCamera;
-        if (viewportCamera) {
-            viewportCamera.renderLayers(this.ctx, this.renderer, [...allLayers]);
-        }
+        // Render every layer from this viewport's camera perspective
+        this.camera.renderLayers(this.ctx, this.renderer, [...allLayers]);
 
         // Reset frame movement after navigation consumed it
         Input.resetFrameMovement();
-        viewportFrameMovement.set(0, 0);
+        this.navigation.frameMovement.set(0, 0);
     }
 }
