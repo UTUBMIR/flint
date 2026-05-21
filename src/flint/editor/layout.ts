@@ -115,7 +115,7 @@ class EditorWindowRegistry implements WindowManagerApi {
                 }
                 record.window.update?.();
             }
-        }, 150));
+        }, 50));
     }
 
     public refreshWindowControls(instanceId: string): void {
