@@ -136,10 +136,10 @@ class DragComponent extends Shape {
         const camera = current.layer.cameras[0];
         if (!camera) return;
 
-        const targetCamera = camera.transform;
-        const editorCamera = this.gameObject.layer.cameras[0]!.transform; // NOTE: Editor controls the camera
-        editorCamera.position = targetCamera.position;
-        editorCamera.size = targetCamera.size;
+        const targetTransform = camera.transform;
+        const editorTransform = this.gameObject.layer.cameras[0]!.transform; // NOTE: Editor controls the camera
+        editorTransform.position.assign(targetTransform.position);
+        editorTransform.size.assign(targetTransform.size);
     }
 
     private applyVisualState(isHovered: boolean): void {
@@ -300,7 +300,6 @@ let selectionUnsubscribe: (() => void) | null = null;
 
 class ViewportNavigation {
     private panning = false;
-    private previousMousePixels = new Vector2();
     private speed = 10;
 
     public update(editorCamera: Camera, dt: number, ppm: number): void {
@@ -312,17 +311,15 @@ class ViewportNavigation {
         if (Input.isKeyPressed("KeyA")) { editorCamera.position.x -= this.speed * dt; navigateActive = true; }
         if (Input.isKeyPressed("KeyD")) { editorCamera.position.x += this.speed * dt; navigateActive = true; }
 
-        // Middle-mouse or right-mouse pan
+        // Middle-mouse or right-mouse pan (uses per-frame movement delta, works with pointer lock)
         if (Input.isMouseButtonPressed(1) || Input.isMouseButtonPressed(2)) {
-            const current = Input.mousePositionPixels;
-            if (this.panning) {
-                const delta = current.copy().subtract(this.previousMousePixels);
+            this.panning = true;
+            navigateActive = true;
+            const delta = Input.frameMovementPixels;
+            if (delta.x !== 0 || delta.y !== 0) {
                 editorCamera.position.x += delta.x / ppm;
                 editorCamera.position.y += delta.y / ppm;
             }
-            this.panning = true;
-            this.previousMousePixels = current.copy();
-            navigateActive = true;
         } else {
             this.panning = false;
         }
@@ -384,6 +381,18 @@ export class EditorLayer extends Layer {
             const world = System.world as Partial<{ pixelsPerMeter: number }>;
             const ppm = typeof world.pixelsPerMeter === "number" && world.pixelsPerMeter > 0 ? world.pixelsPerMeter : 1;
             this.navigation.update(editorCamera, System.deltaTime, ppm);
+
+            // Keep game cameras in sync with the editor camera so the full viewport moves together
+            if (System.runningState === RunningState.RunningRenderingOnly) {
+                for (const layer of System.world.getLayers()) {
+                    if (layer === this) continue;
+                    if (layer.cameras.length > 0) {
+                        const gameCam = layer.cameras[0]!;
+                        gameCam.transform.position.assign(editorCamera.transform.position);
+                        gameCam.transform.size.assign(editorCamera.transform.size);
+                    }
+                }
+            }
         }
         super.render(ctx, renderer);
     }

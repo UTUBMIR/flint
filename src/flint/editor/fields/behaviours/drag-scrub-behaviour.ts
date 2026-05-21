@@ -11,13 +11,10 @@ export class DragScrubBehavior implements FieldBehavior {
         let usingPointerLock = false;
         let skipFirstLockedMove = false;
 
-        const EDGE_THRESHOLD = 4; // px from screen edge before locking pointer
         const DRAG_THRESHOLD = 3; // px movement before starting scrub
 
         let startX = 0;
         let moved = false;
-
-        const shouldLockPointer = (x: number) => x <= EDGE_THRESHOLD || x >= window.innerWidth - EDGE_THRESHOLD;
 
         const handleMouseMove = (ev: MouseEvent) => {
             if (!dragging) return;
@@ -27,10 +24,8 @@ export class DragScrubBehavior implements FieldBehavior {
                 const dx = ev.clientX - startX;
                 if (Math.abs(dx) < DRAG_THRESHOLD) return;
                 moved = true;
-            }
 
-            // Enter pointer lock only if near edges
-            if (!usingPointerLock && shouldLockPointer(ev.clientX)) {
+                // Lock pointer immediately once drag threshold is met
                 usingPointerLock = true;
                 skipFirstLockedMove = true;
                 el.requestPointerLock();

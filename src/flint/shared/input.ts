@@ -14,7 +14,15 @@ export default class Input {
     public static mousePositionPixels: Vector2 = new Vector2(window.innerWidth / 2, window.innerHeight / 2);
     public static mousePosition: Vector2 = new Vector2(window.innerWidth / 2, window.innerHeight / 2);
 
+    // Accumulated pointer movement in device pixels, reset each frame.
+    // Works with or without pointer lock, suitable for delta-based input (pan, drag scrub, etc.).
+    public static frameMovementPixels: Vector2 = new Vector2();
+
     private static _targetElement: HTMLElement | null = null;
+
+    public static resetFrameMovement(): void {
+        this.frameMovementPixels.set(0, 0);
+    }
 
     private constructor() { }
 
@@ -63,6 +71,16 @@ export default class Input {
         root.addEventListener("pointerup", this.onPointerUp.bind(this), true);
 
         root.addEventListener("pointermove", this.onPointerMove.bind(this), { passive: true, capture: true });
+
+        // Fallback: mouse events fire reliably during pointer lock (pointer events may not in some browsers).
+        // Guard: only process when locked so we don't double-count with pointer events in normal mode.
+        const lockGuard = (fn: (ev: PointerEvent) => void) => (ev: MouseEvent) => {
+            if (!document.pointerLockElement) return;
+            fn(ev as PointerEvent);
+        };
+        root.addEventListener("mousemove", lockGuard(this.onPointerMove.bind(this)), { passive: true, capture: true });
+        root.addEventListener("mouseup", lockGuard(this.onPointerUp.bind(this)), true);
+        root.addEventListener("mousedown", lockGuard(this.onPointerDown.bind(this)), true);
     }
 
     private static pixelsPerMeter(): number {
@@ -73,11 +91,22 @@ export default class Input {
     private static setMouseFromEvent(event: PointerEvent): void {
         const el = this._targetElement ?? (event.target as HTMLElement);
         const rect = el.getBoundingClientRect();
-        const canvasHalf = new Vector2(rect.width, rect.height).divide(2).round();
 
-        this.mousePositionPixels.set(event.clientX - rect.left, event.clientY - rect.top)
-            .subtract(canvasHalf)
-            .multiply(System.dpr);
+        // Accumulate raw movement for delta-based input (panning, drag-scrub, etc.)
+        this.frameMovementPixels.x += event.movementX * System.dpr;
+        this.frameMovementPixels.y += event.movementY * System.dpr;
+
+        // Absolute position: when pointer is locked, clientX/Y don't change,
+        // so we accumulate position from movement deltas instead.
+        if (document.pointerLockElement === el) {
+            this.mousePositionPixels.x += event.movementX * System.dpr;
+            this.mousePositionPixels.y += event.movementY * System.dpr;
+        } else {
+            const canvasHalf = new Vector2(rect.width, rect.height).divide(2).round();
+            this.mousePositionPixels.set(event.clientX - rect.left, event.clientY - rect.top)
+                .subtract(canvasHalf)
+                .multiply(System.dpr);
+        }
 
         const ppm = this.pixelsPerMeter();
         this.mousePosition.set(

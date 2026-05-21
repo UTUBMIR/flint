@@ -37,8 +37,37 @@ export default class ViewportWindow extends BaseEditorWindow {
     public override initialize(): void {
         System.addRenderTarget(this.renderCallback);
         Input.setTargetElement(this.canvas);
+
+        const onPointerDown = (ev: PointerEvent) => {
+            // Lock pointer immediately on middle or right button for camera panning
+            if ((ev.button === 1 || ev.button === 2) && document.pointerLockElement !== this.canvas) {
+                this.canvas.requestPointerLock();
+            }
+        };
+
+        const onPointerUp = (ev: PointerEvent) => {
+            if ((ev.button === 1 || ev.button === 2) && document.pointerLockElement === this.canvas) {
+                document.exitPointerLock();
+            }
+        };
+
+        const onMouseUp = (ev: MouseEvent) => {
+            onPointerUp(ev as PointerEvent);
+        };
+
+        this.canvas.addEventListener("pointerdown", onPointerDown);
+        this.canvas.addEventListener("pointerup", onPointerUp);
+        // Fallback: mouseup fires reliably during pointer lock
+        this.canvas.addEventListener("mouseup", onMouseUp);
+
         this.registerCleanup(() => {
             Input.setTargetElement(null);
+            if (document.pointerLockElement === this.canvas) {
+                document.exitPointerLock();
+            }
+            this.canvas.removeEventListener("pointerdown", onPointerDown);
+            this.canvas.removeEventListener("pointerup", onPointerUp);
+            this.canvas.removeEventListener("mouseup", onMouseUp);
             System.removeRenderTarget(this.renderCallback);
             this.canvas.remove();
         });
@@ -77,5 +106,8 @@ export default class ViewportWindow extends BaseEditorWindow {
         if (world) {
             world.render(this.ctx, this.renderer);
         }
+
+        // Reset frame movement after navigation consumed it
+        Input.resetFrameMovement();
     }
 }
