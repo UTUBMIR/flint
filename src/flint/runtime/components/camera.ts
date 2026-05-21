@@ -8,7 +8,45 @@ import type Layer from "../layer";
 import { System } from "../system";
 
 export default class Camera extends RendererComponent {
+    private static _main: Camera | null = null;
+
+    /**
+     * The designated main camera.
+     *
+     * - If explicitly assigned via `Camera.main = camera`, returns that camera.
+     * - Otherwise, auto-finds the first enabled camera with `isMainCamera = true`.
+     * - Returns `null` if no suitable camera exists.
+     */
+    public static get main(): Camera | null {
+        if (Camera._main?.enabled && Camera._main.gameObject) {
+            return Camera._main;
+        }
+        Camera._main = null;
+
+        const world = System.world;
+        if (world) {
+            for (const layer of world.getLayers()) {
+                for (const obj of layer.getObjects()) {
+                    const cam = obj.getComponent(Camera);
+                    if (cam?.enabled && cam.isMainCamera) {
+                        Camera._main = cam;
+                        return cam;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    public static set main(value: Camera | null) {
+        Camera._main = value;
+    }
+
     public enabled: boolean = true;
+
+    /** Designate this camera as the main camera accessible via `Camera.main`. Set this to `true` on your game camera. */
+    @FieldInspector("boolean")
+    public isMainCamera: boolean = false;
 
     /**
      * Converts a screen-space position (in world/physics units, relative to the screen center)
@@ -48,10 +86,15 @@ export default class Camera extends RendererComponent {
 
     public override attach(): void {
         // Camera orchestrates rendering; it does not register as a visual component
+        if (this.isMainCamera) {
+            Camera.main = this;
+        }
     }
 
     public override detach(): void {
-        // No-op
+        if (Camera._main === this) {
+            Camera._main = null;
+        }
     }
 
     public renderLayers(ctx: CanvasRenderingContext2D, renderer: IRenderer, layers: Layer[]): void {

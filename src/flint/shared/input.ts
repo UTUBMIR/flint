@@ -89,7 +89,10 @@ export default class Input {
     }
 
     private static setMouseFromEvent(event: PointerEvent): void {
-        const el = this._targetElement ?? (event.target as HTMLElement);
+        // Use the actual event target for coordinate calculation,
+        // so the position is always relative to the element receiving input.
+        const raw = event.target as HTMLElement | null;
+        const el = raw?.closest?.("canvas") ?? raw ?? document.body;
         const rect = el.getBoundingClientRect();
 
         // Accumulate raw movement for delta-based input (panning, drag-scrub, etc.)

@@ -4,6 +4,7 @@ import { System } from "../../runtime/system";
 import { TimerSystem } from "../../runtime/timers";
 import Input from "../../shared/input";
 import Metadata from "../../shared/metadata";
+import Camera from "../../runtime/components/camera";
 
 export default class ModuleLoader {
     private constructor() { }
@@ -65,6 +66,20 @@ export default class ModuleLoader {
             for (const key of Object.keys(TimerSystem)) {
                 loadedModule.TimerSystem[key] = (TimerSystem as any)[key];
             }
+        }
+
+        if (loadedModule.Camera) {
+            for (const key of Object.keys(Camera)) {
+                loadedModule.Camera[key] = (Camera as any)[key];
+            }
+            // Proxy main so it always reads/writes the editor's Camera.main
+            // (the loaded module's Camera class is a separate copy from the bundler)
+            Object.defineProperty(loadedModule.Camera, "main", {
+                configurable: true,
+                enumerable: true,
+                get() { return Camera.main; },
+                set(v) { Camera.main = v; }
+            });
         }
 
         return loadedModule;

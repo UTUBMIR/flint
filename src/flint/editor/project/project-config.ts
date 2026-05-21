@@ -14,7 +14,7 @@ type ConfigType = {
 export default class ProjectConfig {
     public static readonly configFileName = "project-config.json";
     public static config: ConfigType;
-    private static readonly index = `export * from "@flint/runtime/system";export { default as Input } from "@flint/shared/input";export { default as Metadata } from "@flint/shared/metadata";export * from "@flint/runtime/assets";export * from "@flint/runtime/timers";`;
+    private static readonly index = `export * from "@flint/runtime/system";export { default as Camera } from "@flint/runtime/components/camera";export { default as Input } from "@flint/shared/input";export { default as Metadata } from "@flint/shared/metadata";export * from "@flint/runtime/assets";export * from "@flint/runtime/timers";`;
 
     public static get fullIndex(): string {
         return ProjectConfig.index + ProjectConfig.config.components.map(c => `export {${c.name}} from "${c.file}";`).join("");
