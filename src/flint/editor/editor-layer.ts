@@ -129,6 +129,9 @@ class DragComponent extends Shape {
     private syncEditorCameraToSelection(): void {
         if (!shouldFollowSelection) return;
 
+        const editorCamera = (this.gameObject.layer as EditorLayer).viewportCamera;
+        if (!editorCamera || EditorLayer.lockedCameras.has(editorCamera)) return;
+
         const current = this.selectedObject;
         if (!current) return;
 
@@ -350,6 +353,9 @@ export class EditorLayer extends Layer {
     /** The viewport camera that last sent an event to this layer. Set by each ViewportWindow before dispatching. */
     public static activeViewportCamera: Camera | null = null;
 
+    /** Viewport cameras that are locked — they ignore selection changes. */
+    public static lockedCameras = new Set<Camera>();
+
     /** The editor's viewport camera — returns the active viewport's camera, or null. */
     public get viewportCamera(): Camera | null {
         return EditorLayer.activeViewportCamera;
@@ -361,9 +367,14 @@ export class EditorLayer extends Layer {
             shouldFollowSelection = true;
 
             // Center the active viewport camera on the newly selected object
+            const activeCamera = EditorLayer.activeViewportCamera;
+            if (activeCamera && EditorLayer.lockedCameras.has(activeCamera)) {
+                shouldFollowSelection = false;
+            }
+
             const selected = editorSelectionService.getSelectedGameObject();
-            if (selected && EditorLayer.activeViewportCamera) {
-                EditorLayer.activeViewportCamera.transform.position.assign(selected.transform.position);
+            if (selected && activeCamera && !EditorLayer.lockedCameras.has(activeCamera)) {
+                activeCamera.transform.position.assign(selected.transform.position);
             }
         });
 

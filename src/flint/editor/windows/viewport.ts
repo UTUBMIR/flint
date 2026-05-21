@@ -4,7 +4,7 @@ import type { IRenderer } from "@flint/shared/irenderer";
 import { System } from "@flint/runtime/system";
 import { SystemEvent } from "@flint/runtime/system-event";
 import { World } from "@flint/runtime/world";
-import { BaseEditorWindow, type WindowContext } from "../window-framework";
+import { BaseEditorWindow, type EditorWindowControl, type WindowContext } from "../window-framework";
 import { EditorLayer, ViewportNavigation } from "../editor-layer";
 import Camera from "@flint/runtime/components/camera";
 import GameObject from "@flint/runtime/game-object";
@@ -18,6 +18,7 @@ export default class ViewportWindow extends BaseEditorWindow {
     private readonly renderCallback: () => void;
     private readonly camera: Camera;
     private readonly navigation: ViewportNavigation;
+    private locked = false;
     private lastWidth = 0;
     private lastHeight = 0;
 
@@ -44,6 +45,27 @@ export default class ViewportWindow extends BaseEditorWindow {
         new GameObject([this.camera]); // wrap in GameObject for transform
 
         this.renderCallback = this.onRender.bind(this);
+    }
+
+    public override getControls(): readonly EditorWindowControl[] {
+        return [{
+            id: "viewport-lock",
+            icon: this.locked ? "lock-fill" : "unlock-fill",
+            title: this.locked
+                ? "Unlock viewport to follow selection"
+                : "Lock viewport to current camera position",
+            ariaLabel: this.locked ? "Unlock viewport" : "Lock viewport",
+            active: this.locked,
+            onClick: () => {
+                this.locked = !this.locked;
+                if (this.locked) {
+                    EditorLayer.lockedCameras.add(this.camera);
+                } else {
+                    EditorLayer.lockedCameras.delete(this.camera);
+                }
+                this.refreshControls();
+            }
+        }];
     }
 
     public override initialize(): void {
@@ -187,6 +209,7 @@ export default class ViewportWindow extends BaseEditorWindow {
             this.canvas.removeEventListener("wheel", onWheel);
             this.canvas.removeEventListener("contextmenu", onContextMenu);
             System.removeRenderTarget(this.renderCallback);
+            EditorLayer.lockedCameras.delete(this.camera);
             this.canvas.remove();
         });
     }
