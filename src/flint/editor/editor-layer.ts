@@ -10,7 +10,8 @@ import { Rect } from "../shared/primitives";
 import Vector2 from "../shared/vector2";
 import { editorSelectionService } from "./window-services";
 import { Drag } from "./interaction";
-import { System } from "../runtime/system";
+import { RunningState, System } from "../runtime/system";
+import Input from "../shared/input";
 import type { PhysicsWorld } from "@flint/runtime/physics-world";
 import PhysicsBody from "../runtime/components/physics/physics-body";
 
@@ -127,6 +128,8 @@ class DragComponent extends Shape {
     }
 
     private syncEditorCameraToSelection(): void {
+        if (navigateActive) return;
+
         const current = this.selectedObject;
         if (!current) return;
 
@@ -292,8 +295,49 @@ class VerticalDragComponent extends DragComponent {
 }
 
 
+let navigateActive = false;
+let selectionUnsubscribe: (() => void) | null = null;
+
+class ViewportNavigation {
+    private panning = false;
+    private previousMousePixels = new Vector2();
+    private speed = 10;
+
+    public update(editorCamera: Camera, dt: number, ppm: number): void {
+        if (System.runningState !== RunningState.RunningRenderingOnly) return;
+
+        // WASD movement
+        if (Input.isKeyPressed("KeyW")) { editorCamera.position.y -= this.speed * dt; navigateActive = true; }
+        if (Input.isKeyPressed("KeyS")) { editorCamera.position.y += this.speed * dt; navigateActive = true; }
+        if (Input.isKeyPressed("KeyA")) { editorCamera.position.x -= this.speed * dt; navigateActive = true; }
+        if (Input.isKeyPressed("KeyD")) { editorCamera.position.x += this.speed * dt; navigateActive = true; }
+
+        // Middle-mouse or right-mouse pan
+        if (Input.isMouseButtonPressed(1) || Input.isMouseButtonPressed(2)) {
+            const current = Input.mousePositionPixels;
+            if (this.panning) {
+                const delta = current.copy().subtract(this.previousMousePixels);
+                editorCamera.position.x += delta.x / ppm;
+                editorCamera.position.y += delta.y / ppm;
+            }
+            this.panning = true;
+            this.previousMousePixels = current.copy();
+            navigateActive = true;
+        } else {
+            this.panning = false;
+        }
+    }
+}
+
 export class EditorLayer extends Layer {
+    private readonly navigation = new ViewportNavigation();
+    private camera: Camera | null = null;
+
     public override attach(): void {
+        selectionUnsubscribe = editorSelectionService.subscribe(() => {
+            navigateActive = false;
+        });
+
         const positionDrag = new DragComponent(
             DragComponent.DEFAULT_COLOR,
             "rgba(0, 0, 0, 0)",
@@ -330,7 +374,23 @@ export class EditorLayer extends Layer {
                 verticalDrag
             ], new Transform(new Vector2(), new Vector2(0.13, 0.7))),
 
-            new GameObject([new Camera("rgba(0, 0, 0, 0)")])
+            new GameObject([this.camera = new Camera("rgba(0, 0, 0, 0)")])
         ]);
+    }
+
+    public override render(ctx: CanvasRenderingContext2D, renderer: IRenderer): void {
+        const editorCamera = this.cameras[0] ?? this.camera;
+        if (editorCamera && editorCamera.enabled) {
+            const world = System.world as Partial<{ pixelsPerMeter: number }>;
+            const ppm = typeof world.pixelsPerMeter === "number" && world.pixelsPerMeter > 0 ? world.pixelsPerMeter : 1;
+            this.navigation.update(editorCamera, System.deltaTime, ppm);
+        }
+        super.render(ctx, renderer);
+    }
+
+    public override destroy(): void {
+        selectionUnsubscribe?.();
+        selectionUnsubscribe = null;
+        super.destroy();
     }
 }
