@@ -18,12 +18,6 @@ import Transform from "./transform";
 
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
-
-export type Canvas = {
-    element: HTMLCanvasElement,
-    ctx: RenderingContext
-}
-
 type PlayConfig = {
     input: { name: string, bindings: { value: number, keys: { type: string, code: string[] }[] }[] }[]
 }
@@ -71,21 +65,13 @@ export class System {
     private static lastFrame: number;
     private static _deltaTime: number;
 
-    private static rootDiv: HTMLDivElement;
-    private static readonly canvasBindings: {
-        canvas: HTMLCanvasElement;
-        ctx: RenderingContext;
-        resize: () => void;
-        observer: ResizeObserver;
-    }[] = [];
+    private static readonly renderTargets: Set<() => void> = new Set();
 
     private static _rootSize = new Vector2();
     public static get rootSize(): Vector2 {
-        return System._rootSize.set(this.rootDiv.clientWidth, this.rootDiv.clientHeight);
+        return System._rootSize;
     }
 
-    private static readonly renderingContext = CanvasRenderingContext2D; //TODO: move this to a config file
-    private static _renderer: IRenderer;
     public static readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(false, true);
 
     private static _runningState: RunningState = RunningState.Stopped;
@@ -106,26 +92,17 @@ export class System {
         return 1 / this._deltaTime;
     }
 
-    public static get renderer(): IRenderer {
-        return this._renderer;
-    }
-
     public static setCursor(cursor: string) {
-        System.rootDiv.style.cursor = cursor;
+        document.body.style.cursor = cursor;
     }
 
-    public static setRootElement(rootElement: HTMLDivElement): void {
-        this.configureRootElement(rootElement);
-        this.rootDiv = rootElement;
-
-        for (const binding of this.canvasBindings) {
-            binding.observer.disconnect();
-            this.rootDiv.appendChild(binding.canvas);
-            binding.resize();
-            binding.observer.observe(this.rootDiv);
-        }
+    public static addRenderTarget(callback: () => void): void {
+        System.renderTargets.add(callback);
     }
 
+    public static removeRenderTarget(callback: () => void): void {
+        System.renderTargets.delete(callback);
+    }
 
     private constructor() { }
 
@@ -171,15 +148,12 @@ export class System {
 
 
     public static init(options: {
-        renderer: IRenderer,
         fileSystem?: AbstractFileSystem,
         playConfig?: PlayConfig,
         world: World
     }): void {
         System._world = options.world;
-        this.initRootDiv();
-        this._renderer = options.renderer;
-        Input.init(System.rootDiv);
+        Input.init();
 
         this.loadPlayConfig(options.playConfig ?? defaultPlayConfig);
 
@@ -187,7 +161,7 @@ export class System {
             this.fileSystem = options.fileSystem;
         }
 
-        this.rootDiv.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('contextmenu', event => event.preventDefault());
 
         for (const event of ["pointerdown", "pointermove", "pointerup"]) {
             document.addEventListener(event, this.sendEventToLayers.bind(this));
@@ -270,7 +244,10 @@ export class System {
         System.lastFrame = now;
 
         System._world.update();
-        System._world.render();
+
+        for (const target of System.renderTargets) {
+            target();
+        }
 
         TimerSystem.update(System._deltaTime);
 
@@ -281,90 +258,30 @@ export class System {
         System._deltaTime = (now - System.lastFrame) / 1000;
         System.lastFrame = now;
 
-        System._world.render();
+        for (const target of System.renderTargets) {
+            target();
+        }
 
         if (System._runningState === RunningState.RunningRenderingOnly) {
             requestAnimationFrame(System.renderOnlyTick);
         }
     }
 
-    public static createCanvas(): Canvas {
+    public static createCanvas(width: number, height: number): { element: HTMLCanvasElement, ctx: CanvasRenderingContext2D } {
         const canvas = document.createElement("canvas");
-        const ctxName = System.getContextName(System.renderingContext.name);
-        const ctx = canvas.getContext(ctxName);
+        const ctx = canvas.getContext("2d");
 
         if (!ctx) {
-            throw new Error(`Rendering context ${ctxName} was not found!`);
+            throw new Error("2D rendering context was not found!");
         }
 
-        System.addResizing(canvas, ctx);
+        canvas.width = Math.floor(width * System.dpr);
+        canvas.height = Math.floor(height * System.dpr);
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        ctx.scale(System.dpr, System.dpr);
 
-        System.rootDiv.appendChild(canvas);
-
-        return { element: canvas, ctx: ctx };
-    }
-
-    private static getContextName(ctxName: string): string {
-        switch (ctxName) {
-            case CanvasRenderingContext2D.name:
-                return "2d";
-            case WebGLRenderingContext.name:
-                return "webgl";
-            case WebGL2RenderingContext.name:
-                return "webgl2";
-            default:
-                throw new Error(`Unsupported context type: "${ctxName}"`);
-        }
-    }
-
-    private static addResizing(canvas: HTMLCanvasElement, ctx: RenderingContext) {
-        const resize = () => {
-            const width = System.rootDiv.clientWidth;
-            const height = System.rootDiv.clientHeight;
-
-            canvas.width = Math.floor(width * System.dpr);
-            canvas.height = Math.floor(height * System.dpr);
-
-            canvas.style.width = width + "px";
-            canvas.style.height = height + "px";
-
-            if (ctx instanceof CanvasRenderingContext2D) {
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctx.scale(System.dpr, System.dpr);
-            }
-        };
-
-        const ro = new ResizeObserver(() => {
-            setTimeout(() => {
-                resize();
-            }, 0);
-        });
-
-        resize();
-        ro.observe(this.rootDiv);
-        this.canvasBindings.push({
-            canvas,
-            ctx,
-            resize,
-            observer: ro
-        });
-    }
-
-    private static initRootDiv(id: string = "root") {
-        const div = document.getElementById(id);
-        if (!div || !(div instanceof HTMLDivElement)) {
-            throw new Error(`Html element with type "div" and id "${id}" was not found!`);
-        }
-
-        this.setRootElement(div);
-    }
-
-    private static configureRootElement(div: HTMLDivElement): void {
-        // Keep game-layer z-index ordering contained within the viewport root so
-        // editor overlays and floating panels can stack above the game surface.
-        div.style.position = "relative";
-        div.style.zIndex = "0";
-        div.style.isolation = "isolate";
+        return { element: canvas, ctx };
     }
 
     private static sendEventToLayers(event: Event): void {

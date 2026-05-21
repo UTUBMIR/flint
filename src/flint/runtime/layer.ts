@@ -1,14 +1,12 @@
 import type GameObject from "./game-object";
 import { type IRenderer } from "../shared/irenderer";
-import { RenderSystem, RunningState, System, type Canvas, type UUID } from "./system";
+import { RenderSystem, RunningState, System, type UUID } from "./system";
 import { SystemEventEmitter, SystemEvent } from "./system-event";
 import type Camera from "./components/camera";
 import Vector2 from "../shared/vector2";
 import type { PhysicsWorld } from "./physics-world";
 
 export default class Layer {
-    public canvas!: Canvas;
-    public renderer!: IRenderer;
     protected objects: GameObject[] = [];
     public readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(true, true);
     public readonly cameras: Camera[] = [];
@@ -48,31 +46,29 @@ export default class Layer {
 
     /**
      * Called every frame after {@link update}.
+     * @param ctx - The canvas rendering context to draw on.
      * @param renderer - The renderer used to draw this component.
      */
-    public render(): void {
-        this.renderObjects();
+    public render(ctx: CanvasRenderingContext2D, renderer: IRenderer): void {
+        this.renderObjects(ctx, renderer);
     }
 
     public detach(): void { }
 
     public destroy(): void {
         for (const obj of this.objects) obj.destroy();
-        this.canvas.element.remove();
     }
 
     protected updateObjects(): void {
         for (const obj of this.objects) obj.update();
     }
 
-    protected renderObjects(): void {
+    protected renderObjects(ctx: CanvasRenderingContext2D, renderer: IRenderer): void {
         if (this.cameras.length === 0) {
             return;
         }
-        this.renderer.setCanvas(this.canvas.element, this.canvas.ctx); //FIXME: make it work with more than one camera
-        this.renderer.clearCanvas();
 
-        const canvasHalf = new Vector2(this.canvas.ctx.canvas.width, this.canvas.ctx.canvas.height).divide(2).round();
+        const canvasHalf = new Vector2(ctx.canvas.width, ctx.canvas.height).divide(2).round();
         
         for (const camera of this.cameras) {
             if (camera.enabled) {
@@ -85,15 +81,15 @@ export default class Layer {
                     toPixels(camera.position.y)
                 );
 
-                this.renderer.fillColor = camera.backgroundColor;
-                this.renderer.fillCanvas();
-                this.renderer.resetTransform();
+                renderer.fillColor = camera.backgroundColor;
+                renderer.fillCanvas();
+                renderer.resetTransform();
 
-                this.renderer.translate(canvasHalf);
-                this.renderer.rotate(-camera.angle);
-                this.renderer.translate(Vector2.zero.subtract(cameraPos));
+                renderer.translate(canvasHalf);
+                renderer.rotate(-camera.angle);
+                renderer.translate(Vector2.zero.subtract(cameraPos));
 
-                this.renderSystem.render(this.renderer);
+                this.renderSystem.render(renderer);
             }
         }
     }

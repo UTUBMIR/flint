@@ -2,6 +2,7 @@ import type { GameSystem } from "./game-system";
 import type Layer from "./layer";
 import { System, type UUID } from "@flint/runtime/system";
 import type GameObject from "./game-object";
+import type { IRenderer } from "../shared/irenderer";
 
 
 export class World {
@@ -41,10 +42,6 @@ export class World {
      * @param init if `true` -> initialize layer
      */
     public addLayer(layer: Layer, init = true): void {
-        if (init) {
-            layer.canvas = System.createCanvas();
-            layer.renderer = System.renderer;
-        }
         System.eventEmitter.addEventListener(layer.onEvent.bind(layer));
 
         this.layers.push(layer);
@@ -101,7 +98,6 @@ export class World {
 
 
 
-
     public addSystem(system: GameSystem): void {
         if (this.systems.includes(system)) return;
 
@@ -137,10 +133,7 @@ export class World {
      * @deprecated
      */
     public sortLayers() {
-        for (let i = 0; i < this.layers.length; ++i) {
-            const layer = this.layers[i]!;
-            layer.canvas.element.style.zIndex = (-i+100).toString();
-        }
+        // No-op: layer z-ordering is now handled by render order
     }
 
 
@@ -196,13 +189,16 @@ export class World {
 
     public updateStep(): void { }
 
-    public render(): void {
+    public render(ctx: CanvasRenderingContext2D, renderer: IRenderer, layerFilter?: (layer: Layer) => boolean): void {
         for (const s of this.systems) {
             if (s.enabled) s.render();
         }
 
-        for (const l of this.layers) {
-            l.render();
+        // Render from bottom (highest index, lowest z) to top (index 0, highest z)
+        for (let i = this.layers.length - 1; i >= 0; i--) {
+            const layer = this.layers[i]!;
+            if (layerFilter && !layerFilter(layer)) continue;
+            layer.render(ctx, renderer);
         }
         this.renderStep();
     }

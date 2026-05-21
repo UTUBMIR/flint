@@ -57,7 +57,8 @@ const shoelaceIcons = [
     "text-left",
     "trash",
     "upload",
-    "badge-3d",
+    "tv",
+    "play-circle",
     "braces"
 ];
 

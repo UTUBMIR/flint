@@ -1,7 +1,7 @@
 import Editor from "../editor";
 import ProjectConfig from "./project-config";
 import { Builder } from "./builder";
-import { System, type UUID } from "../../runtime/system";
+import { RunningState, System, type UUID } from "../../runtime/system";
 import Metadata from "../../shared/metadata";
 import { ProjectLoader } from "../../runtime/project-loader";
 import type { BrowserFileSystem } from "../../shared/file-system";
@@ -134,6 +134,16 @@ export class Project {
 
     private constructor() { }
 
+    private static addEditorLayer(): void {
+        const layer = new EditorLayer();
+        System.eventEmitter.addEventListener(layer.onEvent.bind(layer));
+        System.world.unshiftLayer(layer);
+        layer.attach();
+        if (System.runningState === RunningState.Running) {
+            layer.start();
+        }
+    }
+
     static {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Project.createComponentDialog = document.getElementById("create-component-dialog")! as any;
@@ -183,7 +193,7 @@ export class Project {
         await Project.saveProject();
         Project.markAsSaved();
         if (!System.world.getLayers().some(layer => layer instanceof EditorLayer)) {
-            System.world.addLayer(new EditorLayer());
+            Project.addEditorLayer();
         }
         refreshEditorWindows("Hierarchy");
 
@@ -290,10 +300,9 @@ export class Project {
 
             if (editorLayer) {
                 System.world.unshiftLayer(editorLayer);
-                System.world.sortLayers();
             }
             else {
-                System.world.addLayer(new EditorLayer());
+                Project.addEditorLayer();
             }
 
             await Metadata.loadFromFile();

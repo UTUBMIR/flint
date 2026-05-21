@@ -919,6 +919,7 @@ export default class Editor {
 
             document.getElementById("reset-layout-button")!.addEventListener("click", ToolBarActions.resetLayout);
             document.getElementById("new-viewport-window-button")?.addEventListener("click", () => spawnEditorWindow("Viewport"));
+            document.getElementById("new-game-window-button")?.addEventListener("click", () => spawnEditorWindow("Game"));
             document.getElementById("new-code-editor-window-button")?.addEventListener("click", () => spawnEditorWindow("CodeEditor"));
             document.getElementById("new-hierarchy-window-button")?.addEventListener("click", () => spawnEditorWindow("Hierarchy"));
             document.getElementById("new-assets-window-button")?.addEventListener("click", () => spawnEditorWindow("Assets"));

@@ -14,6 +14,8 @@ export default class Input {
     public static mousePositionPixels: Vector2 = new Vector2(window.innerWidth / 2, window.innerHeight / 2);
     public static mousePosition: Vector2 = new Vector2(window.innerWidth / 2, window.innerHeight / 2);
 
+    private static _targetElement: HTMLElement | null = null;
+
     private constructor() { }
 
     public static get pressedKeyCount(): number {
@@ -26,6 +28,14 @@ export default class Input {
 
     public static isMouseButtonPressed(button: number): boolean {
         return this.pressedMouseButtons.has(button);
+    }
+
+    /**
+     * Sets the element to use as the reference for mouse position computation.
+     * Pointer coordinates are always clamped to this element's bounds.
+     */
+    public static setTargetElement(element: HTMLElement | null): void {
+        this._targetElement = element;
     }
 
     /**
@@ -44,8 +54,8 @@ export default class Input {
     }
 
 
-    public static init(root: HTMLElement) {
-        root = document.body;
+    public static init() {
+        const root = document.body;
         root.addEventListener("keydown", this.onKeyDown.bind(this), true);
         root.addEventListener("keyup", this.onKeyUp.bind(this), true);
 
@@ -61,9 +71,11 @@ export default class Input {
     }
 
     private static setMouseFromEvent(event: PointerEvent): void {
-        const canvasHalf = System.rootSize.divide(2).round();
+        const el = this._targetElement ?? (event.target as HTMLElement);
+        const rect = el.getBoundingClientRect();
+        const canvasHalf = new Vector2(rect.width, rect.height).divide(2).round();
 
-        this.mousePositionPixels.set(event.offsetX, event.offsetY)
+        this.mousePositionPixels.set(event.clientX - rect.left, event.clientY - rect.top)
             .subtract(canvasHalf)
             .multiply(System.dpr);
 

@@ -6,6 +6,7 @@ import CodeEditorWindow from "./windows/code-editor-window";
 import HierarchyWindow from "./windows/hierarchy";
 import InspectorWindow from "./windows/inspector";
 import ViewportWindow from "./windows/viewport";
+import GameWindow from "./windows/game";
 import { renderWindowControls } from "./window-controls";
 import { activeWindowService, editorAssetStore, editorSelectionService } from "./window-services";
 import type { EditorWindow, SpawnWindowOptions, WindowDefinition, WindowManagerApi, WindowType } from "./window-framework";
@@ -77,6 +78,7 @@ type LayoutStackItem = {
 
 const windowDefinitions: readonly WindowDefinition[] = [
     { type: "Viewport", title: "Viewport", create: context => new ViewportWindow(context) },
+    { type: "Game", title: "Game", create: context => new GameWindow(context) },
     { type: "CodeEditor", title: "Code Editor", create: context => new CodeEditorWindow(context) },
     { type: "Hierarchy", title: "Hierarchy", create: context => new HierarchyWindow(context) },
     { type: "Assets", title: "Assets", create: context => new AssetsWindow(context) },
@@ -451,7 +453,7 @@ function syncWindowControls(): void {
     }
 
     const stacks = new Set<LayoutStackItem>();
-    for (const type of ["Viewport", "CodeEditor", "Hierarchy", "Assets", "Inspector"] as const) {
+    for (const type of ["Game", "Viewport", "CodeEditor", "Hierarchy", "Assets", "Inspector"] as const) {
         for (const record of editorWindowRegistry.getRecordsOfType(type)) {
             const stack = (record.container as ComponentContainer & { parent?: LayoutStackItem }).parent;
             if (stack) {
@@ -494,6 +496,14 @@ function createViewportAndEditorStack() {
         size: "75%",
         isClosable: true,
         content: [
+            {
+                type: "component" as const,
+                componentType: "Game",
+                componentState: { windowType: "Game" },
+                title: "Game",
+                isClosable: true,
+                reorderEnabled: true
+            },
             {
                 type: "component" as const,
                 componentType: "Viewport",

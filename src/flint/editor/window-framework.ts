@@ -1,7 +1,7 @@
 import type { ComponentContainer, GoldenLayout } from "golden-layout";
 import type { activeWindowService, editorAssetStore, editorSelectionService } from "./window-services";
 
-export type WindowType = "Viewport" | "CodeEditor" | "Hierarchy" | "Assets" | "Inspector";
+export type WindowType = "Viewport" | "Game" | "CodeEditor" | "Hierarchy" | "Assets" | "Inspector";
 
 export type WindowServices = {
     selection: typeof editorSelectionService;

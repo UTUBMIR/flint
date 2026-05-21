@@ -1,10 +1,10 @@
-import Input from "../../shared/input";
 import { Renderer2D } from "../../shared/renderer2d";
 import type { IRenderer } from "../../shared/irenderer";
 import { System } from "../../runtime/system";
+import { EditorLayer } from "../editor-layer";
 import { BaseEditorWindow, type WindowContext } from "../window-framework";
 
-export default class ViewportWindow extends BaseEditorWindow {
+export default class GameWindow extends BaseEditorWindow {
     private readonly canvas: HTMLCanvasElement;
     private readonly ctx: CanvasRenderingContext2D;
     private readonly renderer: IRenderer;
@@ -14,7 +14,7 @@ export default class ViewportWindow extends BaseEditorWindow {
 
     public constructor(context: WindowContext) {
         super(context);
-        this.root.className = "panel-content viewport-panel";
+        this.root.className = "panel-content game-panel";
         this.root.style.position = "relative";
         this.root.style.overflow = "hidden";
 
@@ -26,7 +26,7 @@ export default class ViewportWindow extends BaseEditorWindow {
 
         const ctx = this.canvas.getContext("2d");
         if (!ctx) {
-            throw new Error("Failed to get 2D context for Viewport canvas");
+            throw new Error("Failed to get 2D context for Game canvas");
         }
         this.ctx = ctx;
         this.renderer = new Renderer2D();
@@ -36,9 +36,7 @@ export default class ViewportWindow extends BaseEditorWindow {
 
     public override initialize(): void {
         System.addRenderTarget(this.renderCallback);
-        Input.setTargetElement(this.canvas);
         this.registerCleanup(() => {
-            Input.setTargetElement(null);
             System.removeRenderTarget(this.renderCallback);
             this.canvas.remove();
         });
@@ -72,10 +70,10 @@ export default class ViewportWindow extends BaseEditorWindow {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.restore();
 
-        // Render all layers (including EditorLayer) for viewport
+        // Render only game layers (filter out EditorLayer)
         const world = System.world;
         if (world) {
-            world.render(this.ctx, this.renderer);
+            world.render(this.ctx, this.renderer, layer => !(layer instanceof EditorLayer));
         }
     }
 }
