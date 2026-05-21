@@ -2,14 +2,10 @@ import type GameObject from "./game-object";
 import { type IRenderer } from "../shared/irenderer";
 import { RenderSystem, RunningState, System, type UUID } from "./system";
 import { SystemEventEmitter, SystemEvent } from "./system-event";
-import type Camera from "./components/camera";
-import Vector2 from "../shared/vector2";
-import type { PhysicsWorld } from "./physics-world";
 
 export default class Layer {
     protected objects: GameObject[] = [];
     public readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(true, true);
-    public readonly cameras: Camera[] = [];
 
     public readonly id: UUID;
 
@@ -64,34 +60,7 @@ export default class Layer {
     }
 
     protected renderObjects(ctx: CanvasRenderingContext2D, renderer: IRenderer): void {
-        if (this.cameras.length === 0) {
-            return;
-        }
-
-        const canvasHalf = new Vector2(ctx.canvas.width, ctx.canvas.height).divide(2).round();
-        
-        for (const camera of this.cameras) {
-            if (camera.enabled) {
-                const world = System.world as Partial<PhysicsWorld>;
-                const toPixels = typeof world.toPixels === "function"
-                    ? world.toPixels.bind(world)
-                    : (value: number) => value;
-                const cameraPos = camera.position.copy().set(
-                    toPixels(camera.position.x),
-                    toPixels(camera.position.y)
-                );
-
-                renderer.fillColor = camera.backgroundColor;
-                renderer.fillCanvas();
-                renderer.resetTransform();
-
-                renderer.translate(canvasHalf);
-                renderer.rotate(-camera.angle);
-                renderer.translate(Vector2.zero.subtract(cameraPos));
-
-                this.renderSystem.render(renderer);
-            }
-        }
+        this.renderSystem.render(renderer);
     }
 
     public addObject<T extends GameObject>(object: T): T {

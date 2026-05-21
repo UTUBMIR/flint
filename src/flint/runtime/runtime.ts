@@ -5,6 +5,7 @@ import { Renderer2D } from "../shared/renderer2d";
 import type Component from "./component";
 import Metadata from "../shared/metadata";
 import type { World } from "./world";
+import Camera from "./components/camera";
 
 export class Runtime {
     public constructor(private options: {
@@ -69,7 +70,22 @@ export class Runtime {
 
             const world = System.world;
             if (world) {
-                world.render(ctx, renderer);
+                const allLayers = world.getLayers();
+                // Find the first enabled camera in any layer
+                let gameCamera: Camera | undefined;
+                for (const layer of allLayers) {
+                    for (const obj of layer.getObjects()) {
+                        const cam = obj.getComponent(Camera);
+                        if (cam && cam.enabled) {
+                            gameCamera = cam;
+                            break;
+                        }
+                    }
+                    if (gameCamera) break;
+                }
+                if (gameCamera) {
+                    gameCamera.renderLayers(ctx, renderer, [...allLayers]);
+                }
             }
         });
     }

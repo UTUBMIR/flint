@@ -3,6 +3,8 @@ import type { IRenderer } from "../../shared/irenderer";
 import { System } from "../../runtime/system";
 import { EditorLayer } from "../editor-layer";
 import { BaseEditorWindow, type WindowContext } from "../window-framework";
+import Camera from "../../runtime/components/camera";
+import type Layer from "../../runtime/layer";
 
 export default class GameWindow extends BaseEditorWindow {
     private readonly canvas: HTMLCanvasElement;
@@ -42,6 +44,16 @@ export default class GameWindow extends BaseEditorWindow {
         });
     }
 
+    private static findFirstEnabledCamera(layers: readonly Layer[]): Camera | undefined {
+        for (const layer of layers) {
+            for (const obj of layer.getObjects()) {
+                const camera = obj.getComponent(Camera);
+                if (camera && camera.enabled) return camera;
+            }
+        }
+        return undefined;
+    }
+
     private onRender(): void {
         const dpr = System.dpr;
         const width = this.root.clientWidth;
@@ -70,10 +82,15 @@ export default class GameWindow extends BaseEditorWindow {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.restore();
 
-        // Render only game layers (filter out EditorLayer)
         const world = System.world;
-        if (world) {
-            world.render(this.ctx, this.renderer, layer => !(layer instanceof EditorLayer));
+        if (!world) return;
+
+        const gameLayers = world.getLayers().filter(l => !(l instanceof EditorLayer));
+
+        // Find and render from the first enabled game camera
+        const gameCamera = GameWindow.findFirstEnabledCamera(gameLayers);
+        if (gameCamera) {
+            gameCamera.renderLayers(this.ctx, this.renderer, gameLayers);
         }
     }
 }

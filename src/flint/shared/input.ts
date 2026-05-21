@@ -143,7 +143,7 @@ export default class Input {
         this.setMouseFromEvent(event);
     }
 
-    private static updateInputAxes() {
+    public static updateInputAxes() {
         for (const inputAxis of this.inputAxes) {
             inputAxis.update();
         }

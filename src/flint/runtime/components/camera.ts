@@ -2,6 +2,10 @@ import { FieldInspector } from "@flint/shared/metadata";
 import type { ColorString } from "../../shared/graphics";
 import Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
+import type { IRenderer } from "../../shared/irenderer";
+import type { PhysicsWorld } from "../physics-world";
+import type Layer from "../layer";
+import { System } from "../system";
 
 export default class Camera extends RendererComponent {
     public enabled: boolean = true;
@@ -42,13 +46,39 @@ export default class Camera extends RendererComponent {
         return this.transform.rotation;
     }
 
-    //TODO: implement camera stuff
     public override attach(): void {
-        this.gameObject.layer.cameras.push(this);
+        // Camera orchestrates rendering; it does not register as a visual component
     }
 
     public override detach(): void {
-        const cameras = this.gameObject.layer.cameras;
-        cameras.splice(cameras.indexOf(this), 1);
+        // No-op
+    }
+
+    public renderLayers(ctx: CanvasRenderingContext2D, renderer: IRenderer, layers: Layer[]): void {
+        if (!this.enabled) return;
+
+        const canvasHalf = new Vector2(ctx.canvas.width, ctx.canvas.height).divide(2).round();
+
+        const world = System.world as Partial<PhysicsWorld>;
+        const toPixels = typeof world.toPixels === "function"
+            ? world.toPixels.bind(world)
+            : (value: number) => value;
+        const cameraPos = this.position.copy().set(
+            toPixels(this.position.x),
+            toPixels(this.position.y)
+        );
+
+        renderer.fillColor = this.backgroundColor;
+        renderer.fillCanvas();
+        renderer.resetTransform();
+
+        renderer.translate(canvasHalf);
+        renderer.rotate(-this.angle);
+        renderer.translate(Vector2.zero.subtract(cameraPos));
+
+        // Render from bottom (highest index) to top (lowest index) — matches World.render() order
+        for (let i = layers.length - 1; i >= 0; i--) {
+            layers[i]!.renderSystem.render(renderer);
+        }
     }
 }

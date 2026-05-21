@@ -11,7 +11,6 @@ import Vector2 from "../shared/vector2";
 import { editorSelectionService } from "./window-services";
 import { Drag } from "./interaction";
 import { RunningState, System } from "../runtime/system";
-import Input from "../shared/input";
 import type { PhysicsWorld } from "@flint/runtime/physics-world";
 import PhysicsBody from "../runtime/components/physics/physics-body";
 
@@ -133,11 +132,12 @@ class DragComponent extends Shape {
         const current = this.selectedObject;
         if (!current) return;
 
-        const camera = current.layer.cameras[0];
+        const camera = current.getComponent(Camera)
+            ?? current.layer.getObjects().find(o => o.getComponent(Camera))?.getComponent(Camera);
         if (!camera) return;
 
         const targetTransform = camera.transform;
-        const editorTransform = this.gameObject.layer.cameras[0]!.transform; // NOTE: Editor controls the camera
+        const editorTransform = (this.gameObject.layer as EditorLayer).viewportCamera!.transform;
         editorTransform.position.assign(targetTransform.position);
         editorTransform.size.assign(targetTransform.size);
     }
@@ -239,7 +239,7 @@ class DragComponent extends Shape {
     }
 
     private configureDrag(drag: Drag): void {
-        drag.cameraProvider = () => this.gameObject.layer.cameras[0];
+        drag.cameraProvider = () => (this.gameObject.layer as EditorLayer).viewportCamera ?? undefined;
         drag.onGrab = this.setDraggedBodyStatic.bind(this);
         drag.onGrabbing = this.syncDraggedPositionToSelectedObject.bind(this);
         drag.onRelease = this.restoreDraggedBodyType.bind(this);
@@ -298,24 +298,29 @@ class VerticalDragComponent extends DragComponent {
 let navigateActive = false;
 let selectionUnsubscribe: (() => void) | null = null;
 
+/** Viewport-scoped input state — populated by ViewportWindow and consumed by ViewportNavigation. */
+export const viewportPressedKeys = new Set<string>();
+export const viewportPressedMouseButtons = new Set<number>();
+export const viewportFrameMovement = new Vector2();
+
 class ViewportNavigation {
     private panning = false;
     private speed = 10;
 
     public update(editorCamera: Camera, dt: number, ppm: number): void {
-        if (System.runningState !== RunningState.RunningRenderingOnly) return;
+        if (System.runningState === RunningState.Stopped || System.runningState === RunningState.RunningPaused) return;
 
         // WASD movement
-        if (Input.isKeyPressed("KeyW")) { editorCamera.position.y -= this.speed * dt; navigateActive = true; }
-        if (Input.isKeyPressed("KeyS")) { editorCamera.position.y += this.speed * dt; navigateActive = true; }
-        if (Input.isKeyPressed("KeyA")) { editorCamera.position.x -= this.speed * dt; navigateActive = true; }
-        if (Input.isKeyPressed("KeyD")) { editorCamera.position.x += this.speed * dt; navigateActive = true; }
+        if (viewportPressedKeys.has("KeyW")) { editorCamera.position.y -= this.speed * dt; navigateActive = true; }
+        if (viewportPressedKeys.has("KeyS")) { editorCamera.position.y += this.speed * dt; navigateActive = true; }
+        if (viewportPressedKeys.has("KeyA")) { editorCamera.position.x -= this.speed * dt; navigateActive = true; }
+        if (viewportPressedKeys.has("KeyD")) { editorCamera.position.x += this.speed * dt; navigateActive = true; }
 
         // Middle-mouse or right-mouse pan (uses per-frame movement delta, works with pointer lock)
-        if (Input.isMouseButtonPressed(1) || Input.isMouseButtonPressed(2)) {
+        if (viewportPressedMouseButtons.has(1) || viewportPressedMouseButtons.has(2)) {
             this.panning = true;
             navigateActive = true;
-            const delta = Input.frameMovementPixels;
+            const delta = viewportFrameMovement;
             if (delta.x !== 0 || delta.y !== 0) {
                 editorCamera.position.x += delta.x / ppm;
                 editorCamera.position.y += delta.y / ppm;
@@ -329,6 +334,11 @@ class ViewportNavigation {
 export class EditorLayer extends Layer {
     private readonly navigation = new ViewportNavigation();
     private camera: Camera | null = null;
+
+    /** The editor's viewport camera — used by the ViewportWindow to render all layers. */
+    public get viewportCamera(): Camera | null {
+        return this.camera;
+    }
 
     public override attach(): void {
         selectionUnsubscribe = editorSelectionService.subscribe(() => {
@@ -375,26 +385,14 @@ export class EditorLayer extends Layer {
         ]);
     }
 
-    public override render(ctx: CanvasRenderingContext2D, renderer: IRenderer): void {
-        const editorCamera = this.cameras[0] ?? this.camera;
+    /** Runs viewport navigation updates. Called by ViewportWindow each frame. */
+    public updateViewportNavigation(dt: number): void {
+        const editorCamera = this.camera;
         if (editorCamera && editorCamera.enabled) {
             const world = System.world as Partial<{ pixelsPerMeter: number }>;
             const ppm = typeof world.pixelsPerMeter === "number" && world.pixelsPerMeter > 0 ? world.pixelsPerMeter : 1;
-            this.navigation.update(editorCamera, System.deltaTime, ppm);
-
-            // Keep game cameras in sync with the editor camera so the full viewport moves together
-            if (System.runningState === RunningState.RunningRenderingOnly) {
-                for (const layer of System.world.getLayers()) {
-                    if (layer === this) continue;
-                    if (layer.cameras.length > 0) {
-                        const gameCam = layer.cameras[0]!;
-                        gameCam.transform.position.assign(editorCamera.transform.position);
-                        gameCam.transform.size.assign(editorCamera.transform.size);
-                    }
-                }
-            }
+            this.navigation.update(editorCamera, dt, ppm);
         }
-        super.render(ctx, renderer);
     }
 
     public override destroy(): void {
