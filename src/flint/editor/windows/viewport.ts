@@ -279,6 +279,10 @@ export default class ViewportWindow extends BaseEditorWindow {
             this.renderer.resetTransform();
         }
 
+        // Sync gizmo drag positions with the updated camera so the dragged object
+        // follows the camera in the same frame instead of lagging one frame behind.
+        editorLayer?.updateDragGizmos();
+
         // Render every layer from this viewport's camera perspective
         this.camera.renderLayers(this.ctx, this.renderer, [...allLayers]);
 

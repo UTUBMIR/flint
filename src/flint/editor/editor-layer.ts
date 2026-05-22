@@ -432,6 +432,13 @@ export class EditorLayer extends Layer {
         ]);
     }
 
+    public updateDragGizmos(): void {
+        for (const obj of this.objects) {
+            const dragComponent = obj.getComponent(DragComponent);
+            dragComponent?.update?.();
+        }
+    }
+
     public override destroy(): void {
         selectionUnsubscribe?.();
         selectionUnsubscribe = null;
