@@ -6,6 +6,7 @@ export const MetadataKeys = {
     NonSerialized: Symbol.for("shared.non-serialized"),
     FieldInspector: Symbol.for("editor.field-renderer"),
     FieldInspectorOptions: Symbol.for("editor.field-renderer-options"),
+    FieldInspectorRange: Symbol.for("editor.field-range"),
     HideInInspector: Symbol.for("editor.hide-in-inspector"),
     EditorName: Symbol.for("editor.editor-name"),
     SerializeType: Symbol.for("shared.serialize-type")
@@ -114,6 +115,18 @@ export function SelectInspector(options: readonly string[]) {
     return function (_: undefined, context: MetadataFieldContext) {
         defineFieldMetadata(context, MetadataKeys.FieldInspector, "select");
         defineFieldMetadata(context, MetadataKeys.FieldInspectorOptions, [...options]);
+    };
+}
+
+/**
+ * Constrains a numeric field to the given range.
+ * Works with `@FieldInspector("number")`, `@FieldInspector("angle")`, etc.
+ * When both `min` and `max` are finite, the inspector shows a slider + number input.
+ * Pass `null` for an unbounded side: `@Range(0, null)` = no negative values.
+ */
+export function Range(min: number | null, max: number | null) {
+    return function (_: undefined, context: MetadataFieldContext) {
+        defineFieldMetadata(context, MetadataKeys.FieldInspectorRange, { min, max });
     };
 }
 

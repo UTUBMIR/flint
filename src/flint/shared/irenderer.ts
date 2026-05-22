@@ -29,6 +29,7 @@ export interface IRenderer {
 
     translate(position: Vector2): void;
     rotate(angle: number): void;
+    scale(x: number, y: number): void;
 
     clearCanvas(): void;
     fillCanvas(): void;

@@ -72,6 +72,10 @@ export class Renderer2D implements IRenderer {
         this.ctx.rotate(angle);
     }
 
+    public scale(x: number, y: number): void {
+        this.ctx.scale(x, y);
+    }
+
     private updateFont() {
         this.ctx.font = this._fontSize.toString() + "px" + " " + this._fontStyle;
     }

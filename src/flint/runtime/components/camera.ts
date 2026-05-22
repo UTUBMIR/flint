@@ -1,4 +1,4 @@
-import { FieldInspector } from "@flint/shared/metadata";
+import { FieldInspector, Range } from "@flint/shared/metadata";
 import type { ColorString } from "../../shared/graphics";
 import Vector2 from "../../shared/vector2";
 import RendererComponent from "../renderer-component";
@@ -48,15 +48,20 @@ export default class Camera extends RendererComponent {
     @FieldInspector("boolean")
     public isMainCamera: boolean = false;
 
+    /** Zoom level of the camera. 1 = normal, >1 = zoomed in, <1 = zoomed out. */
+    @Range(0.01, null)
+    @FieldInspector("number")
+    public zoom: number = 1;
+
     /**
      * Converts a screen-space position (in world/physics units, relative to the screen center)
      * into a world-space position (in world/physics units) using the given camera transform.
      */
     public screenPhysicsToWorld(screenPosition: Vector2) {
-        return Camera.screenPhysicsToWorldAt(screenPosition, this.position, this.angle);
+        return Camera.screenPhysicsToWorldAt(screenPosition, this.position, this.angle, this.zoom);
     }
 
-    public static screenPhysicsToWorldAt(screenPosition: Vector2, cameraPosition: Vector2, cameraAngle: number): Vector2 {
+    public static screenPhysicsToWorldAt(screenPosition: Vector2, cameraPosition: Vector2, cameraAngle: number, zoom: number = 1): Vector2 {
         const cos = Math.cos(cameraAngle);
         const sin = Math.sin(cameraAngle);
 
@@ -65,7 +70,7 @@ export default class Camera extends RendererComponent {
             screenPosition.x * sin + screenPosition.y * cos
         );
 
-        return cameraPosition.copy().add(rotated);
+        return cameraPosition.copy().add(rotated.divide(zoom));
     }
 
     public constructor(backgroundColor?: ColorString) {
@@ -116,6 +121,7 @@ export default class Camera extends RendererComponent {
         renderer.resetTransform();
 
         renderer.translate(canvasHalf);
+        renderer.scale(this.zoom, this.zoom);
         renderer.rotate(-this.angle);
         renderer.translate(Vector2.zero.subtract(cameraPos));
 

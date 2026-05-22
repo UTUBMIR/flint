@@ -177,6 +177,7 @@ export default class ViewportWindow extends BaseEditorWindow {
             if (document.activeElement !== this.canvas && document.pointerLockElement !== this.canvas) return;
             ev.preventDefault();
             stop(ev);
+            this.navigation.applyZoomDelta(ev.deltaY);
         };
 
         const onContextMenu = (ev: MouseEvent) => {

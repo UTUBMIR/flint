@@ -319,17 +319,33 @@ export class ViewportNavigation {
 
     private panning = false;
     private speed = 10;
+    private zoomTarget = 1;
+    private readonly zoomSensitivity = 0.001;
+
+    /** Apply a zoom delta from a mouse wheel event. Negative deltaY = zoom in, positive = zoom out. */
+    public applyZoomDelta(deltaY: number): void {
+        this.zoomTarget *= Math.exp(-deltaY * this.zoomSensitivity);
+    }
 
     public update(editorCamera: Camera, dt: number, ppm: number): void {
         if (System.runningState === RunningState.Stopped || System.runningState === RunningState.RunningPaused) return;
 
+        // Smooth zoom
+        const zoomDiff = this.zoomTarget - editorCamera.zoom;
+        if (Math.abs(zoomDiff) > 0.001) {
+            editorCamera.zoom += zoomDiff * Math.min(1, dt * 8);
+        } else {
+            editorCamera.zoom = this.zoomTarget;
+        }
+
         let didMove = false;
 
-        // WASD movement
-        if (this.pressedKeys.has("KeyW")) { editorCamera.position.y -= this.speed * dt; didMove = true; }
-        if (this.pressedKeys.has("KeyS")) { editorCamera.position.y += this.speed * dt; didMove = true; }
-        if (this.pressedKeys.has("KeyA")) { editorCamera.position.x -= this.speed * dt; didMove = true; }
-        if (this.pressedKeys.has("KeyD")) { editorCamera.position.x += this.speed * dt; didMove = true; }
+        // WASD movement (speed scales with zoom so panning feels consistent)
+        const adjustedSpeed = this.speed / editorCamera.zoom;
+        if (this.pressedKeys.has("KeyW")) { editorCamera.position.y -= adjustedSpeed * dt; didMove = true; }
+        if (this.pressedKeys.has("KeyS")) { editorCamera.position.y += adjustedSpeed * dt; didMove = true; }
+        if (this.pressedKeys.has("KeyA")) { editorCamera.position.x -= adjustedSpeed * dt; didMove = true; }
+        if (this.pressedKeys.has("KeyD")) { editorCamera.position.x += adjustedSpeed * dt; didMove = true; }
 
         // Middle-mouse or right-mouse pan (uses per-frame movement delta, works with pointer lock)
         if (this.pressedMouseButtons.has(1) || this.pressedMouseButtons.has(2)) {
@@ -337,8 +353,8 @@ export class ViewportNavigation {
             didMove = true;
             const delta = this.frameMovement;
             if (delta.x !== 0 || delta.y !== 0) {
-                editorCamera.position.x += delta.x / ppm;
-                editorCamera.position.y += delta.y / ppm;
+                editorCamera.position.x += delta.x / ppm / editorCamera.zoom;
+                editorCamera.position.y += delta.y / ppm / editorCamera.zoom;
             }
         } else {
             this.panning = false;
