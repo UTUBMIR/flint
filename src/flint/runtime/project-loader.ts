@@ -264,7 +264,6 @@ function restorePrototypesDeep(
             restorePrototypesDeep(new StrongRef(loaded.value, key), fieldTemplate, true);
         }
     }
-    console.log(loaded.value);
 }
 
 
@@ -322,19 +321,11 @@ export class ProjectLoader {
 
                     scheduler.add(LoadPhase.Create, () => {
                         if (instance instanceof Transform) {
-                            console.log("Before restore 1: ");
-                            console.log(rawComp);
-                            console.log(instance);
-                            console.log("Restore...");
                             restorePrototypesDeep(
                                 new StrongRef(rawComp, "data"),
                                 instance,
                                 false
                             );
-                            console.log("After restore 1: ");
-                            console.log(rawComp);
-                            console.log(instance);
-                            console.log("And, that's it!");
                             Object.assign(go.transform, rawComp.data);
                         } else {
                             go.addComponent(instance);
