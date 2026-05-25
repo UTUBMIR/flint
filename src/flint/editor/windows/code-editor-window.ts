@@ -1,5 +1,5 @@
-import { CodeEditor } from "../code-editor";
-import { BaseEditorWindow, type WindowContext } from "../window-framework";
+import { CodeEditor } from "../ui/code-editor";
+import { BaseEditorWindow, type WindowContext } from "../ui/window-framework";
 
 export default class CodeEditorWindow extends BaseEditorWindow {
     private readonly editorContainer: HTMLDivElement;

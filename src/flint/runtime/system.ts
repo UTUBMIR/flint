@@ -1,19 +1,19 @@
-import Input from "../shared/input";
-import type { IRenderer } from "../shared/irenderer";
+import Input from "@flint/shared/input";
+import type { IRenderer } from "@flint/shared/irenderer";
 import { SystemEvent, SystemEventEmitter } from "./system-event";
 import defaultPlayConfig from "./config/play-config.json" with { type: 'json' };
-import type { AxisBinding } from "../shared/input-axis";
-import InputAxis from "../shared/input-axis";
+import type { AxisBinding } from "@flint/shared/input-axis";
+import InputAxis from "@flint/shared/input-axis";
 import type Component from "./component";
-import Metadata, { MetadataKeys } from "../shared/metadata";
+import Metadata, { MetadataKeys } from "@flint/shared/metadata";
 
 //default components
 import type RendererComponent from "./renderer-component";
 import type Camera from "./components/camera";
 
-import { type AbstractFileSystem } from "../shared/file-system";
+import { type AbstractFileSystem } from "@flint/shared/file-system";
 import { TimerSystem } from "./timers";
-import Vector2 from "../shared/vector2";
+import Vector2 from "@flint/shared/vector2";
 import type { World } from "./world";
 import Transform from "./transform";
 

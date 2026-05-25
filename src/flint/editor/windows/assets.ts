@@ -1,6 +1,6 @@
 import { Project } from "../project/project";
 import ProjectConfig from "../project/project-config";
-import { BaseEditorWindow, type EditorWindowState, type WindowContext } from "../window-framework";
+import { BaseEditorWindow, type EditorWindowState, type WindowContext } from "../ui/window-framework";
 import type { AssetData } from "../asset-types";
 
 export default class AssetsWindow extends BaseEditorWindow {

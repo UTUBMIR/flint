@@ -1,7 +1,7 @@
-import type { IRenderer } from "../../shared/irenderer";
-import type { ColorString, TextAlign, TextBaseLine } from "../../shared/graphics";
+import type { IRenderer } from "@flint/shared/irenderer";
+import type { ColorString, TextAlign, TextBaseLine } from "@flint/shared/graphics";
 import { FieldInspector, SelectInspector } from "@flint/shared/metadata";
-import Vector2 from "../../shared/vector2";
+import Vector2 from "@flint/shared/vector2";
 import RendererComponent from "../renderer-component";
 import { System } from "../system";
 import type { PhysicsWorld } from "../physics-world";

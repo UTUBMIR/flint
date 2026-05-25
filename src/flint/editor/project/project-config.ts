@@ -1,4 +1,4 @@
-import { System } from "../../runtime/system";
+import { System } from "@flint/runtime/system";
 
 type ConfigType = {
     components: { name: string, file: string }[]

@@ -1,18 +1,18 @@
-import GameObject from "../runtime/game-object";
-import Layer from "../runtime/layer";
-import Vector2 from "../shared/vector2";
+import GameObject from "@flint/runtime/game-object";
+import Layer from "@flint/runtime/layer";
+import Vector2 from "@flint/shared/vector2";
 import Bundler from "./project/bundler";
 import { Project } from "./project/project";
 import type HierarchyWindow from "./windows/hierarchy";
 import { EditorName as EditorName } from "./windows/hierarchy";
 
-import Transform from "../runtime/transform";
-import { System } from "../runtime/system";
+import Transform from "@flint/runtime/transform";
+import { System } from "@flint/runtime/system";
 import { Builder } from "./project/builder";
 import * as Physics from "@flint/runtime/components/physics-index";
 import * as Components from "@flint/runtime/components/index";
-import type Component from "../runtime/component";
-import { CodeEditor } from "./code-editor";
+import type Component from "@flint/runtime/component";
+import { CodeEditor } from "./ui/code-editor";
 import { SettingsWindow, type SettingsChangedEventDetail, type SettingsValue } from "./settings/settings-window";
 import type SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog.component.js";
 import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
@@ -22,12 +22,14 @@ import type SlSelect from "@shoelace-style/shoelace/dist/components/select/selec
 import type SlCopyButton from "@shoelace-style/shoelace/dist/components/copy-button/copy-button.js";
 import ProjectConfig from "./project/project-config";
 import { AbstractFileSystem } from "@flint/shared/file-system";
-import { AssetRegistry, AssetType } from "../runtime/assets";
-import { activeWindowService, editorAssetStore } from "./window-services";
-import type { ProjectData } from "../runtime/project-loader";
+import { AssetRegistry, AssetType } from "@flint/runtime/assets";
+import { activeWindowService, editorAssetStore } from "./ui/window-services";
+import type { ProjectData } from "@flint/runtime/project-loader";
 import { RecentProjectsAccess } from "./recent-projects";
 
 import { refreshEditorWindows, resetEditorLayout, spawnEditorWindow, getEditorWindowsOfType } from "./layout";
+import { Notifier } from "./notifier";
+import { UnsavedChangesDialog } from "./unsaved-changes-dialog";
 
 export type ProjectTemplateFile = {
     path: string;
@@ -171,86 +173,6 @@ export class ProcessIndicator {
     public static clearAll() {
         ProcessIndicator.processes.clear();
         ProcessIndicator._render();
-    }
-}
-
-export type UnsavedChoice = "save" | "discard" | "cancel";
-
-export class UnsavedChangesDialog {
-    private static dialog: HTMLElement & { show: () => void; hide: () => void };
-    private static saveBtn: HTMLElement;
-    private static discardBtn: HTMLElement;
-    private static cancelBtn: HTMLElement;
-    private static resolveCallback: ((choice: UnsavedChoice) => void) | null = null;
-
-    public static init() {
-        UnsavedChangesDialog.dialog = document.getElementById("unsaved-changes-dialog") as HTMLElement & { show: () => void; hide: () => void };
-        UnsavedChangesDialog.saveBtn = document.getElementById("unsaved-save-btn")!;
-        UnsavedChangesDialog.discardBtn = document.getElementById("unsaved-discard-btn")!;
-        UnsavedChangesDialog.cancelBtn = document.getElementById("unsaved-cancel-btn")!;
-
-        UnsavedChangesDialog.saveBtn.addEventListener("click", () => {
-            UnsavedChangesDialog.resolveCallback?.("save");
-            UnsavedChangesDialog.dialog.hide();
-        });
-
-        UnsavedChangesDialog.discardBtn.addEventListener("click", () => {
-            UnsavedChangesDialog.resolveCallback?.("discard");
-            UnsavedChangesDialog.dialog.hide();
-        });
-
-        UnsavedChangesDialog.cancelBtn.addEventListener("click", () => {
-            UnsavedChangesDialog.resolveCallback?.("cancel");
-            UnsavedChangesDialog.dialog.hide();
-        });
-
-        UnsavedChangesDialog.dialog.addEventListener("sl-request-close", (event: any) => {
-            if (event.detail?.source === "overlay") {
-                event.preventDefault();
-            }
-        });
-    }
-
-    public static async show(): Promise<UnsavedChoice> {
-        return new Promise((resolve) => {
-            UnsavedChangesDialog.resolveCallback = resolve;
-            UnsavedChangesDialog.dialog.show();
-        });
-    }
-}
-
-export class Notifier {
-    public static escapeHtml(html: string) {
-        const div = document.createElement("div");
-        div.textContent = html;
-        return div.innerHTML;
-    }
-
-    public static async notify(message: string, variant: "primary" | "success" | "neutral" | "warning" | "danger", duration = 4000) {
-        const icons = {
-            "primary": "info-circle",
-            "success": "check2-circle",
-            "neutral": "gear",
-            "warning": "exclamation-triangle",
-            "danger": "exclamation-octagon",
-        };
-
-        const alert = Object.assign(document.createElement("sl-alert"), {
-            countdown: "ltr",
-            variant,
-            closable: true,
-            duration: duration,
-            innerHTML: `
-        <sl-icon name="${icons[variant]}" slot="icon"></sl-icon>
-        ${this.escapeHtml(message)}
-      `
-        });
-
-        document.body.append(alert);
-        await customElements.whenDefined("sl-alert");
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (alert as any).toast();
     }
 }
 

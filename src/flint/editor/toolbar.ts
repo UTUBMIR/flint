@@ -1,8 +1,8 @@
-import type { SystemEvent } from "../runtime/system-event";
-import type { ColorString } from "../shared/graphics";
-import type { IRenderer } from "../shared/irenderer";
-import { Rect } from "../shared/primitives";
-import Vector2 from "../shared/vector2";
+import type { SystemEvent } from "@flint/runtime/system-event";
+import type { ColorString } from "@flint/shared/graphics";
+import type { IRenderer } from "@flint/shared/irenderer";
+import { Rect } from "@flint/shared/primitives";
+import Vector2 from "@flint/shared/vector2";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
 import { Button } from "./interaction";
 

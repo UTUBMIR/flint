@@ -564,7 +564,7 @@ export class FloatingPanelManager {
         button.className = "flint-tab-undock";
         button.setAttribute("aria-label", "Close panel");
         button.title = "Close panel";
-const closeIcon = document.createElement("sl-icon");
+        const closeIcon = document.createElement("sl-icon");
         closeIcon.setAttribute("name", "x-lg");
         closeIcon.setAttribute("aria-hidden", "true");
         button.appendChild(closeIcon);

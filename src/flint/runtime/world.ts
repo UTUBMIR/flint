@@ -2,7 +2,7 @@ import type { GameSystem } from "./game-system";
 import type Layer from "./layer";
 import { System, type UUID } from "@flint/runtime/system";
 import type GameObject from "./game-object";
-import type { IRenderer } from "../shared/irenderer";
+import type { IRenderer } from "@flint/shared/irenderer";
 
 
 export class World {

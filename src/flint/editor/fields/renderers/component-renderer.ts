@@ -1,7 +1,7 @@
 import { BaseDropRenderer } from "./base-drop-renderer";
-import { System } from "../../../runtime/system";
-import type Component from "../../../runtime/component";
-import Metadata, { MetadataKeys } from "../../../shared/metadata";
+import { System } from "@flint/runtime/system";
+import type Component from "@flint/runtime/component";
+import Metadata, { MetadataKeys } from "@flint/shared/metadata";
 
 export class ComponentRenderer extends BaseDropRenderer<Component> {
     public canRender(type: string) {

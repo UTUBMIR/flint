@@ -1,4 +1,4 @@
-import { AbstractFileSystem } from "../shared/file-system";
+import { AbstractFileSystem } from "@flint/shared/file-system";
 import { System, type UUID } from "./system";
 
 export enum AssetType {

@@ -1,8 +1,8 @@
 import { FieldInspector, Range } from "@flint/shared/metadata";
-import type { ColorString } from "../../shared/graphics";
-import Vector2 from "../../shared/vector2";
+import type { ColorString } from "@flint/shared/graphics";
+import Vector2 from "@flint/shared/vector2";
 import RendererComponent from "../renderer-component";
-import type { IRenderer } from "../../shared/irenderer";
+import type { IRenderer } from "@flint/shared/irenderer";
 import type { PhysicsWorld } from "../physics-world";
 import type Layer from "../layer";
 import { System } from "../system";

@@ -1,6 +1,7 @@
 import type Component from "@flint//runtime/component";
 import { System } from "@flint/runtime/system";
-import { Notifier, ProcessIndicator } from "@flint/editor/editor";
+import { ProcessIndicator } from "@flint/editor/editor";
+import { Notifier } from "../notifier";
 import Bundler from "./bundler";
 import ModuleLoader from "./module-loader";
 import { Project } from "./project";
@@ -10,7 +11,7 @@ import type { AssetData } from "../asset-types";
 import { AssetRegistry } from "@flint/runtime/assets";
 import { ProjectLoader } from "@flint/runtime/project-loader";
 import { HotReload } from "@flint/runtime/hot-reload";
-import { editorAssetStore } from "../window-services";
+import { editorAssetStore } from "../ui/window-services";
 
 import * as basicComponents from "@flint/runtime/components/index";
 import * as physicsComponents from "@flint/runtime/components/physics-index";
@@ -162,7 +163,7 @@ export class Builder {
 import * as basicComponents from "@flint/runtime/components/index";
 import * as gameIndex from "./index";
 import { Runtime } from "@flint/runtime/runtime";
-${preview ? `import { EditorBridge } from "@flint/editor/editor-bridge";` : ""}
+${preview ? `import { EditorBridge } from "@flint/editor/project/editor-bridge";` : ""}
 ${ProjectConfig.config.usePhysics ? 'import { PhysicsWorld as World } from "@flint/runtime/physics-world";\nimport * as physicsComponents from "@flint/runtime/components/physics-index";' : 'import { World } from "./flint/runtime/world";'}
 import { ProjectLoader } from "@flint/runtime/project-loader";
 

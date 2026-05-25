@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type GameObject from "../../runtime/game-object";
-import type Component from "../../runtime/component";
-import { System, type UUID } from "../../runtime/system";
-import Metadata, { MetadataKeys } from "../../shared/metadata";
-import { ComponentBuilder } from "../component-builder";
+import type GameObject from "@flint/runtime/game-object";
+import type Component from "@flint/runtime/component";
+import { System, type UUID } from "@flint/runtime/system";
+import Metadata, { MetadataKeys } from "@flint/shared/metadata";
+import { ComponentBuilder } from "../fields/component-builder";
 import { CasingHandler } from "../casing-handler";
-import { BaseEditorWindow, type EditorWindowControl, type EditorWindowState, type WindowContext } from "../window-framework";
-import { Notifier } from "../editor";
+import { BaseEditorWindow, type EditorWindowControl, type EditorWindowState, type WindowContext } from "../ui/window-framework";
+import { Notifier } from "../notifier";
 
 class InspectorComponent {
     public readonly element: HTMLElement;

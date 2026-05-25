@@ -1,19 +1,19 @@
 import Editor from "../editor";
 import ProjectConfig from "./project-config";
 import { Builder } from "./builder";
-import { RunningState, System, type UUID } from "../../runtime/system";
-import Metadata from "../../shared/metadata";
-import { ProjectLoader } from "../../runtime/project-loader";
-import type { BrowserFileSystem } from "../../shared/file-system";
-import { AbstractFileSystem as AbstractFileSystem } from "../../shared/file-system";
-import { AssetRegistry } from "../../runtime/assets";
+import { RunningState, System, type UUID } from "@flint/runtime/system";
+import Metadata from "@flint/shared/metadata";
+import { ProjectLoader } from "@flint/runtime/project-loader";
+import type { BrowserFileSystem } from "@flint/shared/file-system";
+import { AbstractFileSystem as AbstractFileSystem } from "@flint/shared/file-system";
+import { AssetRegistry } from "@flint/runtime/assets";
 import { EditorLayer as EditorLayer } from "../editor-layer";
 
 import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
 import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
-import { CodeEditor } from "../code-editor";
+import { CodeEditor } from "../ui/code-editor";
 import { CasingHandler } from "../casing-handler";
-import { activeWindowService, editorAssetStore, editorSelectionService } from "../window-services";
+import { activeWindowService, editorAssetStore, editorSelectionService } from "../ui/window-services";
 import { refreshEditorWindows } from "../layout";
 
 type ProjectArchiveEntry = {

@@ -1,5 +1,5 @@
-import { System } from "../runtime/system";
-import { World } from "../runtime/world";
+import { System } from "@flint/runtime/system";
+import { World } from "@flint/runtime/world";
 import type InputAxis from "./input-axis";
 import Vector2 from "./vector2";
 

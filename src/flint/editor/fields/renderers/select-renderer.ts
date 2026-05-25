@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Metadata, { MetadataKeys } from "../../../shared/metadata";
+import Metadata, { MetadataKeys } from "@flint/shared/metadata";
 import type { FieldRenderer, GetType, SetType } from "../field-renderer";
 
 import type SlSelect from "@shoelace-style/shoelace/dist/components/select/select.js";

@@ -1,5 +1,5 @@
-import type { IRenderer } from "../../shared/irenderer";
-import Vector2 from "../../shared/vector2";
+import type { IRenderer } from "@flint/shared/irenderer";
+import Vector2 from "@flint/shared/vector2";
 import RendererComponent from "../renderer-component";
 import { AssetHandle } from "../assets";
 import { System, type UUID } from "../system";

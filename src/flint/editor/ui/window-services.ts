@@ -1,7 +1,7 @@
-import type GameObject from "../runtime/game-object";
-import { System, type UUID } from "../runtime/system";
-import type Layer from "../runtime/layer";
-import type { AssetData } from "./asset-types";
+import type GameObject from "@flint/runtime/game-object";
+import { System, type UUID } from "@flint/runtime/system";
+import type Layer from "@flint/runtime/layer";
+import type { AssetData } from "../asset-types";
 import type { WindowType } from "./window-framework";
 
 type Listener<T> = (value: T) => void;

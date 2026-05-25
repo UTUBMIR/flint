@@ -1,11 +1,11 @@
 import Component from "./component";
-import Vector2 from "../shared/vector2";
+import Vector2 from "@flint/shared/vector2";
 import { FieldInspector } from "@flint/shared/metadata";
 
 export default class Transform extends Component {
     public position: Vector2;
     public size: Vector2;
-    
+
     @FieldInspector("angle")
     public rotation: number;
 

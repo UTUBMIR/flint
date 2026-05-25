@@ -1,20 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Component from "./../runtime/component";
-import GameObject from "../runtime/game-object";
-import type { FieldBehavior } from "./fields/field-behaviour";
-import type { FieldRenderer } from "./fields/field-renderer";
-import { NumberRenderer } from "./fields/renderers/number-renderer";
-import { WheelScrubBehavior } from "./fields/behaviours/wheel-scrub-behaviour";
-import { DragScrubBehavior } from "./fields/behaviours/drag-scrub-behaviour";
-import { ColorRenderer } from "./fields/renderers/color-renderer";
-import { StringRenderer } from "./fields/renderers/string-renderer";
-import Metadata, { MetadataKeys } from "../shared/metadata";
-import { AngleRenderer } from "./fields/renderers/angle-renderer";
-import { BooleanRenderer } from "./fields/renderers/boolean-renderer";
-import { GameObjectRenderer } from "./fields/renderers/game-object-renderer";
-import { ComponentRenderer } from "./fields/renderers/component-renderer";
-import { SelectRenderer } from "./fields/renderers/select-renderer";
-import { CasingHandler } from "./casing-handler";
+import Component from "@flint/runtime/component";
+import GameObject from "@flint/runtime/game-object";
+import type { FieldBehavior } from "./field-behaviour";
+import type { FieldRenderer } from "./field-renderer";
+import { NumberRenderer } from "./renderers/number-renderer";
+import { WheelScrubBehavior } from "./behaviours/wheel-scrub-behaviour";
+import { DragScrubBehavior } from "./behaviours/drag-scrub-behaviour";
+import { ColorRenderer } from "./renderers/color-renderer";
+import { StringRenderer } from "./renderers/string-renderer";
+import Metadata, { MetadataKeys } from "@flint/shared/metadata";
+import { AngleRenderer } from "./renderers/angle-renderer";
+import { BooleanRenderer } from "./renderers/boolean-renderer";
+import { GameObjectRenderer } from "./renderers/game-object-renderer";
+import { ComponentRenderer } from "./renderers/component-renderer";
+import { SelectRenderer } from "./renderers/select-renderer";
+import { CasingHandler } from "../casing-handler";
 
 
 export class RendererRegistry {

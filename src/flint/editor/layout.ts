@@ -1,15 +1,15 @@
 import { type ComponentContainer, GoldenLayout, LayoutConfig, type ResolvedComponentItemConfig, RowOrColumn } from "golden-layout";
-import { CodeEditor } from "./code-editor";
-import { FloatingPanelManager, type FloatingPanelState } from "./floating-panels";
+import { CodeEditor } from "./ui/code-editor";
+import { FloatingPanelManager, type FloatingPanelState } from "./ui/floating-panels";
 import AssetsWindow from "./windows/assets";
 import CodeEditorWindow from "./windows/code-editor-window";
 import HierarchyWindow from "./windows/hierarchy";
 import InspectorWindow from "./windows/inspector";
 import ViewportWindow from "./windows/viewport";
 import GameWindow from "./windows/game";
-import { renderWindowControls } from "./window-controls";
-import { activeWindowService, editorAssetStore, editorSelectionService } from "./window-services";
-import type { EditorWindow, SpawnWindowOptions, WindowDefinition, WindowManagerApi, WindowType } from "./window-framework";
+import { renderWindowControls } from "./ui/window-controls";
+import { activeWindowService, editorAssetStore, editorSelectionService } from "./ui/window-services";
+import type { EditorWindow, SpawnWindowOptions, WindowDefinition, WindowManagerApi, WindowType } from "./ui/window-framework";
 
 const STORAGE_KEY = "flint.editor.layout";
 const HOST_ID = "layout-host";

@@ -1,4 +1,4 @@
-import type { RawProjectData } from "../runtime/project-loader";
+import type { RawProjectData } from "@flint/runtime/project-loader";
 
 export class EditorBridge {
     public static async attach(projectData: RawProjectData) {

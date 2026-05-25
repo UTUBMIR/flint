@@ -1,9 +1,9 @@
-import type { IRenderer } from "../shared/irenderer";
-import Vector2 from "../shared/vector2";
+import type { IRenderer } from "@flint/shared/irenderer";
+import Vector2 from "@flint/shared/vector2";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
-import type { ColorString } from "../shared/graphics";
-import { Rect } from "../shared/primitives";
-import type { SystemEvent } from "../runtime/system-event";
+import type { ColorString } from "@flint/shared/graphics";
+import { Rect } from "@flint/shared/primitives";
+import type { SystemEvent } from "@flint/runtime/system-event";
 
 
 export default abstract class Window {
@@ -78,7 +78,7 @@ export default abstract class Window {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public onRenderContent(r: IRenderer): void { };
-    
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public onEvent(event: SystemEvent) {
 

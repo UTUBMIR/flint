@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BehaviorRegistry } from "../../component-builder";
+import { BehaviorRegistry } from "../component-builder";
 import type { FieldRenderer, GetType, SetType } from "../field-renderer";
 
 import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";

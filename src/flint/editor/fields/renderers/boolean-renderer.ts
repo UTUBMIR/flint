@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BehaviorRegistry } from "../../component-builder";
+import { BehaviorRegistry } from "../component-builder";
 import type { FieldRenderer, GetType, SetType } from "../field-renderer";
 
 import type SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox.js";

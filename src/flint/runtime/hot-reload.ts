@@ -1,5 +1,5 @@
 import type Component from "./component";
-import Metadata, { MetadataKeys } from "../shared/metadata";
+import Metadata, { MetadataKeys } from "@flint/shared/metadata";
 import { System } from "./system";
 
 export class HotReload {

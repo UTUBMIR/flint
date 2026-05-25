@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type Layer from "../runtime/layer";
-import { System, type UUID } from "../runtime/system";
+import type Layer from "@flint/runtime/layer";
+import { System, type UUID } from "@flint/runtime/system";
 
 export const MetadataKeys = {
     NonSerialized: Symbol.for("shared.non-serialized"),

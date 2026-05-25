@@ -1,18 +1,18 @@
-import Camera from "../runtime/components/camera";
-import Shape from "../runtime/components/shape";
-import GameObject from "../runtime/game-object";
-import Layer from "../runtime/layer";
-import type { SystemEvent } from "../runtime/system-event";
-import Transform from "../runtime/transform";
-import type { IRenderer } from "../shared/irenderer";
-import { Color, type ColorString } from "../shared/graphics";
-import { Rect } from "../shared/primitives";
-import Vector2 from "../shared/vector2";
-import { editorSelectionService } from "./window-services";
+import Camera from "@flint/runtime/components/camera";
+import Shape from "@flint/runtime/components/shape";
+import GameObject from "@flint/runtime/game-object";
+import Layer from "@flint/runtime/layer";
+import type { SystemEvent } from "@flint/runtime/system-event";
+import Transform from "@flint/runtime/transform";
+import type { IRenderer } from "@flint/shared/irenderer";
+import { Color, type ColorString } from "@flint/shared/graphics";
+import { Rect } from "@flint/shared/primitives";
+import Vector2 from "@flint/shared/vector2";
+import { editorSelectionService } from "./ui/window-services";
 import { Drag } from "./interaction";
-import { RunningState, System } from "../runtime/system";
+import { RunningState, System } from "@flint/runtime/system";
 import type { PhysicsWorld } from "@flint/runtime/physics-world";
-import PhysicsBody from "../runtime/components/physics/physics-body";
+import PhysicsBody from "@flint/runtime/components/physics/physics-body";
 
 type DragPalette = {
     fill: ColorString;

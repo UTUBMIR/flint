@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Metadata, { MetadataKeys } from "../shared/metadata";
+import Metadata, { MetadataKeys } from "@flint/shared/metadata";
 import { AssetRegistry, AssetRequestSystem, type AssetMeta } from "./assets";
 import Component from "./component";
 import GameObject from "./game-object";

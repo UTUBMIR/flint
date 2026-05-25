@@ -4,7 +4,7 @@ import type { IRenderer } from "@flint/shared/irenderer";
 import { System } from "@flint/runtime/system";
 import { SystemEvent } from "@flint/runtime/system-event";
 import { World } from "@flint/runtime/world";
-import { BaseEditorWindow, type EditorWindowControl, type WindowContext } from "../window-framework";
+import { BaseEditorWindow, type EditorWindowControl, type WindowContext } from "../ui/window-framework";
 import { EditorLayer, ViewportNavigation } from "../editor-layer";
 import Camera from "@flint/runtime/components/camera";
 import GameObject from "@flint/runtime/game-object";

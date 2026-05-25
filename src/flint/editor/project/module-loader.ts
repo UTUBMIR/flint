@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AssetRegistry } from "../../runtime/assets";
-import { System } from "../../runtime/system";
-import { TimerSystem } from "../../runtime/timers";
-import Input from "../../shared/input";
-import Metadata from "../../shared/metadata";
-import Camera from "../../runtime/components/camera";
+import { AssetRegistry } from "@flint/runtime/assets";
+import { System } from "@flint/runtime/system";
+import { TimerSystem } from "@flint/runtime/timers";
+import Input from "@flint/shared/input";
+import Metadata from "@flint/shared/metadata";
+import Camera from "@flint/runtime/components/camera";
 
 export default class ModuleLoader {
     private constructor() { }

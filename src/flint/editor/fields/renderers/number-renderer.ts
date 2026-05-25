@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BehaviorRegistry } from "../../component-builder";
+import { BehaviorRegistry } from "../component-builder";
 import type { FieldRenderer, GetType, SetType } from "../field-renderer";
-import Metadata, { MetadataKeys } from "../../../shared/metadata";
+import Metadata, { MetadataKeys } from "@flint/shared/metadata";
 
 import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
 import type SlRange from "@shoelace-style/shoelace/dist/components/range/range.js";

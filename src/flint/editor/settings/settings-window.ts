@@ -4,7 +4,8 @@ import type SlTabPanel from "@shoelace-style/shoelace/dist/components/tab-panel/
 import type SlTabGroup from "@shoelace-style/shoelace/dist/components/tab-group/tab-group.component.js";
 import { SettingsBuilder, type ButtonActions, type SettingsSchema } from "./settings-builder";
 import settingsSchema from "./settings-schema.json" with { type: 'json' };
-import Editor, { Notifier } from "../editor";
+import Editor from "../editor";
+import { Notifier } from "../notifier";
 import { Project } from "../project/project";
 
 export const enum ButtonId {

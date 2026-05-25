@@ -1,12 +1,15 @@
-import Input from "../shared/input";
+import Input from "@flint/shared/input";
 import { System } from "./system";
 import { ProjectLoader, type RawProjectData } from "./project-loader";
-import { Renderer2D } from "../shared/renderer2d";
+import { Renderer2D } from "@flint/shared/renderer2d";
 import type Component from "./component";
-import Metadata from "../shared/metadata";
+import Metadata from "@flint/shared/metadata";
 import type { World } from "./world";
 import Camera from "./components/camera";
-
+/**
+ * Main entry point for running a game project.
+ * Owns the render surface, wires up the ECS world, and drives the game loop.
+ */
 export class Runtime {
     public constructor(private options: {
         components: Record<string, typeof Component>;
@@ -23,6 +26,12 @@ export class Runtime {
         this.createRenderSurface();
     }
 
+    /**
+     * Creates a full-screen canvas.
+     * Registers its render callback with the System.
+     * Called every frame so the canvas fills the viewport.
+     * The active camera drives what gets drawn.
+     */
     private createRenderSurface(): void {
         const canvas = document.createElement("canvas");
         canvas.style.position = "fixed";
@@ -47,8 +56,10 @@ export class Runtime {
             const width = window.innerWidth;
             const height = window.innerHeight;
 
+            // Skip frames when the window is minimized.
             if (width === 0 || height === 0) return;
 
+            // Resize canvas backing store to match display size × DPR for HiDPI. Re-allocate only on change to avoid churn.
             if (width !== lastWidth || height !== lastHeight) {
                 lastWidth = width;
                 lastHeight = height;
@@ -63,6 +74,7 @@ export class Runtime {
 
             renderer.setCanvas(canvas, ctx);
 
+            // Clear all physical pixels before drawing the next frame (reset transform covers the full backing store).
             ctx.save();
             ctx.resetTransform();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -71,7 +83,7 @@ export class Runtime {
             const world = System.world;
             if (world) {
                 const allLayers = world.getLayers();
-                // Find the first enabled camera in any layer
+                // Only one active camera drives the view. Scan layers breadth-first for the first enabled one.
                 let gameCamera: Camera | undefined;
                 for (const layer of allLayers) {
                     for (const obj of layer.getObjects()) {
@@ -91,6 +103,11 @@ export class Runtime {
     }
 
 
+    /**
+     * After construction the caller must call start().
+     * Two-phase setup lets the caller attach listeners
+     * between surface creation and the first frame.
+     */
     public async start() {
         this.registerComponents();
         await this.loadProject();
@@ -98,12 +115,21 @@ export class Runtime {
         System.run();
     }
 
+    /**
+     * Register component types by name.
+     * Lets the loader look them up during deserialisation.
+     */
     private registerComponents() {
         for (const [name, value] of Object.entries(this.options.components)) {
             System.registerComponent(name, value);
         }
     }
 
+    /**
+     * Deserialise and load project data in two steps.
+     * The first pass may produce cross-references,
+     * like asset references needing a second pass.
+     */
     private async loadProject() {
         const data = ProjectLoader.deserialize(this.options.projectData);
         await ProjectLoader.load(data);

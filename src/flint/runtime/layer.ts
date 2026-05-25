@@ -1,5 +1,5 @@
 import type GameObject from "./game-object";
-import { type IRenderer } from "../shared/irenderer";
+import { type IRenderer } from "@flint/shared/irenderer";
 import { RenderSystem, RunningState, System, type UUID } from "./system";
 import { SystemEventEmitter, SystemEvent } from "./system-event";
 

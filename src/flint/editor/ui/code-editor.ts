@@ -1,6 +1,6 @@
 import type { ComponentContainer } from "golden-layout";
 import { System } from "@flint/runtime/system";
-import ProjectConfig from "./project/project-config";
+import ProjectConfig from "../project/project-config";
 import type { WindowType } from "./window-framework";
 
 type ExportResult = {

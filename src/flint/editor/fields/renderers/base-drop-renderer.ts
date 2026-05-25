@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BehaviorRegistry } from "../../component-builder";
+import { BehaviorRegistry } from "../component-builder";
 import type { FieldRenderer, GetType, SetType } from "../field-renderer";
 
 export abstract class BaseDropRenderer<T> implements FieldRenderer {
@@ -63,5 +63,5 @@ export abstract class BaseDropRenderer<T> implements FieldRenderer {
         return dropzone;
     }
 
-    public update(): void {}
+    public update(): void { }
 }

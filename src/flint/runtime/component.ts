@@ -1,7 +1,7 @@
 import type GameObject from "./game-object";
 import type Transform from "./transform";
 import { HideInInspector } from "@flint/shared/metadata";
-import { NonSerialized } from "../shared/metadata";
+import { NonSerialized } from "@flint/shared/metadata";
 
 export default abstract class Component {
     /**

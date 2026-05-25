@@ -1,13 +1,13 @@
-import type { SystemEvent } from "../runtime/system-event";
-import Input from "../shared/input";
-import type { IRenderer } from "../shared/irenderer";
-import { Rect } from "../shared/primitives";
-import Vector2 from "../shared/vector2";
+import type { SystemEvent } from "@flint/runtime/system-event";
+import Input from "@flint/shared/input";
+import type { IRenderer } from "@flint/shared/irenderer";
+import { Rect } from "@flint/shared/primitives";
+import Vector2 from "@flint/shared/vector2";
 import Editor from "./editor";
 import visualsConfig from "./config/visuals.json" with { type: 'json' };
-import type { ColorString } from "../shared/graphics";
-import { System } from "../runtime/system";
-import type Camera from "../runtime/components/camera";
+import type { ColorString } from "@flint/shared/graphics";
+import { System } from "@flint/runtime/system";
+import type Camera from "@flint/runtime/components/camera";
 
 function getToPixelsConverter(): (value: number) => number {
     const world = System.world as Partial<{ toPixels: (value: number) => number }>;

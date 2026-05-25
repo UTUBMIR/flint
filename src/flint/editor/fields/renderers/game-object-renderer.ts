@@ -1,7 +1,7 @@
 import { BaseDropRenderer } from "./base-drop-renderer";
-import type GameObject from "../../../runtime/game-object";
-import { System, type UUID } from "../../../runtime/system";
-import Metadata, { MetadataKeys } from "../../../shared/metadata";
+import type GameObject from "@flint/runtime/game-object";
+import { System, type UUID } from "@flint/runtime/system";
+import Metadata, { MetadataKeys } from "@flint/shared/metadata";
 
 export class GameObjectRenderer extends BaseDropRenderer<GameObject> {
     public canRender(type: string) {
@@ -12,7 +12,7 @@ export class GameObjectRenderer extends BaseDropRenderer<GameObject> {
         const id = dt.getData("application/x-gameobject-id");
         if (!id) return null;
 
-        return System.world.getGameObjectById(id as UUID)??null;
+        return System.world.getGameObjectById(id as UUID) ?? null;
     }
 
     protected stringify(go: GameObject | null): string {

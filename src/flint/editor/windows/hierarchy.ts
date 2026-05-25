@@ -1,10 +1,10 @@
-import GameObject from "../../runtime/game-object";
-import Layer from "../../runtime/layer";
-import { System, type UUID } from "../../runtime/system";
-import Metadata, { MetadataKeys } from "../../shared/metadata";
+import GameObject from "@flint/runtime/game-object";
+import Layer from "@flint/runtime/layer";
+import { System, type UUID } from "@flint/runtime/system";
+import Metadata, { MetadataKeys } from "@flint/shared/metadata";
 import { EditorLayer } from "../editor-layer";
 import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
-import { BaseEditorWindow, type WindowContext } from "../window-framework";
+import { BaseEditorWindow, type WindowContext } from "../ui/window-framework";
 
 /**
  * Sets a name for and object, exists only in the Editor.

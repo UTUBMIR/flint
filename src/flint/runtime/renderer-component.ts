@@ -1,4 +1,4 @@
-import type { IRenderer } from "../shared/irenderer";
+import type { IRenderer } from "@flint/shared/irenderer";
 import Component from "./component";
 
 export default class RendererComponent extends Component {

@@ -1,10 +1,10 @@
-import { Renderer2D } from "../../shared/renderer2d";
-import type { IRenderer } from "../../shared/irenderer";
-import { System } from "../../runtime/system";
+import { Renderer2D } from "@flint/shared/renderer2d";
+import type { IRenderer } from "@flint/shared/irenderer";
+import { System } from "@flint/runtime/system";
 import { EditorLayer } from "../editor-layer";
-import { BaseEditorWindow, type WindowContext } from "../window-framework";
-import Camera from "../../runtime/components/camera";
-import type Layer from "../../runtime/layer";
+import { BaseEditorWindow, type WindowContext } from "../ui/window-framework";
+import Camera from "@flint/runtime/components/camera";
+import type Layer from "@flint/runtime/layer";
 
 export default class GameWindow extends BaseEditorWindow {
     private readonly canvas: HTMLCanvasElement;
