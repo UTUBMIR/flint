@@ -1,6 +1,7 @@
 import type Component from "@flint//runtime/component";
 import { System } from "@flint/runtime/system";
 import { ProcessIndicator } from "@flint/editor/editor";
+import Editor from "@flint/editor/editor";
 import { Notifier } from "../notifier";
 import Bundler from "./bundler";
 import ModuleLoader from "./module-loader";
@@ -268,6 +269,8 @@ ${js}
             Notifier.notify("Open project first.", "danger");
             return false;
         }
+
+        await Promise.all([Bundler.esbuildReady, Editor.engineFilesReady]);
 
         Bundler.files.clear();
         Bundler.files.set("index.ts", ProjectConfig.fullIndex);

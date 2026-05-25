@@ -376,9 +376,17 @@ export default class Editor {
     }
 
     private static _running = false;
+    private static _resolveEngineFilesReady: () => void;
+    public static engineFilesReady: Promise<void>;
 
     public static get running(): boolean {
         return this._running;
+    }
+
+    static {
+        Editor.engineFilesReady = new Promise<void>((resolve) => {
+            Editor._resolveEngineFilesReady = resolve;
+        });
     }
 
     private constructor() { }
@@ -783,7 +791,10 @@ export default class Editor {
 
     public static init(): void {
         Editor.addBasicComponents();
-        Bundler.init();
+        const esbuildIndicator = ProcessIndicator.startProcess("Loading esbuild.wasm", "neutral");
+        Bundler.init()
+            .then(() => esbuildIndicator.complete("esbuild.wasm loaded"))
+            .catch(() => esbuildIndicator.fail("Failed to load esbuild.wasm"));
 
         document.addEventListener("dblclick", e => {
             e.preventDefault();
@@ -980,6 +991,7 @@ export class Rotate extends Component {
         await Promise.all(tasks);
 
         indicator.complete("Engine loaded");
+        Editor._resolveEngineFilesReady();
     }
 
     public static updateWindowFields() {

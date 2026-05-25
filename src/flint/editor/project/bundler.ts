@@ -8,8 +8,17 @@ export default class Bundler {
     public static files = new Map<string, string>();
     public static flintFiles = new Map<string, string>();
 
+    private static _resolveEsbuildReady: () => void;
+    public static esbuildReady: Promise<void>;
+
     private static esbuild: typeof import("esbuild-wasm");
     private static stripEditorDecorators = false;
+
+    static {
+        Bundler.esbuildReady = new Promise<void>((resolve) => {
+            Bundler._resolveEsbuildReady = resolve;
+        });
+    }
     private static readonly editorDecoratorPattern =
         /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector)(\s*\([^)]*\))?\s*$/gm;
 
@@ -336,13 +345,17 @@ export default class Bundler {
     }
 
     public static async init() {
-        if (!Bundler.esbuild) {
-            const { default: esbuild } = await dynamicImport(__FLINT_ESBUILD_MODULE_URL__);
-            await esbuild.initialize({
-                wasmURL: new URL(__FLINT_ESBUILD_WASM_URL__, window.location.href).toString(),
-            });
+        try {
+            if (!Bundler.esbuild) {
+                const { default: esbuild } = await dynamicImport(__FLINT_ESBUILD_MODULE_URL__);
+                await esbuild.initialize({
+                    wasmURL: new URL(__FLINT_ESBUILD_WASM_URL__, window.location.href).toString(),
+                });
 
-            Bundler.esbuild = esbuild;
+                Bundler.esbuild = esbuild;
+            }
+        } finally {
+            Bundler._resolveEsbuildReady();
         }
         return Bundler;
     }
@@ -353,6 +366,7 @@ export default class Bundler {
         sourceMap?: boolean,
         options: { stripEditorDecorators?: boolean } = {}
     ) {
+        await Bundler.esbuildReady;
         const previousStripEditorDecorators = Bundler.stripEditorDecorators;
         Bundler.stripEditorDecorators = options.stripEditorDecorators ?? false;
 
