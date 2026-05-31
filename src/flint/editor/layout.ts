@@ -738,6 +738,9 @@ export function initializeEditorLayout(): GoldenLayout {
 
     (window as any).__flint = { System, Metadata, GameObject, Layer };
 
+    layout.setSize(host.clientWidth || 1, host.clientHeight || 1);
+    layout.resizeWithContainerAutomatically = true;
+
     let saveTimeout: number | undefined;
     currentFloatingPanels = new FloatingPanelManager(layout, host, () => {
         window.clearTimeout(saveTimeout);
@@ -909,6 +912,9 @@ export function initializePopoutWindow(config: PopoutComponentConfig): void {
         config.instanceId,
         config.title
     ));
+
+    layout.setSize(host.clientWidth || 1, host.clientHeight || 1);
+    layout.resizeWithContainerAutomatically = true;
 }
 
 export function spawnEditorWindow(type: WindowType, options?: SpawnWindowOptions): string {
