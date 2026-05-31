@@ -395,7 +395,8 @@ export class FloatingPanelManager {
         private readonly layout: GoldenLayout,
         private readonly host: HTMLElement,
         private readonly onChanged: () => void,
-        private readonly getWindowControls: (componentItem: ComponentItem) => readonly EditorWindowControl[] = () => []
+        private readonly getWindowControls: (componentItem: ComponentItem) => readonly EditorWindowControl[] = () => [],
+        private readonly onPopout: (componentItem: ComponentItem) => void = () => { }
     ) {
         this.internalLayout = layout as InternalLayout;
         this.overlay = this.createOverlay();
@@ -578,6 +579,32 @@ export class FloatingPanelManager {
             tab.componentItem.remove();
         });
         tabElement.appendChild(button);
+
+        const componentType = tab.componentItem?.componentType as string | undefined;
+        const POPOUT_ELIGIBLE = ["CodeEditor", "Hierarchy", "Assets", "Inspector"];
+        if (componentType && POPOUT_ELIGIBLE.includes(componentType)) {
+            const popoutButton = document.createElement("button");
+
+            popoutButton.type = "button";
+            popoutButton.className = "flint-tab-undock flint-tab-popout";
+            popoutButton.setAttribute("aria-label", "Open in separate window");
+            popoutButton.title = "Open in separate window";
+            const popoutIcon = document.createElement("sl-icon");
+
+            popoutIcon.setAttribute("name", "box-arrow-up-right");
+            popoutIcon.setAttribute("aria-hidden", "true");
+            popoutButton.appendChild(popoutIcon);
+            popoutButton.addEventListener("pointerdown", event => {
+                event.preventDefault();
+                event.stopPropagation();
+            });
+            popoutButton.addEventListener("click", event => {
+                event.preventDefault();
+                event.stopPropagation();
+                this.onPopout(tab.componentItem);
+            });
+            tabElement.appendChild(popoutButton);
+        }
 
         internalTab._dragStartEvent = (x, y, dragListener, componentItem) => {
             const parent = componentItem.parent;
@@ -903,6 +930,28 @@ export class FloatingPanelManager {
         const windowControls = document.createElement("div");
         windowControls.className = "flint-floating-window-controls";
         actions.appendChild(windowControls);
+
+        const componentType = componentItem.componentType as string | undefined;
+        const POPOUT_ELIGIBLE = ["CodeEditor", "Hierarchy", "Assets", "Inspector"];
+        if (componentType && POPOUT_ELIGIBLE.includes(componentType)) {
+            const popoutButton = document.createElement("button");
+
+            popoutButton.type = "button";
+            popoutButton.className = "flint-floating-window-button flint-floating-window-popout";
+            popoutButton.title = "Open in separate window";
+            popoutButton.setAttribute("aria-label", "Open in separate window");
+            const popoutIcon = document.createElement("sl-icon");
+
+            popoutIcon.setAttribute("name", "box-arrow-up-right");
+            popoutIcon.setAttribute("aria-hidden", "true");
+            popoutButton.appendChild(popoutIcon);
+            popoutButton.addEventListener("click", event => {
+                event.preventDefault();
+                event.stopPropagation();
+                this.onPopout(componentItem);
+            });
+            actions.appendChild(popoutButton);
+        }
 
         const closeButton = document.createElement("button");
         closeButton.type = "button";

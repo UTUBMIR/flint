@@ -3,6 +3,7 @@ import { System, type UUID } from "@flint/runtime/system";
 import type Layer from "@flint/runtime/layer";
 import type { AssetData } from "../asset-types";
 import type { WindowType } from "./window-framework";
+import { getCrossWindowChannel } from "../cross-window";
 
 type Listener<T> = (value: T) => void;
 type Unsubscribe = () => void;
@@ -19,10 +20,14 @@ class SelectionService {
         };
     }
 
-    public setSelectedId(id: UUID | null): void {
+    public setSelectedId(id: UUID | null, fromRemote?: boolean): void {
         this.selectedId = id;
         for (const listener of this.listeners) {
             listener(id);
+        }
+
+        if (!fromRemote) {
+            getCrossWindowChannel().send({ type: "SELECTION_CHANGED", selectedId: id });
         }
     }
 
@@ -63,9 +68,13 @@ class AssetStore {
         return this.assets;
     }
 
-    public setAssets(assets: readonly AssetData[]): void {
+    public setAssets(assets: readonly AssetData[], fromRemote?: boolean): void {
         this.assets = [...assets];
         this.emit();
+
+        if (!fromRemote) {
+            getCrossWindowChannel().send({ type: "ASSETS_CHANGED", assets: this.assets });
+        }
     }
 
     public clear(): void {
@@ -76,11 +85,13 @@ class AssetStore {
     public add(asset: AssetData): void {
         this.assets = [...this.assets, asset];
         this.emit();
+        getCrossWindowChannel().send({ type: "ASSET_ADDED", asset });
     }
 
     public remove(path: string): void {
         this.assets = this.assets.filter(asset => !asset.path.startsWith(path));
         this.emit();
+        getCrossWindowChannel().send({ type: "ASSET_REMOVED", path });
     }
 
     private emit(): void {
@@ -89,6 +100,45 @@ class AssetStore {
         }
     }
 }
+
+let isPopoutWindow = false;
+
+export function setPopoutWindowFlag(): void {
+    isPopoutWindow = true;
+}
+
+function initCrossWindowSync(): void {
+    const channel = getCrossWindowChannel();
+    channel.subscribe(msg => {
+        switch (msg.type) {
+            case "POPOUT_HANDSHAKE": {
+                if (!isPopoutWindow) {
+                    channel.send({ type: "SELECTION_CHANGED", selectedId: editorSelectionService.getSelectedId() as string | null });
+                    channel.send({ type: "ASSETS_CHANGED", assets: [...editorAssetStore.getAssets()] });
+                }
+                break;
+            }
+            case "SELECTION_CHANGED":
+                editorSelectionService.setSelectedId(msg.selectedId as any, true);
+                break;
+            case "ASSETS_CHANGED":
+                editorAssetStore.setAssets(msg.assets, true);
+                break;
+            case "ASSET_ADDED":
+                editorAssetStore.add(msg.asset);
+                break;
+            case "ASSET_REMOVED":
+                editorAssetStore.remove(msg.path);
+                break;
+        }
+    });
+
+    if (!isPopoutWindow) {
+        channel.send({ type: "POPOUT_HANDSHAKE", source: "main" });
+    }
+}
+
+initCrossWindowSync();
 
 class ActiveWindowService {
     private readonly activeWindowIds = new Map<WindowType, string>();

@@ -350,9 +350,8 @@ section.lm_tabs>div.lm_tab.lm_active.lm_focused {
     display: none !important;
 }
 
-.lm_tab {
-    position: relative;
-    padding-right: 24px;
+.lm_header .lm_tab {
+    padding-right: 42px;
 }
 
 .flint-tab-undock {
@@ -382,6 +381,19 @@ section.lm_tabs>div.lm_tab.lm_active.lm_focused {
 .flint-tab-undock:focus-visible {
     outline: 1px solid rgba(214, 171, 40, 0.6);
     outline-offset: 1px;
+}
+
+.flint-tab-popout {
+    right: 22px;
+}
+
+.flint-tab-popout:hover,
+.flint-tab-popout:focus-visible {
+    color: #d9dde5;
+}
+
+.flint-floating-window-popout:hover {
+    color: #d9dde5;
 }
 
 .flint-floating-window {
@@ -1043,4 +1055,12 @@ legend {
 
 .process-item sl-spinner::part(spinner) {
     stroke: var(--sl-color-primary-500);
+}
+
+.flint-popout-mode .app-toolbar {
+    display: none;
+}
+
+.flint-popout-mode #process-indicator {
+    display: none;
 }

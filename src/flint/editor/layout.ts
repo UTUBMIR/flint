@@ -1,4 +1,4 @@
-import { type ComponentContainer, GoldenLayout, LayoutConfig, type ResolvedComponentItemConfig, RowOrColumn } from "golden-layout";
+import { type ComponentContainer, type ComponentItem, GoldenLayout, LayoutConfig, type ResolvedComponentItemConfig, RowOrColumn } from "golden-layout";
 import { CodeEditor } from "./ui/code-editor";
 import { FloatingPanelManager, type FloatingPanelState } from "./ui/floating-panels";
 import AssetsWindow from "./windows/assets";
@@ -8,8 +8,14 @@ import InspectorWindow from "./windows/inspector";
 import ViewportWindow from "./windows/viewport";
 import GameWindow from "./windows/game";
 import { renderWindowControls } from "./ui/window-controls";
-import { activeWindowService, editorAssetStore, editorSelectionService } from "./ui/window-services";
+import { activeWindowService, editorAssetStore, editorSelectionService, setPopoutWindowFlag } from "./ui/window-services";
 import type { EditorWindow, SpawnWindowOptions, WindowDefinition, WindowManagerApi, WindowType } from "./ui/window-framework";
+import type { PopoutComponentConfig } from "./cross-window";
+import { getCrossWindowChannel } from "./cross-window";
+import Metadata from "@flint/shared/metadata";
+import GameObject from "@flint/runtime/game-object";
+import Layer from "@flint/runtime/layer";
+import { System } from "@flint/runtime/system";
 
 const STORAGE_KEY = "flint.editor.layout";
 const HOST_ID = "layout-host";
@@ -730,11 +736,14 @@ export function initializeEditorLayout(): GoldenLayout {
     editorWindowRegistry = new EditorWindowRegistry(layout);
     CodeEditor.setWindowSpawner(type => editorWindowRegistry!.spawnWindow(type));
 
+    (window as any).__flint = { System, Metadata, GameObject, Layer };
+
     let saveTimeout: number | undefined;
     currentFloatingPanels = new FloatingPanelManager(layout, host, () => {
         window.clearTimeout(saveTimeout);
         saveTimeout = window.setTimeout(() => saveLayout(layout), 100);
-    }, componentItem => getWindowControlsFromItem(componentItem as LayoutComponentItem));
+    }, componentItem => getWindowControlsFromItem(componentItem as LayoutComponentItem),
+    handlePopoutComponent);
 
     (layout as unknown as { on: (event: string, callback: (item: unknown) => void) => void }).on("itemCreated", (event: unknown) => {
         const item = (event as { _target?: unknown })._target as LayoutComponentItem | undefined;
@@ -764,6 +773,142 @@ export function initializeEditorLayout(): GoldenLayout {
     }
 
     return layout;
+}
+
+function handlePopoutComponent(componentItem: ComponentItem): void {
+    const state = (componentItem as LayoutComponentItem).container?.stateRequestEvent?.() as StoredWindowComponentState | undefined;
+    if (!state) {
+        return;
+    }
+
+    const config: PopoutComponentConfig = {
+        componentType: state.windowType,
+        instanceId: state.instanceId,
+        title: state.title ?? componentItem.title
+    };
+    if (state.windowState !== undefined) {
+        config.windowState = state.windowState;
+    }
+
+    const encoded = encodeURIComponent(JSON.stringify(config));
+    const url = `${window.location.origin}${window.location.pathname}?gl_popout=${encoded}`;
+    window.open(url, `flint-popout-${config.instanceId}`, "width=800,height=600");
+}
+
+function createPopoutLayoutConfig(type: WindowType, instanceId: string, title?: string): LayoutConfig {
+    return {
+        root: {
+            type: "stack",
+            content: [
+                {
+                    type: "component",
+                    componentType: type,
+                    componentState: {
+                        windowType: type,
+                        instanceId,
+                        title
+                    },
+                    title: title ?? type,
+                    isClosable: false,
+                    reorderEnabled: false
+                }
+            ]
+        },
+        settings: {
+            reorderEnabled: false,
+            popoutWholeStack: false,
+            showPopoutIcon: false,
+            showMaximiseIcon: false,
+            showCloseIcon: false
+        },
+        dimensions: {
+            defaultMinItemHeight: "180px",
+            defaultMinItemWidth: "220px",
+            headerHeight: 0,
+            borderWidth: 0
+        },
+        header: {
+            show: false,
+            popout: false
+        }
+    };
+}
+
+export function initializePopoutWindow(config: PopoutComponentConfig): void {
+    setPopoutWindowFlag();
+
+    const opener = (window.opener as any)?.__flint;
+    if (opener) {
+        (System as any)._world = opener.System.world;
+        System.components = opener.System.components;
+        System.fileSystem = opener.System.fileSystem;
+        (Metadata as any).classMeta = opener.Metadata.classMeta;
+        (Metadata as any).fieldMeta = opener.Metadata.fieldMeta;
+    }
+
+    const channel = getCrossWindowChannel();
+    channel.send({ type: "POPOUT_HANDSHAKE", source: "popout", config });
+
+    installLiveSplitterResize();
+
+    const host = document.getElementById(HOST_ID);
+    if (!host || !(host instanceof HTMLElement)) {
+        throw new Error(`Layout host "${HOST_ID}" was not found.`);
+    }
+
+    const popoutManager: WindowManagerApi = {
+        layout: null as unknown as GoldenLayout,
+        activateWindow: () => {},
+        refreshWindows: () => {},
+        refreshWindowControls: () => {},
+        spawnWindow: () => { throw new Error("Cannot spawn windows in popout"); }
+    };
+
+    const layout = new GoldenLayout(host, (container, itemConfig) => {
+        const root = document.createElement("div");
+        root.dataset.windowType = config.componentType;
+        root.dataset.instanceId = config.instanceId;
+
+        const definition = windowDefinitions.find(d => d.type === config.componentType as WindowType);
+        if (!definition) {
+            throw new Error(`Unknown window type "${config.componentType}".`);
+        }
+
+        const editorWindow = definition.create({
+            instanceId: config.instanceId,
+            type: config.componentType as WindowType,
+            root,
+            container,
+            services: {
+                selection: editorSelectionService,
+                assets: editorAssetStore,
+                activeWindows: activeWindowService
+            },
+            manager: popoutManager
+        });
+
+        container.stateRequestEvent = () => ({
+            windowType: config.componentType,
+            instanceId: config.instanceId,
+            windowState: editorWindow.serializeState(),
+            title: config.title ?? container.title
+        });
+
+        container.element.appendChild(root);
+        editorWindow.restoreState(config.windowState);
+        void editorWindow.initialize();
+
+        return {
+            component: { rootHtmlElement: root },
+            virtual: false
+        };
+    }, () => {});
+
+    layout.loadLayout(createPopoutLayoutConfig(
+        config.componentType as WindowType,
+        config.instanceId,
+        config.title
+    ));
 }
 
 export function spawnEditorWindow(type: WindowType, options?: SpawnWindowOptions): string {

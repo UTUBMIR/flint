@@ -2,9 +2,18 @@ import GameObject from "@flint/runtime/game-object";
 import Layer from "@flint/runtime/layer";
 import { System, type UUID } from "@flint/runtime/system";
 import Metadata, { MetadataKeys } from "@flint/shared/metadata";
-import { EditorLayer } from "../editor-layer";
 import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
 import { BaseEditorWindow, type WindowContext } from "../ui/window-framework";
+
+function isGameObject(obj: any): obj is GameObject {
+    return obj && typeof obj.addComponent === 'function';
+}
+function isLayer(obj: any): obj is Layer {
+    return obj && typeof obj.getObjects === 'function';
+}
+function isEditorLayer(obj: any): boolean {
+    return obj && 'viewportCamera' in obj;
+}
 
 /**
  * Sets a name for and object, exists only in the Editor.
@@ -45,7 +54,7 @@ export default class HierarchyWindow extends BaseEditorWindow {
 
         const parts: string[] = [];
         for (const layer of System.world.getLayers()) {
-            if (layer instanceof EditorLayer) {
+            if (isEditorLayer(layer)) {
                 continue;
             }
             parts.push(`L:${layer.id}:${Metadata.getClass(layer, MetadataKeys.EditorName, false) ?? ""}`);
@@ -128,7 +137,8 @@ export default class HierarchyWindow extends BaseEditorWindow {
         });
 
         this.listen(this.query('[data-role="new-layer"]'), "click", () => {
-            const layer = new Layer();
+            const LayerCtor = window.opener ? (window.opener as any).__flint.Layer : Layer;
+            const layer = new LayerCtor();
             System.world.addLayer(layer);
             this.context.manager.refreshWindows("Hierarchy");
         });
@@ -194,15 +204,18 @@ export default class HierarchyWindow extends BaseEditorWindow {
     }
 
     public createObject(): void {
-        if (this.selection instanceof Layer) {
-            this.selection.addObject(new GameObject());
-        } else if (this.selection instanceof GameObject) {
-            this.selection.layer.addObject(new GameObject());
+        const GOCtor = window.opener ? (window.opener as any).__flint.GameObject : GameObject;
+        const LayerCtor = window.opener ? (window.opener as any).__flint.Layer : Layer;
+
+        if (isLayer(this.selection)) {
+            (this.selection as any).addObject(new GOCtor());
+        } else if (isGameObject(this.selection)) {
+            (this.selection as any).layer.addObject(new GOCtor());
         } else if (!System.world || System.world.getLayers().length === 0) {
-            const layer = new Layer();
+            const layer = new LayerCtor();
             System.world.addLayer(layer);
         } else {
-            System.world.getLayers()[0]!.addObject(new GameObject());
+            System.world.getLayers()[0]!.addObject(new GOCtor());
         }
 
         this.context.manager.refreshWindows("Hierarchy");
@@ -213,8 +226,8 @@ export default class HierarchyWindow extends BaseEditorWindow {
             return;
         }
 
-        if (this.selection instanceof GameObject) {
-            this.selection.layer.removeObject(this.selection);
+        if (isGameObject(this.selection)) {
+            (this.selection as any).layer.removeObject(this.selection);
         } else {
             System.world.removeLayer(this.selection);
         }
@@ -238,7 +251,7 @@ export default class HierarchyWindow extends BaseEditorWindow {
 
         for (let layerIndex = System.world.getLayers().length - 1; layerIndex >= 0; --layerIndex) {
             const layer = System.world.getLayers()[layerIndex]!;
-            if (layer instanceof EditorLayer) {
+            if (isEditorLayer(layer)) {
                 continue;
             }
 
