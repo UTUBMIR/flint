@@ -2,6 +2,7 @@ import type { ComponentContainer } from "golden-layout";
 import { System } from "@flint/runtime/system";
 import ProjectConfig from "../project/project-config";
 import type { WindowType } from "./window-framework";
+import { getCrossWindowChannel } from "../cross-window";
 
 type ExportResult = {
     defaultExport?: string;
@@ -119,6 +120,11 @@ type WindowSpawner = (type: WindowType) => string;
 export class CodeEditor {
     private static readonly windows = new Map<string, EditorWindowController>();
     private static activeWindowId: string | null = null;
+    private static globalActiveId: string | null = null;
+    private static globalActiveSourceWindow: string | null = null;
+    private static readonly instanceOwners = new Map<string, string>();
+    private static readonly windowId = (window.opener ? `popout-${crypto.randomUUID().slice(0, 8)}` : "main");
+    private static crossWindowInited = false;
     private static spawnWindow: WindowSpawner | null = null;
     private static initializing = false;
     private static readonly initialWindowWaitMs = 250;
@@ -147,6 +153,24 @@ export class CodeEditor {
 
     public static setWindowSpawner(spawner: WindowSpawner): void {
         this.spawnWindow = spawner;
+    }
+
+    private static initCrossWindowSync(): void {
+        if (this.crossWindowInited) {
+            return;
+        }
+
+        this.crossWindowInited = true;
+        const channel = getCrossWindowChannel();
+        channel.subscribe(msg => {
+            if (msg.type === "CODE_EDITOR_ACTIVATED") {
+                this.globalActiveId = msg.instanceId;
+                this.globalActiveSourceWindow = msg.sourceWindow;
+                this.instanceOwners.set(msg.instanceId, msg.sourceWindow);
+            } else if (msg.type === "CODE_EDITOR_OPEN_FILE" && msg.targetWindow === this.windowId) {
+                void this.openFile(msg.path, msg.instanceId);
+            }
+        });
     }
 
     private static getMonacoVsPath(): string {
@@ -308,6 +332,12 @@ export class CodeEditor {
     public static activateWindow(instanceId: string): void {
         if (this.windows.has(instanceId)) {
             this.activeWindowId = instanceId;
+            this.initCrossWindowSync();
+            getCrossWindowChannel().send({
+                type: "CODE_EDITOR_ACTIVATED",
+                instanceId,
+                sourceWindow: this.windowId
+            });
         }
     }
 
@@ -439,6 +469,35 @@ export class CodeEditor {
     }
 
     public static async openFile(path: string, instanceId?: string): Promise<void> {
+        this.initCrossWindowSync();
+
+        if (instanceId) {
+            if (this.windows.has(instanceId)) {
+                // proceed with local instance
+            } else {
+                const targetWindow = this.instanceOwners.get(instanceId) ?? "";
+                getCrossWindowChannel().send({
+                    type: "CODE_EDITOR_OPEN_FILE",
+                    path,
+                    instanceId,
+                    targetWindow
+                });
+                return;
+            }
+        } else {
+            if (this.globalActiveId && this.globalActiveSourceWindow === this.windowId && this.windows.has(this.globalActiveId)) {
+                instanceId = this.globalActiveId;
+            } else if (this.globalActiveId && this.globalActiveSourceWindow !== this.windowId) {
+                getCrossWindowChannel().send({
+                    type: "CODE_EDITOR_OPEN_FILE",
+                    path,
+                    instanceId: this.globalActiveId,
+                    targetWindow: this.globalActiveSourceWindow ?? ""
+                });
+                return;
+            }
+        }
+
         let targetWindowId = instanceId
             ?? this.getOrCreateActiveWindowIdWithoutSpawn()
             ?? await this.waitForExistingWindow();

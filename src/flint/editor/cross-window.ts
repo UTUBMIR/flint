@@ -13,7 +13,9 @@ export type CrossWindowMessage =
     | { type: "SELECTION_CHANGED"; selectedId: string | null }
     | { type: "ASSETS_CHANGED"; assets: AssetData[] }
     | { type: "ASSET_ADDED"; asset: AssetData }
-    | { type: "ASSET_REMOVED"; path: string };
+    | { type: "ASSET_REMOVED"; path: string }
+    | { type: "CODE_EDITOR_ACTIVATED"; instanceId: string; sourceWindow: string }
+    | { type: "CODE_EDITOR_OPEN_FILE"; path: string; instanceId: string; targetWindow: string };
 
 let channelInstance: CrossWindowChannel | null = null;
 

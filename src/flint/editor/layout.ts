@@ -181,8 +181,9 @@ class EditorWindowRegistry implements WindowManagerApi {
         root.addEventListener("focusin", () => this.activateWindow(state.instanceId));
 
         editorWindow.restoreState(state.windowState);
-        void editorWindow.initialize();
-        queueMicrotask(() => this.activateWindow(state.instanceId));
+        Promise.resolve(editorWindow.initialize()).then(() => {
+            this.activateWindow(state.instanceId);
+        });
 
         return root;
     }
@@ -861,7 +862,9 @@ export function initializePopoutWindow(config: PopoutComponentConfig): void {
 
     const popoutManager: WindowManagerApi = {
         layout: null as unknown as GoldenLayout,
-        activateWindow: () => {},
+        activateWindow: (instanceId: string) => {
+            activeWindowService.setActiveWindow(config.componentType as WindowType, instanceId);
+        },
         refreshWindows: () => {},
         refreshWindowControls: () => {},
         spawnWindow: () => { throw new Error("Cannot spawn windows in popout"); }
@@ -898,8 +901,12 @@ export function initializePopoutWindow(config: PopoutComponentConfig): void {
         });
 
         container.element.appendChild(root);
+        root.addEventListener("mousedown", () => editorWindow.onActivate?.());
+        root.addEventListener("focusin", () => editorWindow.onActivate?.());
         editorWindow.restoreState(config.windowState);
-        void editorWindow.initialize();
+        Promise.resolve(editorWindow.initialize()).then(() => {
+            editorWindow.onActivate?.();
+        });
 
         return {
             component: { rootHtmlElement: root },
