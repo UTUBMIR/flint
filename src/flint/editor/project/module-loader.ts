@@ -43,35 +43,25 @@ export default class ModuleLoader {
             });
         }
 
-        if (loadedModule.Input) {
-            for (const key of Object.keys(Input)) {
-                loadedModule.Input[key] = (Input as any)[key];
+        const assigns = {
+            [loadedModule.Input]: Input,
+            [loadedModule.Metadata]: Metadata,
+            [loadedModule.AssetRegistry]: AssetRegistry,
+            [loadedModule.TimerSystem]: TimerSystem,
+            [loadedModule.Camera]: Camera
+        };
+
+        for (const [assignTo, assign] of Object.entries(assigns)) {
+            if (assignTo) {
+                Object.assign(assignTo, assign);
             }
         }
 
         if (loadedModule.Metadata) {
             Metadata.importFrom(loadedModule.Metadata);
-            for (const key of Object.keys(Metadata)) {
-                loadedModule.Metadata[key] = (Metadata as any)[key];
-            }
-        }
-
-        if (loadedModule.AssetRegistry) {
-            for (const key of Object.keys(AssetRegistry)) {
-                loadedModule.AssetRegistry[key] = (AssetRegistry as any)[key];
-            }
-        }
-
-        if (loadedModule.TimerSystem) {
-            for (const key of Object.keys(TimerSystem)) {
-                loadedModule.TimerSystem[key] = (TimerSystem as any)[key];
-            }
         }
 
         if (loadedModule.Camera) {
-            for (const key of Object.keys(Camera)) {
-                loadedModule.Camera[key] = (Camera as any)[key];
-            }
             // Proxy main so it always reads/writes the editor's Camera.main
             // (the loaded module's Camera class is a separate copy from the bundler)
             Object.defineProperty(loadedModule.Camera, "main", {

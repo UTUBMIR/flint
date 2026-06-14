@@ -93,7 +93,7 @@ export class System {
     }
 
     public static get fps(): number {
-        return 1 / this._deltaTime;
+        return 1 / this.deltaTime;
     }
 
     public static setCursor(cursor: string) {

@@ -20,7 +20,7 @@
     "license": "MIT",
     "author": "UTUBMIR",
     "type": "module",
-    "main": "main.js",
+    "main": "main.ts",
     "scripts": {
         "copy:editor-assets": "node scripts/copy-editor-assets.mjs",
         "build:cdn:site": "node scripts/build-cdn-site.mjs",
