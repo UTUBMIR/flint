@@ -43,15 +43,15 @@ export default class ModuleLoader {
             });
         }
 
-        const assigns = {
-            [loadedModule.Input]: Input,
-            [loadedModule.Metadata]: Metadata,
-            [loadedModule.AssetRegistry]: AssetRegistry,
-            [loadedModule.TimerSystem]: TimerSystem,
-            [loadedModule.Camera]: Camera
-        };
+        const assigns = new Map<unknown, unknown>([
+            [loadedModule.Input, Input],
+            [loadedModule.Metadata, Metadata],
+            [loadedModule.AssetRegistry, AssetRegistry],
+            [loadedModule.TimerSystem, TimerSystem],
+            [loadedModule.Camera, Camera]
+        ]);
 
-        for (const [assignTo, assign] of Object.entries(assigns)) {
+        for (const [assignTo, assign] of assigns.entries()) {
             if (assignTo) {
                 Object.assign(assignTo, assign);
             }
