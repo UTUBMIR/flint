@@ -2,6 +2,7 @@ import { AbstractFileSystem } from "@flint/shared/file-system";
 import { System, type UUID } from "./system";
 
 export enum AssetType {
+    Custom = -1,
     Image,
     Audio,
     Json
@@ -93,6 +94,11 @@ export class AssetLoader {
             case AssetType.Json:
                 await this.loadJson(meta);
                 break;
+            case AssetType.Custom:
+                await this.loadCustom(meta);
+                break;
+            default:
+                meta.type satisfies never;
         }
     }
 
@@ -112,27 +118,35 @@ export class AssetLoader {
         }
     }
 
-    private static async loadImage(meta: AssetMeta) {
+    private static createAssetLoader(fetchAsset: (URL: string) => unknown) {
+        return async (meta: AssetMeta) => {
+            const url = await this.prepareUrl(meta.url);
+
+            const assetData = await fetchAsset(url);
+
+            AssetRegistry.runtime.set(meta.id, new RuntimeAsset(meta.id, assetData));
+        };
+    }
+
+    private static loadImage = this.createAssetLoader(async (url: string) => {
         const img = new Image();
-        img.src = await this.prepareUrl(meta.url);
+        img.src = url;
         await img.decode();
 
-        const bitmap = await createImageBitmap(img);
-        AssetRegistry.runtime.set(meta.id, new RuntimeAsset(meta.id, bitmap));
-    }
+        return await createImageBitmap(img);
+    });
 
-    private static async loadAudio(meta: AssetMeta) {
-        const res = await fetch(await this.prepareUrl(meta.url));
+    private static loadAudio = this.createAssetLoader(async (url: string) => {
+        const res = await fetch(url);
         const data = await res.arrayBuffer();
-        const buffer = await System.audioContext.decodeAudioData(data);
+        return await System.audioContext.decodeAudioData(data);
+    });
 
-        AssetRegistry.runtime.set(meta.id, new RuntimeAsset(meta.id, buffer));
-    }
+    private static loadJson = this.createAssetLoader(async (url: string) => {
+        return await fetch(url).then(r => r.json());
+    });
 
-    private static async loadJson(meta: AssetMeta) {
-        const json = await fetch(await this.prepareUrl(meta.url)).then(r => r.json());
-        AssetRegistry.runtime.set(meta.id, new RuntimeAsset(meta.id, json));
-    }
+    private static loadCustom = this.createAssetLoader(async (url: string) => await fetch(url));
 }
 
 export class AssetRequestSystem {
