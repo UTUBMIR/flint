@@ -24,13 +24,15 @@ export default class Label extends RendererComponent {
 
     public text: string = "Label text";
 
+    public fontStyle: string = "Arial";
+
     public fontSize = 18;
 
     public constructor(fillColor?: ColorString, lineColor?: ColorString, shadowColor?: ColorString) {
         super();
         this.fillColor = fillColor ?? "#cfd2ee";
         this.lineColor = lineColor ?? "#2e2eb6ff";
-        this.shadowColor = shadowColor ?? "#1c259bff";
+        this.shadowColor = shadowColor ?? "#1c259b00";
     }
 
     public override render(renderer: IRenderer): void {
@@ -63,6 +65,7 @@ export default class Label extends RendererComponent {
 
         renderer.fontSize = this.fontSize;
         renderer.textAlign = this.textAlign;
+        renderer.fontStyle = this.fontStyle;
         renderer.textBaseLine = this.TextBaseLine;
 
         renderer.fillText(pos.copy().subtract(size.copy().divide(2)), this.text);
