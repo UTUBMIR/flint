@@ -160,8 +160,13 @@ export class Project {
     }
 
     public static async run() {
-        await Project.saveProject();
-        return await Builder.buildForEditor();
+        const success = await Builder.buildForEditor();
+
+        if (success) {
+            await Project.saveProject();
+        }
+
+        return success;
     }
 
     public static async stop() {
