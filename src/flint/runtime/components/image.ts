@@ -6,7 +6,7 @@ import { System, type UUID } from "../system";
 import type { PhysicsWorld } from "../physics-world";
 
 export default class Image extends RendererComponent {
-    private texture = new AssetHandle<ImageBitmap>("" as UUID);
+    public texture = new AssetHandle<ImageBitmap>("" as UUID);
 
     public override start(): void {
         this.texture?.request();

@@ -17,7 +17,7 @@ export default class Label extends RendererComponent {
     public shadowColor: ColorString;
 
     @SelectInspector(["top", "hanging", "alphabetic", "ideographic", "bottom", "middle"])
-    public TextBaseLine: TextBaseLine = "hanging";
+    public textBaseLine: TextBaseLine = "hanging";
 
     @SelectInspector(["left", "right", "center", "start", "end"])
     public textAlign: TextAlign = "left";
@@ -66,7 +66,7 @@ export default class Label extends RendererComponent {
         renderer.fontSize = this.fontSize;
         renderer.textAlign = this.textAlign;
         renderer.fontStyle = this.fontStyle;
-        renderer.textBaseLine = this.TextBaseLine;
+        renderer.textBaseLine = this.textBaseLine;
 
         renderer.fillText(pos.copy().subtract(size.copy().divide(2)), this.text);
         renderer.strokeText(pos.copy().subtract(size.copy().divide(2)), this.text);
