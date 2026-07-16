@@ -1,7 +1,7 @@
 import ProjectConfig from "./project-config";
 
-declare const __FLINT_ESBUILD_MODULE_URL__: string;
-declare const __FLINT_ESBUILD_WASM_URL__: string;
+declare const FLINT_ESBUILD_MODULE_URL: string;
+declare const FLINT_ESBUILD_WASM_URL: string;
 const dynamicImport = new Function("url", "return import(url);") as (url: string) => Promise<{ default: typeof import("esbuild-wasm") }>;
 
 export default class Bundler {
@@ -347,9 +347,9 @@ export default class Bundler {
     public static async init() {
         try {
             if (!Bundler.esbuild) {
-                const { default: esbuild } = await dynamicImport(__FLINT_ESBUILD_MODULE_URL__);
+                const { default: esbuild } = await dynamicImport(FLINT_ESBUILD_MODULE_URL);
                 await esbuild.initialize({
-                    wasmURL: new URL(__FLINT_ESBUILD_WASM_URL__, window.location.href).toString(),
+                    wasmURL: new URL(FLINT_ESBUILD_WASM_URL, window.location.href).toString(),
                 });
 
                 Bundler.esbuild = esbuild;

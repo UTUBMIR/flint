@@ -180,8 +180,8 @@ class ToolBarActions {
     private constructor() { }
 
     private static getPicker() {
-        if (window.showDirectoryPicker as unknown) {
-            return window.showDirectoryPicker({ mode: "readwrite", id: "project" });
+        if (showDirectoryPicker as unknown) {
+            return showDirectoryPicker({ mode: "readwrite", id: "project" });
         }
         else {
             return navigator.storage.getDirectory();

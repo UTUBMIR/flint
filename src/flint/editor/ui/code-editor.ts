@@ -175,7 +175,7 @@ export class CodeEditor {
 
     private static getMonacoVsPath(): string {
         const globalConfig = globalThis as {
-            __FLINT_MONACO_VS_PATH__?: string;
+            FLINT_MONACO_VS_PATH?: string;
             require?: {
                 paths?: {
                     vs?: string;
@@ -183,7 +183,7 @@ export class CodeEditor {
             };
         };
 
-        return globalConfig.__FLINT_MONACO_VS_PATH__
+        return globalConfig.FLINT_MONACO_VS_PATH
             ?? globalConfig.require?.paths?.vs
             ?? "./dist/vendor/monaco/vs";
     }

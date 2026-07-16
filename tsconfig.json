@@ -21,6 +21,7 @@
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
         "noImplicitOverride": true,
+        "types": ["wicg-file-system-access"],
         "paths": {
             "@flint/*": [
                 "./src/flint/*"

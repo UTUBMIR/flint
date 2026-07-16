@@ -205,7 +205,7 @@ import { ProjectLoader } from "@flint/runtime/project-loader";
         world
     });
     
-    ${preview ? `if (window.__FLINT_PREVIEW__) {
+    ${preview ? `if (window.FLINT_PREVIEW) {
         console.warn("Launched in preview mode.");
         await EditorBridge.attach(projectData);
     }` : ""}
@@ -255,7 +255,7 @@ canvas {
 <body>
 <div id="root"></div>
 <script>
-${preview ? "window.__FLINT_PREVIEW__ = true;" : ""}
+${preview ? "window.FLINT_PREVIEW = true;" : ""}
 ${js}
 </script>
 </body>
