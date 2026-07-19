@@ -5,7 +5,7 @@ export default [
 
     // DTS build
     {
-        input: "node_modules/planck-js/dist/planck.d.ts",
+        input: "node_modules/planck/dist/planck.d.ts",
 
         output: {
             file: "src/flint/public/libs/planck.d.ts",
@@ -29,7 +29,7 @@ export default [
 
     // JS build
     {
-        input: "node_modules/planck-js/dist/planck.mjs",
+        input: "node_modules/planck/dist/planck.mjs",
 
         output: {
             file: "src/flint/public/libs/planck.js",

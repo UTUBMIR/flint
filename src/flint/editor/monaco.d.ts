@@ -40,9 +40,6 @@ declare module "monaco-editor" {
         setTheme(theme: string): void;
     }
 
-    export const KeyMod: { CtrlCmd: number };
-    export const KeyCode: { KeyS: number };
-
     export interface Position {
         lineNumber: number;
         column: number;
@@ -61,8 +58,8 @@ declare global {
         monaco: {
             languages: import("monaco-editor").Languages;
             editor: import("monaco-editor").Editor;
-            KeyMod: import("monaco-editor").KeyMod;
-            KeyCode: import("monaco-editor").KeyCode;
+            KeyMod: { CtrlCmd: number; Shift: number; Alt: number; WinCtrl: number; chord(firstPart: number, secondPart: number): number };
+            KeyCode: { KeyS: number; [key: string]: number };
         };
     }
 }
