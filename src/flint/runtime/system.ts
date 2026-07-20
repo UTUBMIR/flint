@@ -84,8 +84,8 @@ export class System {
     private static _rootSizeRaw = new Vector2();
     public static get rootSizeRaw(): Vector2 {
         return System._rootSizeRaw.set(
-            Math.floor(System._rootElement.clientWidth * System.dpr),
-            Math.floor(System._rootElement.clientHeight * System.dpr)
+            System._rootElement.clientWidth * System.dpr,
+            System._rootElement.clientHeight * System.dpr
         );
     }
 
@@ -94,8 +94,8 @@ export class System {
         const world = System._world;
         if (!world) return raw;
         return raw.set(
-            Math.floor(world.toPhysicsUnits(raw.x)),
-            Math.floor(world.toPhysicsUnits(raw.y))
+            world.toPhysicsUnits(raw.x),
+            world.toPhysicsUnits(raw.y)
         );
     }
 
