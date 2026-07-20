@@ -266,9 +266,11 @@ export class Project {
 
     public static async saveProject() {
         const data = ProjectLoader.serialize({ layers: System.world.getLayers().filter(l => !(l instanceof EditorLayer)), assets: AssetRegistry.serialize() });
-        await System.fileSystem.writeTextFile("project.json", data);
+        const writeProject = System.fileSystem.writeTextFile("project.json", data);
 
-        await Metadata.saveToFile(System.world.getLayers().filter(l => !(l instanceof EditorLayer)));
+        const writeMetadata = Metadata.saveToFile(System.world.getLayers().filter(l => !(l instanceof EditorLayer)));
+
+        await Promise.all([writeProject, writeMetadata]);
 
         Project.markAsSaved();
     }
@@ -362,6 +364,8 @@ export class Project {
             }
 
             for (const name of entries) {
+                if (name === "flint" || name === ".git" || name === "vendor" || name === "build") continue;
+
                 const fullPath = currentPath ? `${currentPath}/${name}` : name;
                 const isDir = await System.fileSystem.listDir(fullPath).then(() => true).catch(() => false);
 

@@ -68,11 +68,17 @@ export class AssetRegistry {
 
     public static loadSerialized(data: AssetMeta[]) {
         this.meta.clear();
-        this.runtime.clear();
+
+        const incomingIds = new Set(data.map(a => a.id));
+
+        for (const [id] of this.runtime) {
+            if (!incomingIds.has(id)) {
+                this.runtime.delete(id);
+            }
+        }
 
         for (const asset of data) {
             this.meta.set(asset.id, asset);
-            AssetRegistry.register(asset);
             if (asset.preload) {
                 AssetRequestSystem.request(asset.id);
             }
