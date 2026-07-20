@@ -37,10 +37,12 @@ export default class GameWindow extends BaseEditorWindow {
     }
 
     public override initialize(): void {
+        System.setRootElement(this.root);
         System.addRenderTarget(this.renderCallback);
         this.registerCleanup(() => {
             System.removeRenderTarget(this.renderCallback);
             this.canvas.remove();
+            System.restoreRootElement();
         });
     }
 

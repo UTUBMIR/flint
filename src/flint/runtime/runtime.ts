@@ -33,13 +33,16 @@ export class Runtime {
      * The active camera drives what gets drawn.
      */
     private createRenderSurface(): void {
+        const rootDiv = document.getElementById("root")!;
+        System.setRootElement(rootDiv);
+
         const canvas = document.createElement("canvas");
         canvas.style.position = "fixed";
         canvas.style.left = "0";
         canvas.style.top = "0";
         canvas.style.width = "100%";
         canvas.style.height = "100%";
-        document.body.appendChild(canvas);
+        rootDiv.appendChild(canvas);
         Input.setTargetElement(canvas);
 
         const ctx = canvas.getContext("2d");

@@ -71,9 +71,32 @@ export class System {
 
     private static readonly renderTargets: Set<() => void> = new Set();
 
-    private static _rootSize = new Vector2();
+    private static _rootElement: HTMLElement = document.body;
+
+    public static setRootElement(element: HTMLElement): void {
+        System._rootElement = element;
+    }
+
+    public static restoreRootElement(): void {
+        System._rootElement = document.body;
+    }
+
+    private static _rootSizeRaw = new Vector2();
+    public static get rootSizeRaw(): Vector2 {
+        return System._rootSizeRaw.set(
+            Math.floor(System._rootElement.clientWidth * System.dpr),
+            Math.floor(System._rootElement.clientHeight * System.dpr)
+        );
+    }
+
     public static get rootSize(): Vector2 {
-        return System._rootSize;
+        const raw = System.rootSizeRaw;
+        const world = System._world;
+        if (!world) return raw;
+        return raw.set(
+            Math.floor(world.toPhysicsUnits(raw.x)),
+            Math.floor(world.toPhysicsUnits(raw.y))
+        );
     }
 
     public static readonly eventEmitter: SystemEventEmitter = new SystemEventEmitter(false, true);
