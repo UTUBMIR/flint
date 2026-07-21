@@ -9,7 +9,9 @@ export default class Image extends RendererComponent {
     public texture = new AssetHandle<ImageBitmap>("" as UUID);
 
     public override start(): void {
-        this.texture?.request();
+        if (this.texture.id) {
+            this.texture?.request();
+        }
     }
 
     public override render(renderer: IRenderer): void {
