@@ -29,7 +29,7 @@
         "build": "concurrently \"npm run build:js\" \"npm run build:types && node type-generator.js\"",
         "build:dev": "npm run copy:editor-assets && npm run build:shoelace && esbuild src/main.ts --bundle --outfile=dist/main.js --target=es2022 --platform=browser --minify --sourcemap --loader:.png=dataurl --watch",
         "build:js": "npm run copy:editor-assets && npm run build:shoelace && esbuild src/main.ts --bundle --outfile=dist/main.js --target=es2022 --platform=browser --minify --sourcemap --loader:.png=dataurl --define:FLINT_ESBUILD_MODULE_URL='\"./vendor/esbuild/browser.min.js\"' --define:FLINT_ESBUILD_WASM_URL='\"./dist/vendor/esbuild/esbuild.wasm\"'",
-        "build:cdn": "npm run build:types && node type-generator.js && npm run build:cdn:site && esbuild src/main.ts --bundle --outfile=cdn/dist/main.js --target=es2022 --platform=browser --minify --sourcemap --loader:.png=dataurl --define:FLINT_ESBUILD_MODULE_URL='\"https://cdn.jsdelivr.net/npm/esbuild-wasm@0.27.0/esm/browser.min.js\"' --define:FLINT_ESBUILD_WASM_URL='\"https://cdn.jsdelivr.net/npm/esbuild-wasm@0.27.0/esbuild.wasm\"'",
+        "build:cdn": "npm run build:types && node type-generator.js && npm run build:cdn:site && esbuild src/main.ts --bundle --outfile=cdn/dist/main.js --target=es2022 --platform=browser --minify --sourcemap --loader:.png=dataurl --define:FLINT_ESBUILD_MODULE_URL='\"https://cdn.jsdelivr.net/npm/esbuild-wasm@0.28.1/esm/browser.min.js\"' --define:FLINT_ESBUILD_WASM_URL='\"https://cdn.jsdelivr.net/npm/esbuild-wasm@0.28.1/esbuild.wasm\"'",
         "build:types": "tsc -p tsconfig.json --emitDeclarationOnly"
     },
     "devDependencies": {
@@ -51,6 +51,7 @@
     },
     "dependencies": {
         "golden-layout": "^2.6.0",
-        "monaco-editor": "^0.53.0"
+        "monaco-editor": "^0.53.0",
+        "peerjs": "^1.5.5"
     }
 }

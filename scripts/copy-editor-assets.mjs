@@ -25,6 +25,7 @@ const shoelaceIcons = [
     "arrow-clockwise",
     "box",
     "x-lg",
+    "qr-code",
     "box-arrow-in-down-right",
     "window",
     "box-arrow-up-right",

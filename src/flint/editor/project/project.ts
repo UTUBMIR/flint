@@ -163,7 +163,7 @@ export class Project {
         const success = await Builder.buildForEditor();
 
         if (success) {
-            await Project.saveProject();
+            await Project.saveProject(); // NOTE: this takes up to ~150ms
         }
 
         return success;

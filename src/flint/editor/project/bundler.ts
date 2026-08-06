@@ -28,105 +28,113 @@ export default class Bundler {
         }
         return 'import { FieldInspector as __FlintFieldInspector, SelectInspector as __FlintSelectInspector, SerializeType as __FlintSerializeType } from "@flint/shared/metadata";';
     }
-
     private static readonly virtualFsPlugin = {
         name: "virtual-fs",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setup(build: any) {
             build.onResolve({ filter: /.*/ }, (args: { path: string; resolveDir: string; importer: string }) => {
-                // Ensure the import has .ts or .json extension
-                const importPath = args.path.endsWith(".ts") || args.path.endsWith(".json") ? args.path : args.path + ".ts";
+                function run() {
+                    // Ensure the import has .ts or .json extension
+                    const importPath = args.path.endsWith(".ts") || args.path.endsWith(".json") ? args.path : args.path + ".ts";
 
-                if (importPath.startsWith("@flint")) {
+                    if (importPath.startsWith("@flint")) {
+                        return {
+                            path: importPath,
+                            namespace: "virtual",
+                        };
+                    }
+
+                    // Get the base directory
+                    let baseDir = args.importer ? args.importer.replace(/\/[^/]*$/, "") : args.resolveDir;
+
+                    // Normalize slashes
+                    baseDir = baseDir.replace(/\\/g, "/");
+
+                    // Split paths into segments
+                    const baseSegments = baseDir.split("/").filter(Boolean);
+                    const importSegments = importPath.split("/").filter(Boolean);
+
+                    const resolvedSegments: string[] = [];
+
+                    // If import path starts with ".", we resolve relative
+                    if (!baseDir.includes(".") && (importPath.startsWith("./") || importPath.startsWith("../"))) {
+                        resolvedSegments.push(...baseSegments);
+
+                        for (const seg of importSegments) {
+                            if (seg === ".") continue; // current directory
+                            if (seg === "..") resolvedSegments.pop(); // go up
+                            else resolvedSegments.push(seg); // normal segment
+                        }
+                    } else {
+                        // For non-relative paths, just use as-is
+                        resolvedSegments.push(...importSegments);
+                    }
+
+                    // Join and normalize
+                    const normalized = resolvedSegments.join("/");
+
+                    // console.log("importPath:", importPath);
+                    // console.log("baseDir:", baseDir);
+                    // console.log("resolved:", normalized);
+
                     return {
-                        path: importPath,
+                        path: normalized.startsWith(".") ? normalized.slice(2, normalized.length) : normalized,
                         namespace: "virtual",
                     };
                 }
-
-                // Get the base directory
-                let baseDir = args.importer ? args.importer.replace(/\/[^/]*$/, "") : args.resolveDir;
-
-                // Normalize slashes
-                baseDir = baseDir.replace(/\\/g, "/");
-
-                // Split paths into segments
-                const baseSegments = baseDir.split("/").filter(Boolean);
-                const importSegments = importPath.split("/").filter(Boolean);
-
-                const resolvedSegments: string[] = [];
-
-                // If import path starts with ".", we resolve relative
-                if (!baseDir.includes(".") && (importPath.startsWith("./") || importPath.startsWith("../"))) {
-                    resolvedSegments.push(...baseSegments);
-
-                    for (const seg of importSegments) {
-                        if (seg === ".") continue; // current directory
-                        if (seg === "..") resolvedSegments.pop(); // go up
-                        else resolvedSegments.push(seg); // normal segment
-                    }
-                } else {
-                    // For non-relative paths, just use as-is
-                    resolvedSegments.push(...importSegments);
-                }
-
-                // Join and normalize
-                const normalized = resolvedSegments.join("/");
-
-                // console.log("importPath:", importPath);
-                // console.log("baseDir:", baseDir);
-                // console.log("resolved:", normalized);
-
-                return {
-                    path: normalized.startsWith(".") ? normalized.slice(2, normalized.length) : normalized,
-                    namespace: "virtual",
-                };
+                const result = run();
+                return result;
             });
 
 
             build.onLoad({ filter: /.*/, namespace: "virtual" }, async (args: { path: string }) => {
-                if (args.path.startsWith("@flint")) {
-                    let flintPath = "flint/" + args.path.replace("@flint/", "");
-                    let content = Bundler.flintFiles.get(flintPath);
-                    if (!content) {
-                        flintPath = flintPath.replace(".ts", ".js");
-                        content = Bundler.flintFiles.get(flintPath);
-                    }
+                function run() {
 
-                    if (!content) {
-                        console.warn("Missing virtual flint file:", flintPath);
+                    if (args.path.startsWith("@flint")) {
+                        let flintPath = "flint/" + args.path.replace("@flint/", "");
+                        let content = Bundler.flintFiles.get(flintPath);
+                        if (!content) {
+                            flintPath = flintPath.replace(".ts", ".js");
+                            content = Bundler.flintFiles.get(flintPath);
+                        }
 
-                        return { contents: "export {}", loader: flintPath.endsWith(".json") ? "json" : "ts" };
-                    }
+                        if (!content) {
+                            console.warn("Missing virtual flint file:", flintPath);
 
-                    return {
-                        contents: Bundler.transformSource(content, flintPath),
-                        loader: flintPath.endsWith(".ts") ? "ts" : flintPath.endsWith(".js") ? "js" : "json"
-                    };
-                }
+                            return { contents: "export {}", loader: flintPath.endsWith(".json") ? "json" : "ts" };
+                        }
 
-                const normalizedPath = args.path;
-
-                const content = Bundler.files.get(normalizedPath);
-                if (!content) {
-                    const content =
-                        Bundler.flintFiles.get(normalizedPath) ??
-                        Bundler.flintFiles.get(normalizedPath.replace(".ts", ".js"));
-                    if (content) {
                         return {
-                            contents: Bundler.transformSource(content, normalizedPath),
-                            loader: normalizedPath.endsWith(".ts") ? "ts" : normalizedPath.endsWith(".js") ? "js" : "json"
+                            contents: Bundler.transformSource(content, flintPath),
+                            loader: flintPath.endsWith(".ts") ? "ts" : flintPath.endsWith(".js") ? "js" : "json"
                         };
                     }
 
-                    console.warn("Missing virtual file:", normalizedPath);
-                    return { contents: "export {}", loader: "ts" };
-                }
+                    const normalizedPath = args.path;
 
-                return {
-                    contents: Bundler.transformSource(content, normalizedPath, true),
-                    loader: normalizedPath.endsWith(".ts") ? "ts" : "json"
-                };
+                    const content = Bundler.files.get(normalizedPath);
+                    if (!content) {
+                        const content =
+                            Bundler.flintFiles.get(normalizedPath) ??
+                            Bundler.flintFiles.get(normalizedPath.replace(".ts", ".js"));
+                        if (content) {
+                            return {
+                                contents: Bundler.transformSource(content, normalizedPath),
+                                loader: normalizedPath.endsWith(".ts") ? "ts" : normalizedPath.endsWith(".js") ? "js" : "json"
+                            };
+                        }
+
+                        console.warn("Missing virtual file:", normalizedPath);
+                        return { contents: "export {}", loader: "ts" };
+                    }
+
+                    return {
+                        contents: Bundler.transformSource(content, normalizedPath, true),
+                        loader: normalizedPath.endsWith(".ts") ? "ts" : "json"
+                    };
+                }
+                const result = run();
+                return result;
             });
         }
     };
@@ -140,19 +148,22 @@ export default class Bundler {
             return content;
         }
 
+        let result: string;
+
         if (this.stripEditorDecorators) {
             const stripped = content.replace(this.editorDecoratorPattern, "");
             if (!autoDetectInspectors || path.endsWith(".d.ts")) {
-                return stripped;
+                result = stripped;
+            } else {
+                result = this.addInferredSerializeTypeDecorators(stripped);
             }
-            return this.addInferredSerializeTypeDecorators(stripped);
+        } else if (!autoDetectInspectors || path.endsWith(".d.ts")) {
+            result = content;
+        } else {
+            result = this.addInferredInspectorDecorators(content);
         }
 
-        if (!autoDetectInspectors || path.endsWith(".d.ts")) {
-            return content;
-        }
-
-        return this.addInferredInspectorDecorators(content);
+        return result;
     }
 
     private static addInferredInspectorDecorators(content: string): string {
@@ -369,7 +380,6 @@ export default class Bundler {
         await Bundler.esbuildReady;
         const previousStripEditorDecorators = Bundler.stripEditorDecorators;
         Bundler.stripEditorDecorators = options.stripEditorDecorators ?? false;
-
         try {
             return await Bundler.esbuild.build({
                 entryPoints: [entryPoint],

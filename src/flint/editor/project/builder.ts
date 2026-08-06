@@ -10,7 +10,7 @@ import ProjectConfig from "./project-config";
 import { AbstractFileSystem } from "@flint/shared/file-system";
 import type { AssetData } from "../asset-types";
 import { AssetRegistry } from "@flint/runtime/assets";
-import { ProjectLoader } from "@flint/runtime/project-loader";
+import { ProjectLoader, type RawProjectData } from "@flint/runtime/project-loader";
 import { HotReload } from "@flint/runtime/hot-reload";
 import { editorAssetStore } from "../ui/window-services";
 
@@ -22,6 +22,10 @@ export class Builder {
     private static tabUrl: string = "";
 
     private static compiled: string;
+
+    public static get compiledCode(): string {
+        return Builder.compiled;
+    }
 
     public static get previewExists(): boolean {
         return !!Builder.tabUrl;
@@ -78,7 +82,6 @@ export class Builder {
         const textFiles = textFilesResult.files;
         const textAssets = textFilesResult.assets;
 
-
         for (const { path } of textFiles) {
             const text = await System.fileSystem.readTextFile(path);
 
@@ -121,7 +124,7 @@ export class Builder {
 
         Bundler.files.clear();
         Bundler.files.set("index.ts", ProjectConfig.userIndex);
-        Bundler.files.set("main.ts", this.makeMainTs(projectData, false));
+        Bundler.files.set("main.ts", this.makeMainTs(projectData, "editor"));
 
         if (!await Builder.compile(true, "/main.ts", false, { stripEditorDecorators: true })) return false;
 
@@ -133,16 +136,25 @@ export class Builder {
         return true;
     }
 
-    public static async preview(): Promise<boolean> {
+    private static async compilePreview(mode: "editor" | "preview" | "live"): Promise<{ code: string; project: RawProjectData } | null> {
+        if (!System.fileSystem.started) return null;
+
         const projectData = await this.loadProject();
 
         Bundler.files.clear();
         Bundler.files.set("index.ts", ProjectConfig.userIndex);
-        Bundler.files.set("main.ts", this.makeMainTs(projectData, true));
+        Bundler.files.set("main.ts", this.makeMainTs(projectData, mode));
 
-        if (!await Builder.compile(true, "/main.ts", undefined, { stripEditorDecorators: true })) return false;
+        if (!await Builder.compile(true, "/main.ts", undefined, { stripEditorDecorators: true })) return null;
 
-        const html = this.makeHtml(Builder.compiled, true);
+        return { code: Builder.compiled, project: JSON.parse(projectData) as RawProjectData };
+    }
+
+    public static async preview(): Promise<boolean> {
+        const result = await this.compilePreview("preview");
+        if (!result) return false;
+
+        const html = this.makeHtml(result.code, true);
 
         const blob = new Blob([html], { type: "text/html" });
         Builder.tabUrl = URL.createObjectURL(blob);
@@ -152,6 +164,10 @@ export class Builder {
         return true;
     }
 
+    public static async compileLive(): Promise<{ code: string; project: RawProjectData } | null> {
+        return this.compilePreview("live");
+    }
+
     public static openBuild() {
         if (Builder.previewExists) {
             Builder.tab?.close();
@@ -159,12 +175,22 @@ export class Builder {
         }
     }
 
-    private static makeMainTs(data: string, preview: boolean) {
+    private static makeMainTs(data: string, mode: "editor" | "preview" | "live") {
+        const preview = mode === "preview";
+        const live = mode === "live";
+
         return `import { System } from "@flint/runtime/system";
 import * as basicComponents from "@flint/runtime/components/index";
 import * as gameIndex from "./index";
 import { Runtime } from "@flint/runtime/runtime";
 ${preview ? `import { EditorBridge } from "@flint/editor/project/editor-bridge";` : ""}
+${live ? `import { LivePreviewBridge } from "@flint/runtime/live-preview-bridge";` : ""}
+${preview || live ? `import { AssetRegistry } from "@flint/runtime/assets";
+import { TimerSystem } from "@flint/runtime/timers";
+import Input from "@flint/shared/input";
+import Metadata from "@flint/shared/metadata";
+import Camera from "@flint/runtime/components/camera";
+import { HotReload } from "@flint/runtime/hot-reload";` : ""}
 ${ProjectConfig.config.usePhysics ? 'import { PhysicsWorld as World } from "@flint/runtime/physics-world";\nimport * as physicsComponents from "@flint/runtime/components/physics-index";' : 'import { World } from "./flint/runtime/world";'}
 import { ProjectLoader } from "@flint/runtime/project-loader";
 
@@ -207,7 +233,15 @@ import { ProjectLoader } from "@flint/runtime/project-loader";
     
     ${preview ? `if (window.FLINT_PREVIEW) {
         console.warn("Launched in preview mode.");
-        await EditorBridge.attach(projectData);
+        await EditorBridge.attach(projectData, {
+            System, Camera, Input, Metadata, AssetRegistry, TimerSystem, HotReload
+        });
+    }` : ""}
+    ${live ? `if (window.FLINT_LIVE_PREVIEW) {
+        console.warn("Launched in live-preview mode.");
+        await LivePreviewBridge.attach(projectData, {
+            System, Camera, Input, Metadata, AssetRegistry, TimerSystem, HotReload
+        });
     }` : ""}
 
     await runtime.start();
@@ -269,9 +303,7 @@ ${js}
             Notifier.notify("Open project first.", "danger");
             return false;
         }
-
         await Promise.all([Bundler.esbuildReady, Editor.engineFilesReady]);
-
         Bundler.files.clear();
         Bundler.files.set("index.ts", ProjectConfig.fullIndex);
 
@@ -285,11 +317,23 @@ ${js}
                     HotReload.reloadComponent(name, value as typeof Component);
                 }
             }
+
+            Builder.pushHotReloadToPreview();
         }
         else {
             return false;
         }
 
         return true;
+    }
+
+    private static pushHotReloadToPreview() {
+        if (!Builder.previewExists || !Builder.tab || Builder.tab.closed) return;
+
+        Builder.tab.postMessage({
+            type: "FLINT_HOT_RELOAD",
+            code: Builder.compiled,
+            components: ProjectConfig.config.components.map(c => c.name)
+        }, "*");
     }
 }

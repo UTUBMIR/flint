@@ -15,11 +15,11 @@ import type Component from "@flint/runtime/component";
 import { CodeEditor } from "./ui/code-editor";
 import { SettingsWindow, type SettingsChangedEventDetail, type SettingsValue } from "./settings/settings-window";
 import type SlDialog from "@shoelace-style/shoelace/dist/components/dialog/dialog.component.js";
-import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
-import type SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox.js";
-import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.js";
-import type SlSelect from "@shoelace-style/shoelace/dist/components/select/select.js";
-import type SlCopyButton from "@shoelace-style/shoelace/dist/components/copy-button/copy-button.js";
+import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.component.js";
+import type SlCheckbox from "@shoelace-style/shoelace/dist/components/checkbox/checkbox.component.js";
+import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.component.js";
+import type SlSelect from "@shoelace-style/shoelace/dist/components/select/select.component.js";
+import type SlCopyButton from "@shoelace-style/shoelace/dist/components/copy-button/copy-button.component.js";
 import ProjectConfig from "./project/project-config";
 import { AbstractFileSystem } from "@flint/shared/file-system";
 import { AssetRegistry, AssetType } from "@flint/runtime/assets";
@@ -30,6 +30,7 @@ import { RecentProjectsAccess } from "./recent-projects";
 import { refreshEditorWindows, resetEditorLayout, spawnEditorWindow, getEditorWindowsOfType } from "./layout";
 import { Notifier } from "./notifier";
 import { UnsavedChangesDialog } from "./unsaved-changes-dialog";
+import { PreviewServer } from "./live-preview/preview-server";
 
 export type ProjectTemplateFile = {
     path: string;
@@ -359,6 +360,7 @@ export default class Editor {
     public static draggedItem: unknown | undefined;
 
     public static settingsWindow: SettingsWindow;
+    public static qrPreviewWindow: PreviewServer;
 
     public static runButton: HTMLButtonElement;
     public static runButtonIcon: { name: string };
@@ -573,8 +575,7 @@ export default class Editor {
     }
 
     private static async initWelcomePanel() {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        Editor.welcomePanel = document.getElementById("welcome-panel")! as any;
+        Editor.welcomePanel = document.getElementById("welcome-panel")! as SlDialog;
         Editor.welcomePanelNewBtn = Editor.welcomePanel.querySelectorAll("sl-button")[0] as SlButton;
         Editor.welcomePanelOpenBtn = Editor.welcomePanel.querySelectorAll("sl-button")[1] as SlButton;
         Editor.welcomePanelRecentList = Editor.welcomePanel.querySelector(".recent-projects-list") as HTMLElement;
@@ -863,6 +864,8 @@ export default class Editor {
             this.runButton.addEventListener("click", ToolBarActions.runProject);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             this.runButtonIcon = this.runButton.querySelector("sl-icon")! as any;
+
+            this.qrPreviewWindow = new PreviewServer(document.getElementById("qr-preview-window")! as SlDialog);
 
             window.addEventListener("beforeunload", (event) => {
                 if (Project.needsSave()) {

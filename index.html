@@ -165,6 +165,16 @@
                             <sl-icon slot="prefix" name="arrow-clockwise"></sl-icon>
                             Reset Layout
                         </sl-menu-item>
+
+                        <sl-menu-label>Live Preview</sl-menu-label>
+                        <sl-menu-item id="live-preview-button" value="live-preview">
+                            <sl-icon slot="prefix" name="qr-code"></sl-icon>
+                            Show QR Code
+                        </sl-menu-item>
+                        <sl-menu-item id="live-preview-update-button" value="live-preview-update">
+                            <sl-icon slot="prefix" name="arrow-repeat"></sl-icon>
+                            Update Live Preview
+                        </sl-menu-item>
                     </sl-menu>
                 </sl-dropdown>
                 <sl-dropdown>
@@ -179,6 +189,14 @@
                 </sl-dropdown>
             </sl-button-group>
         </div>
+
+        <sl-dialog id="qr-preview-window" label="Preview QR">
+            <sl-qr-code style="display: none;" id="qr-preview" value="" size="256" error-correction="M"></sl-qr-code>
+            <p>Scan the QR using your target device, or use the link below:</p>
+            <code style="user-select: all;">Please wait for the code to generate...</code>
+            <p id="live-preview-status">Waiting for clients...</p>
+        </sl-dialog>
+
 
         <sl-dialog id="settings-window" label="Settings" style="--width: 50vw;">
             <sl-tab-group placement="start">

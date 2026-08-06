@@ -8,10 +8,19 @@ import { BrowserFileSystem } from "@flint/shared/file-system";
 import { PhysicsWorld } from "@flint/runtime/physics-world";
 import { initializeEditorLayout, initializePopoutWindow } from "@flint/editor/layout";
 import type { PopoutComponentConfig } from "@flint/editor/cross-window";
+import { initializeLivePreviewWindow } from "@flint/editor/live-preview/live-preview-window";
 
-const popoutParam = new URLSearchParams(window.location.search).get("gl_popout");
+const urlParams = new URLSearchParams(window.location.search);
+const popoutParam = urlParams.get("gl_popout");
+const livePreviewParam = urlParams.get("live_id");
+
+// NOTE: This is live-preview window code
+if (livePreviewParam) {
+    initializeLivePreviewWindow(livePreviewParam);
+}
+
 // NOTE: This is popout window code
-if (popoutParam) {
+else if (popoutParam) {
     document.body.classList.add("flint-popout-mode");
     const config: PopoutComponentConfig = JSON.parse(decodeURIComponent(popoutParam));
 
