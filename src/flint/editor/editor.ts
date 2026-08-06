@@ -1,6 +1,8 @@
 import GameObject from "@flint/runtime/game-object";
 import Layer from "@flint/runtime/layer";
 import Vector2 from "@flint/shared/vector2";
+import { engineSrcFiles, editorSrcFiles } from "../engine-files";
+import { defaultProjectComponents, defaultProjectData, defaultProjectFiles } from "@flint/build";
 import Bundler from "./project/bundler";
 import { Project } from "./project/project";
 import type HierarchyWindow from "./windows/hierarchy";
@@ -24,7 +26,7 @@ import ProjectConfig from "./project/project-config";
 import { AbstractFileSystem } from "@flint/shared/file-system";
 import { AssetRegistry, AssetType } from "@flint/runtime/assets";
 import { activeWindowService, editorAssetStore } from "./ui/window-services";
-import type { ProjectData } from "@flint/runtime/project-loader";
+import { ProjectLoader, type ProjectData } from "@flint/runtime/project-loader";
 import { RecentProjectsAccess } from "./recent-projects";
 
 import { refreshEditorWindows, resetEditorLayout, spawnEditorWindow, getEditorWindowsOfType } from "./layout";
@@ -745,8 +747,37 @@ export default class Editor {
             checkbox.checked = asset.preload;
             checkbox.addEventListener("sl-change", () => {
                 asset.preload = checkbox.checked;
+                void Project.saveProject();
             });
             row.insertCell().append(checkbox);
+
+            const actionsCell = row.insertCell();
+            actionsCell.style.display = "flex";
+            actionsCell.style.gap = "4px";
+
+            const renameButton = document.createElement("sl-button") as SlButton;
+            renameButton.size = "small";
+            renameButton.textContent = "Rename";
+            renameButton.addEventListener("click", () => {
+                const newUrl = window.prompt("New asset url:", asset.url);
+                if (newUrl === null || newUrl.trim() === "") {
+                    return;
+                }
+
+                asset.url = newUrl.trim();
+                void Project.saveProject().then(() => Editor.fillAssetTable(table));
+            });
+
+            const removeButton = document.createElement("sl-button") as SlButton;
+            removeButton.size = "small";
+            removeButton.variant = "danger";
+            removeButton.textContent = "Remove";
+            removeButton.addEventListener("click", () => {
+                AssetRegistry.meta.delete(asset.id);
+                void Project.saveProject().then(() => Editor.fillAssetTable(table));
+            });
+
+            actionsCell.append(renameButton, removeButton);
         }
     }
 
@@ -887,111 +918,23 @@ export default class Editor {
     }
 
     private static createDefaultProject(): ProjectTemplate {
-        const defaultLayer = new Layer();
-        EditorName("Main Layer")(defaultLayer);
-
-        const rectComponents: Component[] = [];
-
-        const helloWorldType = System.components.get("HelloWorld");
-        if (helloWorldType) {
-            rectComponents.push(new (helloWorldType as new () => Component)());
-        }
-
-        const rotateComponentType = System.components.get("Rotate");
-        if (rotateComponentType) {
-            rectComponents.push(new (rotateComponentType as new () => Component)());
-        }
-
-        const rect = new GameObject(rectComponents, new Transform(
-            undefined,
-            new Vector2(1, 1)
-        ));
-        EditorName("Rect")(rect);
-
-        const camera = new GameObject([
-            new Components.Camera()
-        ]);
-        EditorName("Camera")(camera);
-
-        defaultLayer.addObjects([rect, camera]);
-
         return {
-            data: {
-                layers: [defaultLayer],
-                assets: []
-            },
-            files: [{
-                path: "assets/hello-world.ts",
-                content: `import Label from "@flint/runtime/components/label";
-
-// Components are (often) small scripts you attach to GameObjects.
-// This one extends Label, so it already knows how to draw text on screen.
-export class HelloWorld extends Label {
-    // Label already has these fields, so we override their default values here.
-    override text = "Hello world!";
-    override fontSize = 32;
-
-    start() {
-        // start() runs once when the game begins.
-        console.log("Hello world!");
-    }
-}
-`
-            }, {
-                path: "assets/rotate.ts",
-                content: `import Component from "@flint/runtime/component";
-import { System } from "@flint/runtime/system";
-
-// This is the simplest kind of Flint component.
-// It extends Component directly, then changes its GameObject's Transform.
-export class Rotate extends Component {
-    rotationSpeed = 2;
-
-    start() {
-        // Make the rectangle a little wider when the game starts.
-        this.transform.size.x = 2;
-    }
-
-    update() {
-        // Rotate smoothly. deltaTime keeps the speed stable on high and low fps.
-        this.transform.rotation += this.rotationSpeed * System.deltaTime;
-    }
-}
-`
-            }],
-            components: [{
-                name: "HelloWorld",
-                file: "/assets/hello-world.ts"
-            }, {
-                name: "Rotate",
-                file: "/assets/rotate.ts"
-            }]
+            data: ProjectLoader.deserialize(defaultProjectData()),
+            files: defaultProjectFiles(),
+            components: defaultProjectComponents()
         };
     }
 
     public static async loadEngineFiles() {
         const indicator = ProcessIndicator.startProcess("Loading engine files", "neutral");
 
-        const fileList = await fetch(window.location.href.replace(/index\.html$/, "") + "/types/" + "files.json").then(r => r.json());
-        const fileBaseUrl = window.location.href.replace(/index\.html$/, "") + "/src/";
-
-        const allFiles: string[] = [
-            ...(fileList.types || []),
-            ...(fileList.json || [])
-        ];
-
-        const tasks: Promise<void>[] = [];
-
-        for (const filePath of allFiles) {
-            tasks.push((async () => {
-                const thisFile = filePath.replace("d.", "");
-                const url = fileBaseUrl + thisFile;
-                const content = await fetch(url).then(r => r.text());
-
-                Bundler.flintFiles.set(thisFile, content);
-            })());
+        for (const [filePath, content] of Object.entries(engineSrcFiles)) {
+            Bundler.flintFiles.set(filePath, content);
         }
-        await Promise.all(tasks);
+
+        for (const [filePath, content] of Object.entries(editorSrcFiles)) {
+            Bundler.flintFiles.set(filePath, content);
+        }
 
         indicator.complete("Engine loaded");
         Editor._resolveEngineFilesReady();

@@ -3,3 +3,5 @@ dist/
 types/
 src/flint/public/libs/
 cdn/
+packages/engine/src/public/libs/
+src/flint/engine-files.ts

@@ -1,5 +1,6 @@
 import Editor from "../editor";
 import ProjectConfig from "./project-config";
+import { engineTypeFiles } from "../../engine-files";
 import { Builder } from "./builder";
 import { RunningState, System, type UUID } from "@flint/runtime/system";
 import Metadata from "@flint/shared/metadata";
@@ -13,6 +14,7 @@ import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.j
 import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
 import { CodeEditor } from "../ui/code-editor";
 import { CasingHandler } from "../casing-handler";
+import { componentFileName, makeComponentSource } from "@flint/build";
 import { activeWindowService, editorAssetStore, editorSelectionService } from "../ui/window-services";
 import { refreshEditorWindows } from "../layout";
 
@@ -425,20 +427,9 @@ export class Project {
         const fileBaseName = CasingHandler.splitPascalCase(name, "-");
 
         const assetPath = activeWindowService.getPreferredAssetsPath().replace(/^\//, "");
-        const relativeFilePath = `${assetPath}/${fileBaseName}.ts`;
+        const relativeFilePath = `${assetPath}/${componentFileName(name)}`;
 
-        const fileContent = `import Component from "@flint/runtime/component";
-
-export class ${name} extends Component {
-    start() {
-        // Code that should run once on start
-    }
-
-    update() {
-        // Code that should run every frame
-    }
-}
-`;
+        const fileContent = makeComponentSource(name);
 
         const parts = assetPath.split("/").filter(Boolean);
         let currentPath = "";
@@ -529,24 +520,15 @@ export class ${name} extends Component {
 
 
     private static async copyTypesToProject(
-        typesBaseUrl: string,
+        _typesBaseUrl: string,
         callback?: (total: number, loaded: number) => void
     ) {
-        const fileList = await fetch(typesBaseUrl + "files.json").then(r => r.json());
-
-        const allFiles: string[] = [
-            ...(fileList.types || []),
-            ...(fileList.json || [])
-        ];
+        const allFiles = Object.keys(engineTypeFiles);
 
         let loaded = 0;
 
         const tasks = allFiles.map(async (filePath) => {
-            const url = filePath.endsWith("d.ts")
-                ? typesBaseUrl + filePath
-                : typesBaseUrl.replace("types/", "src/") + filePath;
-
-            const content = await fetch(url).then(r => r.text());
+            const content = engineTypeFiles[filePath]!;
 
             const pathParts = filePath.split("/");
             const fileName = pathParts.pop()!;

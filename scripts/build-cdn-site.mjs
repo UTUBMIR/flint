@@ -73,5 +73,3 @@ indexHtml = replaceOrThrow(
 fs.writeFileSync(path.join(cdnDir, "index.html"), indexHtml);
 
 copyRecursive(path.join(projectRoot, "style.css"), path.join(cdnDir, "style.css"));
-copyRecursive(path.join(projectRoot, "src"), path.join(cdnDir, "src"));
-copyRecursive(path.join(projectRoot, "types"), path.join(cdnDir, "types"));

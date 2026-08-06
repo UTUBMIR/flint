@@ -1,0 +1,9 @@
+{
+    "name": "@flint/build",
+    "version": "0.0.1",
+    "description": "Shared build logic for the flint engine: main.ts generation, decorator stripping and html output.",
+    "license": "MIT",
+    "type": "module",
+    "main": "./src/index.ts",
+    "types": "./src/index.ts"
+}

@@ -2,8 +2,7 @@
     "compilerOptions": {
         "experimentalDecorators": false,
         "useDefineForClassFields": false,
-        "rootDir": ".",
-        "outDir": "./dist",
+        "rootDir": "./src",
         "declaration": true,
         "emitDeclarationOnly": true,
         "declarationDir": "./types",
@@ -21,30 +20,22 @@
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
         "noImplicitOverride": true,
-        "types": ["wicg-file-system-access"],
         "paths": {
-            "@flint/editor/*": [
-                "./src/flint/editor/*"
-            ],
-            "@flint/build/*": [
-                "./packages/build/src/*"
-            ],
             "@flint/runtime/*": [
-                "./packages/engine/src/runtime/*"
+                "./src/runtime/*"
             ],
             "@flint/shared/*": [
-                "./packages/engine/src/shared/*"
+                "./src/shared/*"
             ],
             "@flint/public/*": [
-                "./packages/engine/src/public/*"
+                "./src/public/*"
             ]
         }
     },
     "include": [
-        "src",
+        "src"
     ],
     "exclude": [
-        "dist",
         "types",
         "node_modules"
     ]

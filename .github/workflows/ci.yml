@@ -26,4 +26,4 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build:libs && npm run build
+        run: npm run build && npm run build:cli

@@ -1,4 +1,5 @@
 import { System } from "@flint/runtime/system";
+import { defaultProjectConfig, defaultTsConfig } from "@flint/build";
 
 type ConfigType = {
     components: { name: string, file: string }[]
@@ -24,32 +25,9 @@ export default class ProjectConfig {
         return ProjectConfig.config.components.map(c => `export {${c.name}} from "${c.file}";`).join("");
     }
 
-    public static tsConfig = `{
-    "compilerOptions": {
-        "baseUrl": ".",
-        "paths": {
-            "@flint/*": [
-                "flint/*"
-            ]
-        },
-        "noImplicitOverride": true,
-        "module": "esnext",
-        "target": "esnext",
-        "experimentalDecorators": false,
-        "useDefineForClassFields": false
-    }
-}`;
+    public static tsConfig = defaultTsConfig;
 
-    private static defaultConfig: ConfigType = {
-        components: [],
-        assets: [],
-        usePhysics: true,
-        physicsPixelsPerMeter: 100,
-        physicsGravityX: 0,
-        physicsGravityY: 9.8,
-        generateJsMap: false,
-        rootPath: "virtual"
-    };
+    private static defaultConfig: ConfigType = defaultProjectConfig() as ConfigType;
 
     public static async save() {
         await System.fileSystem.writeTextFile(ProjectConfig.configFileName, JSON.stringify(ProjectConfig.config, null, 4));

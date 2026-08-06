@@ -8,7 +8,7 @@ export default [
         input: "node_modules/planck/dist/planck.d.ts",
 
         output: {
-            file: "src/flint/public/libs/planck.d.ts",
+            file: "packages/engine/src/public/libs/planck.d.ts",
             format: "es",
 
             generatedCode: {
@@ -32,7 +32,7 @@ export default [
         input: "node_modules/planck/dist/planck.mjs",
 
         output: {
-            file: "src/flint/public/libs/planck.js",
+            file: "packages/engine/src/public/libs/planck.js",
             format: "es",
 
             generatedCode: {

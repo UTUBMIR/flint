@@ -1,0 +1,15 @@
+{
+    "name": "@flint/engine",
+    "version": "0.0.1",
+    "description": "Flint game engine runtime: ECS, renderer, physics and asset system.",
+    "license": "MIT",
+    "type": "module",
+    "main": "./src/index.ts",
+    "types": "./src/index.ts",
+    "scripts": {
+        "types": "tsc -p tsconfig.json"
+    },
+    "dependencies": {
+        "planck": "^1.5.0"
+    }
+}

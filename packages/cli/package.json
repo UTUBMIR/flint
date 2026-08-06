@@ -1,0 +1,21 @@
+{
+    "name": "@flint/cli",
+    "version": "0.0.1",
+    "description": "Command line interface for the flint game engine: build game projects from the terminal.",
+    "license": "MIT",
+    "type": "module",
+    "bin": {
+        "flint": "./dist/flint.mjs"
+    },
+    "scripts": {
+        "build": "esbuild src/index.ts --bundle --minify --platform=node --format=esm --outfile=dist/flint.mjs --external:esbuild"
+    },
+    "dependencies": {
+        "@flint/build": "*",
+        "@flint/engine": "*",
+        "esbuild": "^0.28.1"
+    },
+    "devDependencies": {
+        "@types/node": "^26.1.2"
+    }
+}

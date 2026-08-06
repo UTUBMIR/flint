@@ -1,4 +1,4 @@
-import type Component from "@flint//runtime/component";
+import type Component from "@flint/runtime/component";
 import { System } from "@flint/runtime/system";
 import { ProcessIndicator } from "@flint/editor/editor";
 import Editor from "@flint/editor/editor";
@@ -191,7 +191,7 @@ import Input from "@flint/shared/input";
 import Metadata from "@flint/shared/metadata";
 import Camera from "@flint/runtime/components/camera";
 import { HotReload } from "@flint/runtime/hot-reload";` : ""}
-${ProjectConfig.config.usePhysics ? 'import { PhysicsWorld as World } from "@flint/runtime/physics-world";\nimport * as physicsComponents from "@flint/runtime/components/physics-index";' : 'import { World } from "./flint/runtime/world";'}
+${ProjectConfig.config.usePhysics ? 'import { PhysicsWorld as World } from "@flint/runtime/physics-world";\nimport * as physicsComponents from "@flint/runtime/components/physics-index";' : 'import { World } from "@flint/runtime/world";'}
 import { ProjectLoader } from "@flint/runtime/project-loader";
 
 (async () => {
