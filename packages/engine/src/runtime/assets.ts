@@ -169,9 +169,23 @@ export class AssetRequestSystem {
             throw new Error(`Asset meta not found: ${id}`);
         }
 
-        const promise = AssetLoader.load(meta).finally(() => {
-            this.pending.delete(id);
-        });
+        const promise = AssetLoader.load(meta)
+            .catch((error: unknown) => {
+                // Loading failures (e.g. a missing file) should not abort the
+                // whole project load; the asset simply stays unloaded and any
+                // access will surface a clear "Asset is not loaded" error.
+                // Still surface it to the editor's diagnostics so it shows in
+                // the "What Went Wrong" report.
+                console.error(`Failed to load asset "${meta.url}" (${id}):`, error);
+                if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("flint:asset-load-failure", {
+                        detail: { id, url: meta.url, error }
+                    }));
+                }
+            })
+            .finally(() => {
+                this.pending.delete(id);
+            });
 
         this.pending.set(id, promise);
         return promise;

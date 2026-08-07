@@ -4,6 +4,7 @@ import Vector2 from "@flint/shared/vector2";
 import { engineSrcFiles, editorSrcFiles } from "../engine-files";
 import { defaultProjectComponents, defaultProjectData, defaultProjectFiles } from "@flint/build";
 import Bundler from "./project/bundler";
+import { normalizeAssetUrl } from "./project/asset-paths";
 import { Project } from "./project/project";
 import type HierarchyWindow from "./windows/hierarchy";
 import { EditorName as EditorName } from "./windows/hierarchy";
@@ -33,6 +34,9 @@ import { refreshEditorWindows, resetEditorLayout, spawnEditorWindow, getEditorWi
 import { Notifier } from "./notifier";
 import { UnsavedChangesDialog } from "./unsaved-changes-dialog";
 import { PreviewServer } from "./live-preview/preview-server";
+import { RuntimeErrorCapture } from "./diagnostics/runtime-error-capture";
+import { ProblemsStore } from "./diagnostics/problems-store";
+import { openProblemsReport } from "./diagnostics/problems-report";
 
 export type ProjectTemplateFile = {
     path: string;
@@ -339,6 +343,7 @@ class ToolBarActions {
 
         if (start) {
             if (await Project.run()) {
+                ProblemsStore.clearRuntimeErrors();
                 System.run();
                 // Notifier.notify("Project started.", "primary");
             }
@@ -554,7 +559,7 @@ export default class Editor {
             createAssetDialog.hide();
             AssetRegistry.register({
                 id: crypto.randomUUID(),
-                url: createInput.value.trim(),
+                url: normalizeAssetUrl(createInput.value),
                 type: +typeSelect.value,
                 preload: preloadCheckbox.checked
             });
@@ -764,7 +769,7 @@ export default class Editor {
                     return;
                 }
 
-                asset.url = newUrl.trim();
+                asset.url = normalizeAssetUrl(newUrl);
                 void Project.saveProject().then(() => Editor.fillAssetTable(table));
             });
 
@@ -883,6 +888,11 @@ export default class Editor {
             }, true);
 
             document.getElementById("reset-layout-button")!.addEventListener("click", ToolBarActions.resetLayout);
+            document.getElementById("diagnose-problems")!.addEventListener("click", () => {
+                void openProblemsReport();
+            });
+
+            RuntimeErrorCapture.install();
             document.getElementById("new-viewport-window-button")?.addEventListener("click", () => spawnEditorWindow("Viewport"));
             document.getElementById("new-game-window-button")?.addEventListener("click", () => spawnEditorWindow("Game"));
             document.getElementById("new-code-editor-window-button")?.addEventListener("click", () => spawnEditorWindow("CodeEditor"));

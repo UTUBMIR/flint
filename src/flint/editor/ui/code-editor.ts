@@ -80,6 +80,7 @@ function toModuleSpecifier(filePath: string): string {
 }
 
 interface EditorModel {
+    uri: { toString: () => string };
     getValue: () => string;
     getLineContent: (line: number) => string;
     getLineCount: () => number;
@@ -93,6 +94,8 @@ interface IStandaloneCodeEditor {
     setModel: (model: EditorModel) => void;
     focus: () => void;
     addCommand: (keybinding: number, handler: () => void) => void;
+    setPosition: (position: { lineNumber: number; column: number }) => void;
+    revealPositionInCenter: (position: { lineNumber: number; column: number }) => void;
 }
 
 type EditorTab = {
@@ -567,6 +570,31 @@ export class CodeEditor {
         controller.currentPath = path;
         controller.setTitle(path);
         this.focusWindow(controller);
+    }
+
+    public static getFileForModelUri(uri: string): string | null {
+        for (const controller of this.windows.values()) {
+            for (const tab of controller.tabs.values()) {
+                if (tab.model.uri.toString() === uri) {
+                    return tab.path;
+                }
+            }
+        }
+        return null;
+    }
+
+    public static async openFileAtPosition(path: string, line: number): Promise<void> {
+        await this.openFile(path);
+
+        const controller = this.windows.get(this.activeWindowId ?? "");
+        if (!controller) {
+            return;
+        }
+
+        const position = { lineNumber: Math.max(1, line), column: 1 };
+        controller.editor.setPosition(position);
+        controller.editor.revealPositionInCenter(position);
+        controller.editor.focus();
     }
 
     public static async saveCurrentFile(instanceId?: string): Promise<void> {

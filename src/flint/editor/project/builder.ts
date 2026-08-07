@@ -9,6 +9,7 @@ import { Project } from "./project";
 import ProjectConfig from "./project-config";
 import { AbstractFileSystem } from "@flint/shared/file-system";
 import type { AssetData } from "../asset-types";
+import { isAbsoluteUrl, normalizeAssetUrl } from "./asset-paths";
 import { AssetRegistry } from "@flint/runtime/assets";
 import { ProjectLoader, type RawProjectData } from "@flint/runtime/project-loader";
 import { HotReload } from "@flint/runtime/hot-reload";
@@ -25,6 +26,78 @@ export class Builder {
 
     public static get compiledCode(): string {
         return Builder.compiled;
+    }
+
+    public static async copyAssetsToBuild(): Promise<void> {
+        if (!System.fileSystem.started) {
+            return;
+        }
+
+        let assets: RawProjectData["assets"] | undefined;
+        try {
+            if (!await System.fileSystem.fileExists("project.json")) {
+                return;
+            }
+            assets = (JSON.parse(await System.fileSystem.readTextFile("project.json")) as RawProjectData).assets;
+        } catch (error) {
+            console.warn("Failed to read project.json for asset copying:", error);
+            return;
+        }
+
+        if (!Array.isArray(assets)) {
+            return;
+        }
+
+        for (const meta of assets) {
+            if (isAbsoluteUrl(meta.url)) {
+                continue;
+            }
+
+            const source = normalizeAssetUrl(meta.url);
+            if (!source) {
+                continue;
+            }
+
+            const dest = meta.url.replace(/^\/+/, "");
+            if (!dest) {
+                continue;
+            }
+
+            try {
+                if (!await System.fileSystem.fileExists(source)) {
+                    continue;
+                }
+
+                const data = await System.fileSystem.readFile(source);
+                await Builder.ensureDirectory("build/" + dest);
+                await System.fileSystem.writeFile("build/" + dest, data);
+            } catch (error) {
+                console.warn(`Failed to copy asset "${meta.url}" to build:`, error);
+            }
+        }
+    }
+
+    private static async ensureDirectory(path: string): Promise<void> {
+        const dirPath = path.replace(/\/[^/]*$/, "");
+        if (!dirPath) {
+            return;
+        }
+
+        let current = "";
+        for (const part of dirPath.split("/")) {
+            current = current ? `${current}/${part}` : part;
+
+            let exists = false;
+            try {
+                exists = await System.fileSystem.dirExists(current);
+            } catch {
+                exists = false;
+            }
+
+            if (!exists) {
+                await System.fileSystem.createDir(current);
+            }
+        }
     }
 
     public static get previewExists(): boolean {
@@ -77,6 +150,8 @@ export class Builder {
         options: { stripEditorDecorators?: boolean } = {}
     ): Promise<boolean> {
         const processActions = ProcessIndicator.startProcess("Compiling the project", "primary");
+
+        await Builder.copyAssetsToBuild();
 
         const textFilesResult = await Project.getAllTextFiles();
         const textFiles = textFilesResult.files;

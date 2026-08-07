@@ -181,14 +181,18 @@
                     <sl-button size="small" slot="trigger">Help</sl-button>
                     <sl-menu>
                         <sl-menu-label>Problems</sl-menu-label>
-                        <sl-menu-item id="auto-fix-problems" value="fix-problems">
+                        <sl-menu-item id="diagnose-problems" value="diagnose-problems">
                             <sl-icon slot="prefix" name="wrench-adjustable"></sl-icon>
-                            Auto Fix Problems
+                            What Went Wrong
                         </sl-menu-item>
                     </sl-menu>
                 </sl-dropdown>
             </sl-button-group>
         </div>
+
+        <sl-dialog id="problems-window" label="What Went Wrong" style="--width: 50vw;">
+            <div id="problems-content"></div>
+        </sl-dialog>
 
         <sl-dialog id="qr-preview-window" label="Preview QR">
             <sl-qr-code style="display: none;" id="qr-preview" value="" size="256" error-correction="M"></sl-qr-code>
@@ -196,7 +200,6 @@
             <code style="user-select: all;">Please wait for the code to generate...</code>
             <p id="live-preview-status">Waiting for clients...</p>
         </sl-dialog>
-
 
         <sl-dialog id="settings-window" label="Settings" style="--width: 50vw;">
             <sl-tab-group placement="start">

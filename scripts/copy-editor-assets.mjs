@@ -23,6 +23,7 @@ const esbuildDir = path.join(distVendorDir, "esbuild");
 const shoelaceIcons = [
     "arrow-90deg-left",
     "arrow-clockwise",
+    "arrow-repeat",
     "box",
     "x-lg",
     "qr-code",

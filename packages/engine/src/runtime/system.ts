@@ -225,10 +225,10 @@ export class System {
     public static run(sendStart = true) {
         if (System._runningState === RunningState.Running) return;
 
+        System._runningState = RunningState.Running;
         System._world.start(sendStart);
 
         System.lastFrame = performance.now();
-        System._runningState = RunningState.Running;
         System.scheduleMainTick();
     }
 

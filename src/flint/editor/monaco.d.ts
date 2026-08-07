@@ -1,5 +1,21 @@
 declare module "monaco-editor" {
+    export interface Uri {
+        toString(): string;
+    }
+
+    export interface IMarker {
+        resource: Uri;
+        message: string;
+        startLineNumber: number;
+        startColumn: number;
+        endLineNumber: number;
+        endColumn: number;
+        severity: number;
+        code: string | { value: string } | number;
+    }
+
     export interface ITextModel {
+        uri: Uri;
         getValue(): string;
         getLineContent(line: number): string;
         getLineCount(): number;
@@ -13,6 +29,8 @@ declare module "monaco-editor" {
         setModel(model: ITextModel | null): void;
         focus(): void;
         addCommand(keybinding: number, handler: () => void): void;
+        setPosition(position: { lineNumber: number; column: number }): void;
+        revealPositionInCenter(position: { lineNumber: number; column: number }): void;
     }
 
     export interface Languages {
@@ -38,6 +56,8 @@ declare module "monaco-editor" {
         create(container: HTMLElement, options?: unknown): IStandaloneCodeEditor;
         createModel(value: string, language: string): ITextModel;
         setTheme(theme: string): void;
+        getModels(): ITextModel[];
+        getModelMarkers(filter?: { resource?: Uri; owner?: string }): IMarker[];
     }
 
     export interface Position {
