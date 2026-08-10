@@ -373,6 +373,14 @@
         src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script> -->
     <script type="module" src="./dist/vendor/shoelace/shoelace.js"></script>
     <script type="module" src="./dist/main.js"></script>
+
+    <script>
+        if ("serviceWorker" in navigator && window.isSecureContext) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("./service-worker.js").catch(() => { });
+            });
+        }
+    </script>
 </body>
 
 </html>
