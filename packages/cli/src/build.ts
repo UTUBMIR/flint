@@ -9,6 +9,8 @@ import {
     getUsedComponents,
     makeHtml,
     makeUserIndex,
+    isAbsoluteUrl,
+    normalizeAssetUrl,
     type BuildConfig,
     type RawProjectData
 } from "@flint/build";
@@ -70,10 +72,6 @@ function loadProjectJson<T>(projectDir: string, fileName: string): T | null {
     return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
 }
 
-function isAbsoluteUrl(url: string): boolean {
-    return /^(?:[a-z]+:)?\/\//i.test(url) || url.startsWith("data:") || url.startsWith("blob:");
-}
-
 function copyRegisteredAssets(projectDir: string, outputDir: string, assets: RawProjectData["assets"]): void {
     const copied = new Set<string>();
 
@@ -84,7 +82,7 @@ function copyRegisteredAssets(projectDir: string, outputDir: string, assets: Raw
             continue;
         }
 
-        const srcPath = path.resolve(projectDir, url);
+        const srcPath = path.resolve(projectDir, normalizeAssetUrl(url));
         if (!srcPath.startsWith(path.resolve(projectDir) + path.sep)) {
             console.warn(`Skipping asset outside of project directory: ${asset.url}`);
             continue;

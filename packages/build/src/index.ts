@@ -39,3 +39,4 @@ export {
     renameAsset,
     type AssetTypeName
 } from "./project-assets";
+export { isAbsoluteUrl, normalizeAssetUrl } from "./asset-paths";
