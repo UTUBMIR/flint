@@ -22,6 +22,10 @@
     <meta property="og:site_name" content="Flint">
     <meta name="theme-color" content="#1a1a1e">
 
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./assets/icon.svg">
+
     <link rel="stylesheet" href="./dist/main.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="./dist/vendor/shoelace/themes/dark.css">
@@ -43,151 +47,159 @@
 <body>
     <div class="app-toolbar">
         <div class="toolbar-left">
-            <span class="app-title">Flint</span>
-            <sl-button-group>
-                <sl-dropdown>
-                    <sl-button size="small" slot="trigger">File</sl-button>
-                    <sl-menu>
-                        <sl-menu-label>Project</sl-menu-label>
-                        <sl-menu-item id="new-project-button" value="create-project">
-                            <sl-icon slot="prefix" name="plus-lg"></sl-icon>
-                            New Project...
-                        </sl-menu-item>
-                        <sl-menu-item id="open-project-button" value="open-project">
-                            <sl-icon slot="prefix" name="folder2-open"></sl-icon>
-                            Open Project...
-                        </sl-menu-item>
-                        <sl-menu-item>
-                            <sl-icon slot="prefix" name="clock-history"></sl-icon>
-                            Recent Projects
-                            <sl-menu slot="submenu" id="recent-projects-menu">
-                                <sl-menu-item disabled>No recent projects</sl-menu-item>
-                            </sl-menu>
-                        </sl-menu-item>
-                        <sl-menu-item id="save-project-button" value="save-project">
-                            <sl-icon slot="prefix" name="floppy"></sl-icon>
-                            Save Project
-                            <span slot="suffix" class="shortcut">Ctrl+S</span>
-                        </sl-menu-item>
-                        <sl-menu-item id="export-project-gz-button" value="export-project-gz">
-                            <sl-icon slot="prefix" name="upload"></sl-icon>
-                            Export Project (.gz)
-                        </sl-menu-item>
-                        <sl-menu-item id="import-project-gz-button" value="import-project-gz">
-                            <sl-icon slot="prefix" name="download"></sl-icon>
-                            Import Project (.gz)
-                        </sl-menu-item>
-                        <sl-menu-item id="project-settings-button" value="project-settings">
-                            <sl-icon slot="prefix" name="gear"></sl-icon>
-                            Project Settings
-                        </sl-menu-item>
+            <div style="display: flex; gap: 8px;">
+                <span class="app-title"><img src="./assets/icon.svg" draggable="false" class="app-logo" alt=""></span>
+                <sl-button-group>
+                    <sl-dropdown>
+                        <sl-button size="small" slot="trigger">File</sl-button>
+                        <sl-menu>
+                            <sl-menu-label>Project</sl-menu-label>
+                            <sl-menu-item id="new-project-button" value="create-project">
+                                <sl-icon slot="prefix" name="plus-lg"></sl-icon>
+                                New Project...
+                            </sl-menu-item>
+                            <sl-menu-item id="open-project-button" value="open-project">
+                                <sl-icon slot="prefix" name="folder2-open"></sl-icon>
+                                Open Project...
+                            </sl-menu-item>
+                            <sl-menu-item>
+                                <sl-icon slot="prefix" name="clock-history"></sl-icon>
+                                Recent Projects
+                                <sl-menu slot="submenu" id="recent-projects-menu">
+                                    <sl-menu-item disabled>No recent projects</sl-menu-item>
+                                </sl-menu>
+                            </sl-menu-item>
+                            <sl-menu-item id="save-project-button" value="save-project">
+                                <sl-icon slot="prefix" name="floppy"></sl-icon>
+                                Save Project
+                                <span slot="suffix" class="shortcut">Ctrl+S</span>
+                            </sl-menu-item>
+                            <sl-menu-item id="export-project-gz-button" value="export-project-gz">
+                                <sl-icon slot="prefix" name="upload"></sl-icon>
+                                Export Project (.gz)
+                            </sl-menu-item>
+                            <sl-menu-item id="import-project-gz-button" value="import-project-gz">
+                                <sl-icon slot="prefix" name="download"></sl-icon>
+                                Import Project (.gz)
+                            </sl-menu-item>
+                            <sl-menu-item id="project-settings-button" value="project-settings">
+                                <sl-icon slot="prefix" name="gear"></sl-icon>
+                                Project Settings
+                            </sl-menu-item>
 
-                        <sl-menu-label>Export</sl-menu-label>
-                        <sl-menu-item id="compile-button" value="compile">
-                            <sl-icon slot="prefix" name="arrow-clockwise"></sl-icon>
-                            Compile
-                            <span slot="suffix" class="shortcut">Ctrl+Q</span>
-                        </sl-menu-item>
-                        <sl-menu-item id="build-and-run-button" value="build-and-run">
-                            <sl-icon slot="prefix" name="controller"></sl-icon>
-                            Build & Run
-                            <span slot="suffix" class="shortcut">Ctrl+B</span>
-                        </sl-menu-item>
-                    </sl-menu>
-                </sl-dropdown>
-                <sl-dropdown>
-                    <sl-button size="small" slot="trigger">Assets</sl-button>
-                    <sl-menu>
-                        <sl-menu-label>Registry</sl-menu-label>
-                        <sl-menu-item id="new-asset-button" value="create-asset">
-                            <sl-icon slot="prefix" name="plus-lg"></sl-icon>
-                            New Asset...
-                        </sl-menu-item>
-                        <sl-menu-item id="open-asset-button" value="open-asset">
-                            <sl-icon slot="prefix" name="boxes"></sl-icon>
-                            Open Asset...
-                        </sl-menu-item>
-                        <sl-menu-item id="view-assets-button" value="view-assets">
-                            <sl-icon slot="prefix" name="list-ul"></sl-icon>
-                            View Assets...
-                        </sl-menu-item>
+                            <sl-menu-label>Export</sl-menu-label>
+                            <sl-menu-item id="compile-button" value="compile">
+                                <sl-icon slot="prefix" name="arrow-clockwise"></sl-icon>
+                                Compile
+                                <span slot="suffix" class="shortcut">Ctrl+Q</span>
+                            </sl-menu-item>
+                            <sl-menu-item id="build-and-run-button" value="build-and-run">
+                                <sl-icon slot="prefix" name="controller"></sl-icon>
+                                Build & Run
+                                <span slot="suffix" class="shortcut">Ctrl+B</span>
+                            </sl-menu-item>
+                        </sl-menu>
+                    </sl-dropdown>
+                    <sl-dropdown>
+                        <sl-button size="small" slot="trigger">Assets</sl-button>
+                        <sl-menu>
+                            <sl-menu-label>Registry</sl-menu-label>
+                            <sl-menu-item id="new-asset-button" value="create-asset">
+                                <sl-icon slot="prefix" name="plus-lg"></sl-icon>
+                                New Asset...
+                            </sl-menu-item>
+                            <sl-menu-item id="open-asset-button" value="open-asset">
+                                <sl-icon slot="prefix" name="boxes"></sl-icon>
+                                Open Asset...
+                            </sl-menu-item>
+                            <sl-menu-item id="view-assets-button" value="view-assets">
+                                <sl-icon slot="prefix" name="list-ul"></sl-icon>
+                                View Assets...
+                            </sl-menu-item>
 
-                        <sl-menu-label>Project</sl-menu-label>
-                        <sl-menu-item id="new-component-general-button" value="create-component">
-                            <sl-icon slot="prefix" name="code-slash"></sl-icon>
-                            New Component
-                        </sl-menu-item>
-                        <sl-menu-item id="upload-file-button" value="upload-file">
-                            <sl-icon slot="prefix" name="file-earmark-arrow-up"></sl-icon>
-                            Upload File
-                        </sl-menu-item>
-                        <sl-menu-item id="download-build-button" value="download build">
-                            <sl-icon slot="prefix" name="file-earmark-arrow-down"></sl-icon>
-                            Download Build
-                        </sl-menu-item>
-                    </sl-menu>
-                </sl-dropdown>
-                <sl-dropdown>
-                    <sl-button size="small" slot="trigger">Window</sl-button>
-                    <sl-menu>
-                        <sl-menu-label>Layout</sl-menu-label>
-                        <sl-menu-item>
-                            <sl-icon slot="prefix" name="window"></sl-icon>
-                            New
-                            <sl-menu slot="submenu">
-                                <sl-menu-item id="new-viewport-window-button" value="new-viewport-window">
-                                    <sl-icon slot="prefix" name="tv"></sl-icon>
-                                    Viewport
-                                </sl-menu-item>
-                                <sl-menu-item id="new-game-window-button" value="new-game-window">
-                                    <sl-icon slot="prefix" name="play-circle"></sl-icon>
-                                    Game
-                                </sl-menu-item>
-                                <sl-menu-item id="new-code-editor-window-button" value="new-code-editor-window">
-                                    <sl-icon slot="prefix" name="braces"></sl-icon>
-                                    Editor
-                                </sl-menu-item>
-                                <sl-menu-item id="new-hierarchy-window-button" value="new-hierarchy-window">
-                                    <sl-icon slot="prefix" name="diagram-3"></sl-icon>
-                                    Hierarchy
-                                </sl-menu-item>
-                                <sl-menu-item id="new-assets-window-button" value="new-assets-window">
-                                    <sl-icon slot="prefix" name="boxes"></sl-icon>
-                                    Assets
-                                </sl-menu-item>
-                                <sl-menu-item id="new-inspector-window-button" value="new-inspector-window">
-                                    <sl-icon slot="prefix" name="list-columns-reverse"></sl-icon>
-                                    Inspector
-                                </sl-menu-item>
-                            </sl-menu>
-                        </sl-menu-item>
-                        <sl-menu-item id="reset-layout-button" value="reset-layout">
-                            <sl-icon slot="prefix" name="arrow-clockwise"></sl-icon>
-                            Reset Layout
-                        </sl-menu-item>
+                            <sl-menu-label>Project</sl-menu-label>
+                            <sl-menu-item id="new-component-general-button" value="create-component">
+                                <sl-icon slot="prefix" name="code-slash"></sl-icon>
+                                New Component
+                            </sl-menu-item>
+                            <sl-menu-item id="upload-file-button" value="upload-file">
+                                <sl-icon slot="prefix" name="file-earmark-arrow-up"></sl-icon>
+                                Upload File
+                            </sl-menu-item>
+                            <sl-menu-item id="download-build-button" value="download build">
+                                <sl-icon slot="prefix" name="file-earmark-arrow-down"></sl-icon>
+                                Download Build
+                            </sl-menu-item>
+                        </sl-menu>
+                    </sl-dropdown>
+                    <sl-dropdown>
+                        <sl-button size="small" slot="trigger">Window</sl-button>
+                        <sl-menu>
+                            <sl-menu-label>Layout</sl-menu-label>
+                            <sl-menu-item>
+                                <sl-icon slot="prefix" name="window"></sl-icon>
+                                New
+                                <sl-menu slot="submenu">
+                                    <sl-menu-item id="new-viewport-window-button" value="new-viewport-window">
+                                        <sl-icon slot="prefix" name="tv"></sl-icon>
+                                        Viewport
+                                    </sl-menu-item>
+                                    <sl-menu-item id="new-game-window-button" value="new-game-window">
+                                        <sl-icon slot="prefix" name="play-circle"></sl-icon>
+                                        Game
+                                    </sl-menu-item>
+                                    <sl-menu-item id="new-code-editor-window-button" value="new-code-editor-window">
+                                        <sl-icon slot="prefix" name="braces"></sl-icon>
+                                        Editor
+                                    </sl-menu-item>
+                                    <sl-menu-item id="new-hierarchy-window-button" value="new-hierarchy-window">
+                                        <sl-icon slot="prefix" name="diagram-3"></sl-icon>
+                                        Hierarchy
+                                    </sl-menu-item>
+                                    <sl-menu-item id="new-assets-window-button" value="new-assets-window">
+                                        <sl-icon slot="prefix" name="boxes"></sl-icon>
+                                        Assets
+                                    </sl-menu-item>
+                                    <sl-menu-item id="new-inspector-window-button" value="new-inspector-window">
+                                        <sl-icon slot="prefix" name="list-columns-reverse"></sl-icon>
+                                        Inspector
+                                    </sl-menu-item>
+                                </sl-menu>
+                            </sl-menu-item>
+                            <sl-menu-item id="reset-layout-button" value="reset-layout">
+                                <sl-icon slot="prefix" name="arrow-clockwise"></sl-icon>
+                                Reset Layout
+                            </sl-menu-item>
 
-                        <sl-menu-label>Live Preview</sl-menu-label>
-                        <sl-menu-item id="live-preview-button" value="live-preview">
-                            <sl-icon slot="prefix" name="qr-code"></sl-icon>
-                            Show QR Code
-                        </sl-menu-item>
-                        <sl-menu-item id="live-preview-update-button" value="live-preview-update">
-                            <sl-icon slot="prefix" name="arrow-repeat"></sl-icon>
-                            Update Live Preview
-                        </sl-menu-item>
-                    </sl-menu>
-                </sl-dropdown>
-                <sl-dropdown>
-                    <sl-button size="small" slot="trigger">Help</sl-button>
-                    <sl-menu>
-                        <sl-menu-label>Problems</sl-menu-label>
-                        <sl-menu-item id="diagnose-problems" value="diagnose-problems">
-                            <sl-icon slot="prefix" name="wrench-adjustable"></sl-icon>
-                            What Went Wrong
-                        </sl-menu-item>
-                    </sl-menu>
-                </sl-dropdown>
-            </sl-button-group>
+                            <sl-menu-label>Live Preview</sl-menu-label>
+                            <sl-menu-item id="live-preview-button" value="live-preview">
+                                <sl-icon slot="prefix" name="qr-code"></sl-icon>
+                                Show QR Code
+                            </sl-menu-item>
+                            <sl-menu-item id="live-preview-update-button" value="live-preview-update">
+                                <sl-icon slot="prefix" name="arrow-repeat"></sl-icon>
+                                Update Live Preview
+                            </sl-menu-item>
+
+                            <sl-menu-label>App</sl-menu-label>
+                            <sl-menu-item id="install-app-button" value="install-app" style="display: none;">
+                                <sl-icon slot="prefix" name="download"></sl-icon>
+                                Install App
+                            </sl-menu-item>
+                        </sl-menu>
+                    </sl-dropdown>
+                    <sl-dropdown>
+                        <sl-button size="small" slot="trigger">Help</sl-button>
+                        <sl-menu>
+                            <sl-menu-label>Problems</sl-menu-label>
+                            <sl-menu-item id="diagnose-problems" value="diagnose-problems">
+                                <sl-icon slot="prefix" name="wrench-adjustable"></sl-icon>
+                                What Went Wrong
+                            </sl-menu-item>
+                        </sl-menu>
+                    </sl-dropdown>
+                </sl-button-group>
+            </div>
         </div>
 
         <sl-dialog id="problems-window" label="What Went Wrong" style="--width: 50vw;">
@@ -380,6 +392,36 @@
                 navigator.serviceWorker.register("./service-worker.js").catch(() => { });
             });
         }
+    </script>
+
+    <script>
+        (() => {
+            let deferredPrompt = null;
+            const installItem = document.getElementById("install-app-button");
+
+            if (!installItem) return;
+
+            window.addEventListener("beforeinstallprompt", (event) => {
+                event.preventDefault();
+                deferredPrompt = event;
+                installItem.style.display = "";
+            });
+
+            installItem.addEventListener("click", async () => {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                const {outcome} = await deferredPrompt.userChoice;
+                if (outcome === "accepted") {
+                    installItem.style.display = "none";
+                }
+                deferredPrompt = null;
+            });
+
+            window.addEventListener("appinstalled", () => {
+                installItem.style.display = "none";
+                deferredPrompt = null;
+            });
+        })();
     </script>
 </body>
 

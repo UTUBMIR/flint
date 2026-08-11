@@ -93,6 +93,8 @@ function buildDefaultPrecache() {
         "./",
         "./index.html",
         "./style.css",
+        "./manifest.webmanifest",
+        "./assets/icon.svg",
         ...files.map((file) => `./dist/${file}`)
     ];
 }
@@ -108,6 +110,8 @@ function buildCdnPrecache() {
         "./",
         "./index.html",
         "./style.css",
+        "./manifest.webmanifest",
+        "./assets/icon.svg",
         "./dist/main.css",
         "./dist/main.js",
         `https://cdn.jsdelivr.net/npm/esbuild-wasm@${esbuildVersion}/esm/browser.min.js`,

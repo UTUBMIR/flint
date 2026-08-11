@@ -1,5 +1,4 @@
-# Flint
-![Alpha](https://img.shields.io/badge/status-alpha-red)
+![Flint](assets/logo.svg)
 
 **Flint** is a browser-based game engine written in TypeScript. It features a lightweight ECS (Entity-Component-System), a built-in TypeScript transpiler, and a simple file system for game assets.
 

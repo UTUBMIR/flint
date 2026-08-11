@@ -840,6 +840,14 @@ section.lm_tabs>div.lm_tab.lm_active.lm_focused {
     color: var(--sl-color-text);
     opacity: 0.85;
     font-size: var(--sl-font-size-large);
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+}
+
+.app-logo {
+    height: 1.25em;
+    display: block;
 }
 
 table {

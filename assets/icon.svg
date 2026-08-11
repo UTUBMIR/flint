@@ -1,0 +1,14 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<!-- Created using Krita: https://krita.org -->
+<svg xmlns="http://www.w3.org/2000/svg" 
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:krita="http://krita.org/namespaces/svg/krita"
+    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+    viewBox="0 0 147.12 99.12">
+<defs/>
+<g id="group0" transform="translate(-10.602508720752, -10.7675644426879)" fill="none">
+  <rect id="shape01" transform="matrix(-1.91394469445565 1.38306568908524 -1.38306568908524 -1.91394469445565 75.9631192367821 88.7892954088519)" fill="#a12400" fill-rule="evenodd" stroke-opacity="0" stroke="#000000" stroke-width="0" stroke-linecap="square" stroke-linejoin="bevel" width="23.04" height="23.04" rx="11.52" ry="11.52"/>
+  <rect id="shape1" transform="matrix(-1.91394469445565 1.38306568908524 -1.38306568908524 -1.91394469445565 168.325017441504 88.1945715205162)" fill="#a12400" fill-rule="evenodd" stroke-opacity="0" stroke="#000000" stroke-width="0" stroke-linecap="square" stroke-linejoin="bevel" width="23.04" height="46.08" rx="11.52" ry="11.52"/>
+ </g>
+</svg>

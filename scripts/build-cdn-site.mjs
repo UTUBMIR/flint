@@ -73,3 +73,5 @@ indexHtml = replaceOrThrow(
 fs.writeFileSync(path.join(cdnDir, "index.html"), indexHtml);
 
 copyRecursive(path.join(projectRoot, "style.css"), path.join(cdnDir, "style.css"));
+copyRecursive(path.join(projectRoot, "manifest.webmanifest"), path.join(cdnDir, "manifest.webmanifest"));
+copyRecursive(path.join(projectRoot, "assets"), path.join(cdnDir, "assets"));
