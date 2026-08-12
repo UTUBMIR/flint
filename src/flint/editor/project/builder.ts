@@ -48,33 +48,36 @@ export class Builder {
             return;
         }
 
+        const tasks: Promise<void>[] = [];
+
         for (const meta of assets) {
-            if (isAbsoluteUrl(meta.url)) {
-                continue;
-            }
-
-            const source = normalizeAssetUrl(meta.url);
-            if (!source) {
-                continue;
-            }
-
-            const dest = meta.url.replace(/^\/+/, "");
-            if (!dest) {
-                continue;
-            }
-
-            try {
-                if (!await System.fileSystem.fileExists(source)) {
-                    continue;
+            tasks.push((async () => {
+                if (isAbsoluteUrl(meta.url)) {
+                    return;
                 }
 
-                const data = await System.fileSystem.readFile(source);
-                await Builder.ensureDirectory("build/" + dest);
-                await System.fileSystem.writeFile("build/" + dest, data);
-            } catch (error) {
-                console.warn(`Failed to copy asset "${meta.url}" to build:`, error);
-            }
+                const source = normalizeAssetUrl(meta.url);
+                if (!source) {
+                    return;
+                }
+
+                const dest = meta.url.replace(/^\/+/, "");
+                if (!dest) {
+                    return;
+                }
+                try {
+                    const data = await System.fileSystem.readFile(source);
+                    await Builder.ensureDirectory("build/" + dest);
+                    await System.fileSystem.writeFile("build/" + dest, data);
+                } catch (error) {
+                    if (await System.fileSystem.fileExists(source)) {
+                        console.warn(`Failed to copy asset "${meta.url}" to build:`, error);
+                    }
+                }
+            })());
         }
+
+        await Promise.allSettled(tasks);
     }
 
     private static async ensureDirectory(path: string): Promise<void> {

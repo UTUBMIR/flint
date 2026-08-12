@@ -15,6 +15,18 @@ export abstract class AbstractFileSystem {
             : data.slice().buffer;
     }
 
+    public static bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+        if (a.length !== b.length) {
+            return false;
+        }
+        for (let i = 0; i < a.length; ++i) {
+            if (a[i] !== b[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static decoder = new TextDecoder();
     private static encoder = new TextEncoder();
 
@@ -66,10 +78,27 @@ export class BrowserFileSystem extends AbstractFileSystem {
     }
 
     public async writeFile(path: string, data: Uint8Array): Promise<void> {
+        if (await this.fileMatches(path, data)) {
+            return;
+        }
         const fileHandle = await this.getFileHandle(path, true);
         const writable = await fileHandle.createWritable();
         await writable.write(AbstractFileSystem.toArrayBuffer(data));
         await writable.close();
+    }
+
+    private async fileMatches(path: string, data: Uint8Array): Promise<boolean> {
+        try {
+            const fileHandle = await this.getFileHandle(path);
+            const file = await fileHandle.getFile();
+            if (file.size !== data.length) {
+                return false;
+            }
+            const existing = new Uint8Array(await file.arrayBuffer());
+            return AbstractFileSystem.bytesEqual(existing, data);
+        } catch {
+            return false;
+        }
     }
 
 
