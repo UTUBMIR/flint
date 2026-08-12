@@ -48,36 +48,40 @@ export class Builder {
             return;
         }
 
-        const tasks: Promise<void>[] = [];
+        const uniqueDirs = new Set<string>();
+        const copies: { source: string; dest: string }[] = [];
 
         for (const meta of assets) {
-            tasks.push((async () => {
-                if (isAbsoluteUrl(meta.url)) {
-                    return;
-                }
+            if (isAbsoluteUrl(meta.url)) {
+                continue;
+            }
 
-                const source = normalizeAssetUrl(meta.url);
-                if (!source) {
-                    return;
-                }
+            const source = normalizeAssetUrl(meta.url);
+            if (!source) {
+                continue;
+            }
 
-                const dest = meta.url.replace(/^\/+/, "");
-                if (!dest) {
-                    return;
-                }
-                try {
-                    const data = await System.fileSystem.readFile(source);
-                    await Builder.ensureDirectory("build/" + dest);
-                    await System.fileSystem.writeFile("build/" + dest, data);
-                } catch (error) {
-                    if (await System.fileSystem.fileExists(source)) {
-                        console.warn(`Failed to copy asset "${meta.url}" to build:`, error);
-                    }
-                }
-            })());
+            const dest = meta.url.replace(/^\/+/, "");
+            if (!dest) {
+                continue;
+            }
+
+            copies.push({ source, dest });
+            uniqueDirs.add("build/" + dest.replace(/\/[^/]*$/, ""));
         }
 
-        await Promise.allSettled(tasks);
+        await Promise.all([...uniqueDirs].map(dir => Builder.ensureDirectory(dir)));
+
+        await Promise.allSettled(copies.map(({ source, dest }) => (async () => {
+            try {
+                const data = await System.fileSystem.readFile(source);
+                await System.fileSystem.writeFile("build/" + dest, data);
+            } catch (error) {
+                if (await System.fileSystem.fileExists(source)) {
+                    console.warn(`Failed to copy asset "${source}" to build:`, error);
+                }
+            }
+        })));
     }
 
     private static async ensureDirectory(path: string): Promise<void> {
@@ -154,17 +158,17 @@ export class Builder {
     ): Promise<boolean> {
         const processActions = ProcessIndicator.startProcess("Compiling the project", "primary");
 
-        await Builder.copyAssetsToBuild();
+        const copyAssetsPromise = Builder.copyAssetsToBuild();
 
         const textFilesResult = await Project.getAllTextFiles();
         const textFiles = textFilesResult.files;
         const textAssets = textFilesResult.assets;
 
-        for (const { path } of textFiles) {
+        await Promise.all(textFiles.map(async ({ path }) => {
             const text = await System.fileSystem.readTextFile(path);
 
             Bundler.files.set(path, text);
-        }
+        }));
 
         editorAssetStore.setAssets(textAssets as AssetData[]);
 
@@ -186,6 +190,9 @@ export class Builder {
             }
             processActions.fail("Compilation failed");
             return false;
+        }
+        finally {
+            await copyAssetsPromise;
         }
     }
 

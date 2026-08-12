@@ -1,3 +1,5 @@
+export type FileSystemEntry = { name: string; kind: "file" | "directory" };
+
 export abstract class AbstractFileSystem {
     protected rootHandle?: unknown;
 
@@ -44,6 +46,7 @@ export abstract class AbstractFileSystem {
     public abstract dirExists(path: string): Promise<boolean>;
     public abstract delete(path: string): Promise<void>;
     public abstract listDir(path: string): Promise<string[]>;
+    public abstract listDirEntries(path: string): Promise<FileSystemEntry[]>;
 
     public abstract createDir(path: string): Promise<void>;
     public abstract deleteDir(path: string, recursive?: boolean): Promise<void>;
@@ -135,6 +138,15 @@ export class BrowserFileSystem extends AbstractFileSystem {
         return result;
     }
 
+    public async listDirEntries(path: string): Promise<FileSystemEntry[]> {
+        const dirHandle = await this.getDirHandle(path);
+        const result: FileSystemEntry[] = [];
+        for await (const [name, handle] of dirHandle.entries()) {
+            result.push({ name, kind: handle.kind === "directory" ? "directory" : "file" });
+        }
+        return result;
+    }
+
     private async getFileHandle(path: string, create = false) {
         const { dir, name } = this.splitPath(path); // filename is `name`
         const dirHandle = await this.getDirHandle(dir); // only directories
@@ -189,6 +201,26 @@ export class VirtualFileSystem extends AbstractFileSystem {
             .filter(d => d.startsWith(prefix))
             .map(d => d.slice(prefix.length).split("/")[0]!);
         return Array.from(new Set([...files, ...dirs]));
+    }
+
+    public async listDirEntries(path: string): Promise<FileSystemEntry[]> {
+        const prefix = path.endsWith("/") ? path : path + "/";
+        const fileNames = new Set([...this.files.keys()]
+            .filter(p => p.startsWith(prefix))
+            .map(p => p.slice(prefix.length).split("/")[0]!));
+        const dirNames = new Set([...this.folders]
+            .filter(d => d.startsWith(prefix))
+            .map(d => d.slice(prefix.length).split("/")[0]!));
+        const result: FileSystemEntry[] = [];
+        for (const name of dirNames) {
+            result.push({ name, kind: "directory" });
+        }
+        for (const name of fileNames) {
+            if (!dirNames.has(name)) {
+                result.push({ name, kind: "file" });
+            }
+        }
+        return result;
     }
 
     public async readFile(path: string): Promise<Uint8Array> {

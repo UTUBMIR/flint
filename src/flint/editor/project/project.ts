@@ -6,7 +6,7 @@ import { RunningState, System, type UUID } from "@flint/runtime/system";
 import Metadata from "@flint/shared/metadata";
 import { ProjectLoader } from "@flint/runtime/project-loader";
 import type { BrowserFileSystem } from "@flint/shared/file-system";
-import { AbstractFileSystem as AbstractFileSystem } from "@flint/shared/file-system";
+import { AbstractFileSystem as AbstractFileSystem, type FileSystemEntry } from "@flint/shared/file-system";
 import { AssetRegistry } from "@flint/runtime/assets";
 import { EditorLayer as EditorLayer } from "../editor-layer";
 
@@ -357,21 +357,20 @@ export class Project {
         const assets: { id: string, name: string, type: string, path: string }[] = [];
 
         async function traverse(currentPath: string) {
-            let entries: string[] = [];
+            let entries: FileSystemEntry[] = [];
             try {
-                entries = await System.fileSystem.listDir(currentPath);
+                entries = await System.fileSystem.listDirEntries(currentPath);
             } catch {
                 // If FS doesn't support listDir, just returning
                 return;
             }
 
-            for (const name of entries) {
+            for (const { name, kind } of entries) {
                 if (name === "flint" || name === ".git" || name === "vendor" || name === "build") continue;
 
                 const fullPath = currentPath ? `${currentPath}/${name}` : name;
-                const isDir = await System.fileSystem.listDir(fullPath).then(() => true).catch(() => false);
 
-                if (isDir) {
+                if (kind === "directory") {
                     // Adding folder
                     assets.push({
                         id: crypto.randomUUID(),
