@@ -175,7 +175,8 @@ export class Builder {
 
         try {
             const enableSourceMap = sourceMap ?? ProjectConfig.config?.generateJsMap ?? false;
-            const result = (await Bundler.bundle(entryPoint, enableSourceMap, options)).outputFiles[0]?.text;
+            const buildResult = await Bundler.bundle(entryPoint, enableSourceMap, options);
+            const result = buildResult.outputFiles?.[0]?.text;
 
             if (!result) return false;
 

@@ -2,6 +2,7 @@ import Editor from "../editor";
 import ProjectConfig from "./project-config";
 import { engineTypeFiles } from "../../engine-files";
 import { Builder } from "./builder";
+import Bundler from "./bundler";
 import { RunningState, System, type UUID } from "@flint/runtime/system";
 import Metadata from "@flint/shared/metadata";
 import { ProjectLoader } from "@flint/runtime/project-loader";
@@ -329,6 +330,7 @@ export class Project {
     }
 
     private static async startupProject(handle: FileSystemDirectoryHandle): Promise<boolean> {
+        await Bundler.disposeAll();
         System.fileSystem.setRootHandle(handle);
         const wasCreated = await ProjectConfig.ensureLoaded();
 

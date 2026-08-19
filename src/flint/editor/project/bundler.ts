@@ -12,7 +12,7 @@ export default class Bundler {
     public static esbuildReady: Promise<void>;
 
     private static esbuild: typeof import("esbuild-wasm");
-    private static stripEditorDecorators = false;
+    private static contexts = new Map<string, import("esbuild-wasm").BuildContext>();
 
     static {
         Bundler.esbuildReady = new Promise<void>((resolve) => {
@@ -22,151 +22,167 @@ export default class Bundler {
     private static readonly editorDecoratorPattern =
         /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector)(\s*\([^)]*\))?\s*$/gm;
 
-    private static getInspectorMetadataImport(): string {
-        if (this.stripEditorDecorators) {
+    private static getInspectorMetadataImport(stripEditorDecorators: boolean): string {
+        if (stripEditorDecorators) {
             return 'import { SerializeType as __FlintSerializeType } from "@flint/shared/metadata";';
         }
         return 'import { FieldInspector as __FlintFieldInspector, SelectInspector as __FlintSelectInspector, SerializeType as __FlintSerializeType } from "@flint/shared/metadata";';
     }
-    private static readonly virtualFsPlugin = {
-        name: "virtual-fs",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setup(build: any) {
-            build.onResolve({ filter: /.*/ }, (args: { path: string; resolveDir: string; importer: string }) => {
-                function run() {
-                    // Ensure the import has .ts or .json extension
-                    const importPath = args.path.endsWith(".ts") || args.path.endsWith(".json") ? args.path : args.path + ".ts";
 
-                    if (importPath.startsWith("@flint")) {
-                        return {
-                            path: importPath,
-                            namespace: "virtual",
-                        };
-                    }
+    private static createVirtualFsPlugin(stripEditorDecorators: boolean) {
+        // Incremental cache: flint (engine) files are transformed once and reused
+        // across rebuilds while their raw content is unchanged; a content-hash
+        // mismatch invalidates the entry so updated engine code is picked up.
+        // User-project files are always treated as changed and re-transformed.
+        const flintCache = new Map<string, { hash: number; result: { contents: string; loader: "ts" | "js" | "json" } }>();
 
-                    // Get the base directory
-                    let baseDir = args.importer ? args.importer.replace(/\/[^/]*$/, "") : args.resolveDir;
+        const hashContent = (content: string): number => {
+            let h = 5381;
+            for (let i = 0; i < content.length; i++) {
+                h = (((h << 5) + h) | 0) + content.charCodeAt(i) | 0;
+            }
+            return h;
+        };
 
-                    // Normalize slashes
-                    baseDir = baseDir.replace(/\\/g, "/");
-
-                    // Split paths into segments
-                    const baseSegments = baseDir.split("/").filter(Boolean);
-                    const importSegments = importPath.split("/").filter(Boolean);
-
-                    const resolvedSegments: string[] = [];
-
-                    // If import path starts with ".", we resolve relative
-                    if (!baseDir.includes(".") && (importPath.startsWith("./") || importPath.startsWith("../"))) {
-                        resolvedSegments.push(...baseSegments);
-
-                        for (const seg of importSegments) {
-                            if (seg === ".") continue; // current directory
-                            if (seg === "..") resolvedSegments.pop(); // go up
-                            else resolvedSegments.push(seg); // normal segment
-                        }
-                    } else {
-                        // For non-relative paths, just use as-is
-                        resolvedSegments.push(...importSegments);
-                    }
-
-                    // Join and normalize
-                    const normalized = resolvedSegments.join("/");
-
-                    // console.log("importPath:", importPath);
-                    // console.log("baseDir:", baseDir);
-                    // console.log("resolved:", normalized);
-
-                    return {
-                        path: normalized.startsWith(".") ? normalized.slice(2, normalized.length) : normalized,
-                        namespace: "virtual",
-                    };
+        const getFlintContent = (flintPath: string) => {
+            let content = Bundler.flintFiles.get(flintPath);
+            if (content === undefined && flintPath.endsWith(".ts")) {
+                const jsPath = flintPath.replace(".ts", ".js");
+                const jsContent = Bundler.flintFiles.get(jsPath);
+                if (jsContent !== undefined) {
+                    flintPath = jsPath;
+                    content = jsContent;
                 }
-                const result = run();
-                return result;
-            });
+            }
 
+            if (content === undefined) {
+                const fallbackLoader = flintPath.endsWith(".json") ? "json" : "ts";
+                return { contents: "export {}", loader: fallbackLoader } as const;
+            }
 
-            build.onLoad({ filter: /.*/, namespace: "virtual" }, async (args: { path: string }) => {
-                function run() {
+            const hash = hashContent(content);
+            const cached = flintCache.get(flintPath);
+            if (cached && cached.hash === hash) {
+                return cached.result;
+            }
 
-                    if (args.path.startsWith("@flint")) {
-                        let flintPath = "flint/" + args.path.replace("@flint/", "");
-                        let content = Bundler.flintFiles.get(flintPath);
-                        if (!content) {
-                            flintPath = flintPath.replace(".ts", ".js");
-                            content = Bundler.flintFiles.get(flintPath);
-                        }
+            const transformed = Bundler.transformSource(content, flintPath, stripEditorDecorators);
+            const loader = flintPath.endsWith(".ts") ? "ts" : flintPath.endsWith(".js") ? "js" : "json";
+            const result = { contents: transformed, loader } as const;
+            flintCache.set(flintPath, { hash, result });
+            return result;
+        };
 
-                        if (!content) {
-                            console.warn("Missing virtual flint file:", flintPath);
+        return {
+            name: "virtual-fs",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            setup(build: any) {
+                build.onResolve({ filter: /.*/ }, (args: { path: string; resolveDir: string; importer: string }) => {
+                    function run() {
+                        const importPath = args.path.endsWith(".ts") || args.path.endsWith(".json") ? args.path : args.path + ".ts";
 
-                            return { contents: "export {}", loader: flintPath.endsWith(".json") ? "json" : "ts" };
-                        }
-
-                        return {
-                            contents: Bundler.transformSource(content, flintPath),
-                            loader: flintPath.endsWith(".ts") ? "ts" : flintPath.endsWith(".js") ? "js" : "json"
-                        };
-                    }
-
-                    const normalizedPath = args.path;
-
-                    const content = Bundler.files.get(normalizedPath);
-                    if (!content) {
-                        const content =
-                            Bundler.flintFiles.get(normalizedPath) ??
-                            Bundler.flintFiles.get(normalizedPath.replace(".ts", ".js"));
-                        if (content) {
+                        if (importPath.startsWith("@flint")) {
                             return {
-                                contents: Bundler.transformSource(content, normalizedPath),
-                                loader: normalizedPath.endsWith(".ts") ? "ts" : normalizedPath.endsWith(".js") ? "js" : "json"
+                                path: importPath,
+                                namespace: "virtual",
                             };
                         }
 
-                        console.warn("Missing virtual file:", normalizedPath);
-                        return { contents: "export {}", loader: "ts" };
+                        let baseDir = args.importer ? args.importer.replace(/\/[^/]*$/, "") : args.resolveDir;
+
+                        baseDir = baseDir.replace(/\\/g, "/");
+
+                        const baseSegments = baseDir.split("/").filter(Boolean);
+                        const importSegments = importPath.split("/").filter(Boolean);
+
+                        const resolvedSegments: string[] = [];
+
+                        if (!baseDir.includes(".") && (importPath.startsWith("./") || importPath.startsWith("../"))) {
+                            resolvedSegments.push(...baseSegments);
+
+                            for (const seg of importSegments) {
+                                if (seg === ".") continue;
+                                if (seg === "..") resolvedSegments.pop();
+                                else resolvedSegments.push(seg);
+                            }
+                        } else {
+                            resolvedSegments.push(...importSegments);
+                        }
+
+                        const normalized = resolvedSegments.join("/");
+
+                        return {
+                            path: normalized.startsWith(".") ? normalized.slice(2, normalized.length) : normalized,
+                            namespace: "virtual",
+                        };
                     }
+                    const result = run();
+                    return result;
+                });
 
-                    return {
-                        contents: Bundler.transformSource(content, normalizedPath, true),
-                        loader: normalizedPath.endsWith(".ts") ? "ts" : "json"
-                    };
-                }
-                const result = run();
-                return result;
-            });
-        }
-    };
+                build.onLoad({ filter: /.*/, namespace: "virtual" }, async (args: { path: string }) => {
+                    function run() {
+                        if (args.path.startsWith("@flint")) {
+                            let flintPath = "flint/" + args.path.replace("@flint/", "");
+                            const { contents, loader } = getFlintContent(flintPath);
+                            return { contents, loader };
+                        }
 
+                        const normalizedPath = args.path;
+
+                        const content = Bundler.files.get(normalizedPath);
+                        if (!content) {
+                            const flintContent =
+                                Bundler.flintFiles.get(normalizedPath) ??
+                                Bundler.flintFiles.get(normalizedPath.replace(".ts", ".js"));
+                            if (flintContent) {
+                                const { contents, loader } = getFlintContent(normalizedPath);
+                                return { contents, loader };
+                            }
+
+                            console.warn("Missing virtual file:", normalizedPath);
+                            return { contents: "export {}", loader: "ts" };
+                        }
+
+                        return {
+                            contents: Bundler.transformSource(content, normalizedPath, true),
+                            loader: normalizedPath.endsWith(".ts") ? "ts" : "json"
+                        };
+                    }
+                    const result = run();
+                    return result;
+                });
+            }
+        };
+    }
 
 
     private constructor() { }
 
-    private static transformSource(content: string, path: string, autoDetectInspectors = false): string {
+    private static transformSource(content: string, path: string, stripEditorDecorators: boolean, autoDetectInspectors = false): string {
         if (!path.endsWith(".ts")) {
             return content;
         }
 
         let result: string;
 
-        if (this.stripEditorDecorators) {
+        if (stripEditorDecorators) {
             const stripped = content.replace(this.editorDecoratorPattern, "");
             if (!autoDetectInspectors || path.endsWith(".d.ts")) {
                 result = stripped;
             } else {
-                result = this.addInferredSerializeTypeDecorators(stripped);
+                result = this.addInferredSerializeTypeDecorators(stripped, stripEditorDecorators);
             }
         } else if (!autoDetectInspectors || path.endsWith(".d.ts")) {
             result = content;
         } else {
-            result = this.addInferredInspectorDecorators(content);
+            result = this.addInferredInspectorDecorators(content, stripEditorDecorators);
         }
 
         return result;
     }
 
-    private static addInferredInspectorDecorators(content: string): string {
+    private static addInferredInspectorDecorators(content: string, stripEditorDecorators: boolean): string {
         const lines = content.split(/\r?\n/);
         const output: string[] = [];
         let changed = false;
@@ -225,7 +241,7 @@ export default class Bundler {
             return content;
         }
 
-        return `${this.getInspectorMetadataImport()}\n${output.join("\n")}`;
+        return `${this.getInspectorMetadataImport(stripEditorDecorators)}\n${output.join("\n")}`;
     }
 
     private static inferInspectorDecorator(typeAnnotation: string): string | null {
@@ -272,8 +288,6 @@ export default class Bundler {
         }
 
         const typeName = parts[0]!.replace(/^readonly\s+/, "");
-
-        // Match common serializable types
         if (/(^|\.)Vector2$/.test(typeName)) {
             return `@__FlintSerializeType(${typeName})`;
         }
@@ -290,7 +304,6 @@ export default class Bundler {
             return `@__FlintSerializeType(${typeName})`;
         }
 
-        // For generic types like Map<K, V>, Store the constructor reference if it matches known serializable generics
         if (/^(Map|Set|Array)\s*</.test(typeName)) {
             return `@__FlintSerializeType(${typeName.split(/\s*</, 1)[0]})`;
         }
@@ -298,7 +311,7 @@ export default class Bundler {
         return null;
     }
 
-    private static addInferredSerializeTypeDecorators(content: string): string {
+    private static addInferredSerializeTypeDecorators(content: string, stripEditorDecorators: boolean): string {
         const lines = content.split(/\r?\n/);
         const output: string[] = [];
         let changed = false;
@@ -345,7 +358,7 @@ export default class Bundler {
             return content;
         }
 
-        return `${this.getInspectorMetadataImport()}\n${output.join("\n")}`;
+        return `${this.getInspectorMetadataImport(stripEditorDecorators)}\n${output.join("\n")}`;
     }
 
     private static splitUnionType(typeAnnotation: string): string[] {
@@ -371,6 +384,9 @@ export default class Bundler {
         return Bundler;
     }
 
+    private static makeContextKey(entryPoint: string, sourceMap: boolean, stripEditorDecorators: boolean, tsconfigRaw: string): string {
+        return JSON.stringify([entryPoint, sourceMap, stripEditorDecorators, tsconfigRaw]);
+    }
 
     public static async bundle(
         entryPoint: string = "/index.ts",
@@ -378,26 +394,35 @@ export default class Bundler {
         options: { stripEditorDecorators?: boolean } = {}
     ) {
         await Bundler.esbuildReady;
-        const previousStripEditorDecorators = Bundler.stripEditorDecorators;
-        Bundler.stripEditorDecorators = options.stripEditorDecorators ?? false;
-        try {
-            return await Bundler.esbuild.build({
+        const stripEditorDecorators = options.stripEditorDecorators ?? false;
+        const enableSourceMap = !!sourceMap;
+        const key = Bundler.makeContextKey(entryPoint, enableSourceMap, stripEditorDecorators, ProjectConfig.tsConfig);
+
+        let context = Bundler.contexts.get(key);
+        if (!context) {
+            context = await Bundler.esbuild.context({
                 entryPoints: [entryPoint],
                 bundle: true,
                 write: false,
                 format: "esm",
                 target: ["es2024"],
-                plugins: [Bundler.virtualFsPlugin],
+                plugins: [Bundler.createVirtualFsPlugin(stripEditorDecorators)],
                 external: ["@flint/"],
                 platform: "browser",
                 minify: true,
                 keepNames: false,
                 tsconfigRaw: ProjectConfig.tsConfig,
                 treeShaking: true,
-                ...(sourceMap ? { sourcemap: "inline" } : {})
+                ...(enableSourceMap ? { sourcemap: "inline" } : {})
             });
-        } finally {
-            Bundler.stripEditorDecorators = previousStripEditorDecorators;
+            Bundler.contexts.set(key, context);
         }
+        return await context.rebuild();
+    }
+
+    public static async disposeAll() {
+        const contexts = [...Bundler.contexts.values()];
+        Bundler.contexts.clear();
+        await Promise.allSettled(contexts.map(c => c.dispose()));
     }
 }
