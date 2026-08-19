@@ -156,6 +156,7 @@ export class Builder {
         sourceMap?: boolean,
         options: { stripEditorDecorators?: boolean } = {}
     ): Promise<boolean> {
+        const started = performance.now();
         const processActions = ProcessIndicator.startProcess("Compiling the project", "primary");
 
         const copyAssetsPromise = Builder.copyAssetsToBuild();
@@ -180,7 +181,7 @@ export class Builder {
 
             this.compiled = result;
 
-            processActions.complete("Compiled");
+            processActions.complete(`Compiled in ${Math.round(performance.now() - started)} ms`);
 
             return true;
         }
