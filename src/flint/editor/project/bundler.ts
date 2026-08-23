@@ -391,14 +391,18 @@ export default class Bundler {
     public static async bundle(
         entryPoint: string = "/index.ts",
         sourceMap?: boolean,
-        options: { stripEditorDecorators?: boolean } = {}
+        options: { stripEditorDecorators?: boolean; incrementalRebuilds?: boolean } = {}
     ) {
         await Bundler.esbuildReady;
         const stripEditorDecorators = options.stripEditorDecorators ?? false;
         const enableSourceMap = !!sourceMap;
+        // When incremental rebuilds are disabled the cached context is thrown
+        // away after every compile, so each build re-resolves and re-parses
+        // everything from scratch.
+        const incremental = options.incrementalRebuilds ?? true;
         const key = Bundler.makeContextKey(entryPoint, enableSourceMap, stripEditorDecorators, ProjectConfig.tsConfig);
 
-        let context = Bundler.contexts.get(key);
+        let context = incremental ? Bundler.contexts.get(key) : undefined;
         if (!context) {
             context = await Bundler.esbuild.context({
                 entryPoints: [entryPoint],
@@ -415,9 +419,18 @@ export default class Bundler {
                 treeShaking: true,
                 ...(enableSourceMap ? { sourcemap: "inline" } : {})
             });
-            Bundler.contexts.set(key, context);
+            if (incremental) {
+                Bundler.contexts.set(key, context);
+            }
         }
-        return await context.rebuild();
+        try {
+            return await context.rebuild();
+        } finally {
+            if (!incremental) {
+                await context.dispose();
+                Bundler.contexts.delete(key);
+            }
+        }
     }
 
     public static async disposeAll() {

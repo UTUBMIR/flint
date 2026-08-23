@@ -453,6 +453,13 @@ export default class Editor {
                     ProjectConfig.config.generateJsMap = value as boolean;
                     await ProjectConfig.save();
                 }
+            },
+            "performance.compilation.incrementalRebuilds": {
+                getValue: () => ProjectConfig.config.incrementalRebuilds,
+                setValue: async ({ value }) => {
+                    ProjectConfig.config.incrementalRebuilds = value as boolean;
+                    await ProjectConfig.save();
+                }
             }
         };
 

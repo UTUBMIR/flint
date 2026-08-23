@@ -154,7 +154,7 @@ export class Builder {
         emitErrorMessages: boolean = true,
         entryPoint?: string,
         sourceMap?: boolean,
-        options: { stripEditorDecorators?: boolean } = {}
+        options: { stripEditorDecorators?: boolean; incrementalRebuilds?: boolean } = {}
     ): Promise<boolean> {
         const started = performance.now();
         const processActions = ProcessIndicator.startProcess("Compiling the project", "primary");
@@ -175,7 +175,8 @@ export class Builder {
 
         try {
             const enableSourceMap = sourceMap ?? ProjectConfig.config?.generateJsMap ?? false;
-            const buildResult = await Bundler.bundle(entryPoint, enableSourceMap, options);
+            const incrementalRebuilds = options.incrementalRebuilds ?? ProjectConfig.config?.incrementalRebuilds ?? true;
+            const buildResult = await Bundler.bundle(entryPoint, enableSourceMap, { ...options, incrementalRebuilds });
             const result = buildResult.outputFiles?.[0]?.text;
 
             if (!result) return false;

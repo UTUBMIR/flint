@@ -1,5 +1,11 @@
 {
     "performance": {
+        "compilation": {
+            "incrementalRebuilds": {
+                "type": "boolean",
+                "default": true
+            }
+        },
         "physics": {
             "usePhysicsWorld": {
                 "type": "boolean",

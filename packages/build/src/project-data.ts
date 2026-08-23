@@ -27,6 +27,7 @@ export type BuildConfig = {
     physicsGravityX: number;
     physicsGravityY: number;
     generateJsMap: boolean;
+    incrementalRebuilds: boolean;
 };
 
 export const defaultBuildConfig: BuildConfig = {
@@ -35,7 +36,8 @@ export const defaultBuildConfig: BuildConfig = {
     physicsPixelsPerMeter: 100,
     physicsGravityX: 0,
     physicsGravityY: 9.8,
-    generateJsMap: false
+    generateJsMap: false,
+    incrementalRebuilds: true
 };
 
 export function getUsedComponents(project: RawProjectData): string[] {

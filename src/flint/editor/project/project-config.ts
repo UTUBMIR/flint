@@ -10,6 +10,7 @@ type ConfigType = {
     physicsGravityX: number
     physicsGravityY: number
     generateJsMap: boolean
+    incrementalRebuilds: boolean
 }
 
 export default class ProjectConfig {

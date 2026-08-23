@@ -28,6 +28,7 @@ export function defaultProjectConfig(options: { minimal?: boolean } = {}): Build
         physicsGravityX: 0,
         physicsGravityY: 9.8,
         generateJsMap: false,
+        incrementalRebuilds: true,
         rootPath: "virtual"
     };
 }
