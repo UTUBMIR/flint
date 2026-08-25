@@ -67,6 +67,10 @@ export class RecentProjectsAccess {
 
         const handle = entry.handle;
 
+        if (typeof handle.queryPermission !== "function") {
+            return handle;
+        }
+
         try {
             const permission = await handle.queryPermission({ mode: "readwrite" });
             if (permission === "granted") {

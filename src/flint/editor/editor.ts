@@ -187,10 +187,11 @@ class ToolBarActions {
     private constructor() { }
 
     private static getPicker() {
-        if (showDirectoryPicker as unknown) {
-            return showDirectoryPicker({ mode: "readwrite", id: "project" });
+        if ("showDirectoryPicker" in window) {
+            return window.showDirectoryPicker({ mode: "readwrite", id: "project" });
         }
         else {
+            Notifier.notify("Your browser does not support the File System Access API. Projects will be stored in private in-browser storage.", "warning");
             return navigator.storage.getDirectory();
         }
     }
