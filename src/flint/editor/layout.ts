@@ -796,7 +796,50 @@ function handlePopoutComponent(componentItem: ComponentItem): void {
 
     const encoded = encodeURIComponent(JSON.stringify(config));
     const url = `${window.location.origin}${window.location.pathname}?gl_popout=${encoded}`;
-    window.open(url, `flint-popout-${config.instanceId}`, "width=800,height=600");
+    const bounds = getScreenBoundsForPopout(componentItem);
+    const availLeft = (window.screen as unknown as { availLeft?: number })?.availLeft ?? 0;
+    const availTop = (window.screen as unknown as { availTop?: number })?.availTop ?? 0;
+    const availWidth = window.screen.availWidth || window.screen.width;
+    const availHeight = window.screen.availHeight || window.screen.height;
+    const clampedLeft = Math.max(availLeft, Math.min(bounds.left, availLeft + availWidth - bounds.width));
+    const clampedTop = Math.max(availTop, Math.min(bounds.top, availTop + availHeight - bounds.height));
+    const features = `popup,left=${clampedLeft},screenX=${clampedLeft},top=${clampedTop},screenY=${clampedTop},width=${bounds.width},height=${bounds.height}`;
+    window.open(url, `flint-popout-${config.instanceId}`, features);
+}
+
+function getPopoutSourceRect(componentItem: ComponentItem): DOMRect {
+    const floatingShell = (componentItem.element as HTMLElement).closest?.(".flint-floating-window") as HTMLElement | null;
+    if (floatingShell) {
+        return floatingShell.getBoundingClientRect();
+    }
+
+    const stack = (componentItem as LayoutComponentItem).parent;
+    const stackElement = (stack as unknown as { element?: HTMLElement })?.element;
+    if (stack?.isStack && stackElement) {
+        const contentItems = (stack as unknown as { contentItems?: unknown[] })?.contentItems;
+        if (Array.isArray(contentItems) && contentItems.length === 1) {
+            return stackElement.getBoundingClientRect();
+        }
+    }
+
+    return componentItem.element.getBoundingClientRect();
+}
+
+function getScreenBoundsForPopout(componentItem: ComponentItem): { left: number; top: number; width: number; height: number; rawRect: DOMRect } {
+    const rect = getPopoutSourceRect(componentItem);
+    const screenLeft = (window.screenLeft as number | undefined) ?? window.screenX;
+    const screenTop = (window.screenTop as number | undefined) ?? window.screenY;
+    const frameBorderX = Math.max(0, (window.outerWidth - window.innerWidth) / 2);
+    const rawFrameChromeY = Math.max(0, window.outerHeight - window.innerHeight - frameBorderX);
+    const frameChromeY = Math.min(140, rawFrameChromeY);
+
+    return {
+        left: Math.round(screenLeft + frameBorderX + rect.left),
+        top: Math.round(screenTop + frameChromeY + rect.top),
+        width: Math.max(220, Math.round(rect.width)),
+        height: Math.max(180, Math.round(rect.height)),
+        rawRect: rect
+    };
 }
 
 function createPopoutLayoutConfig(type: WindowType, instanceId: string, title?: string): LayoutConfig {

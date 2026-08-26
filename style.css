@@ -1189,3 +1189,35 @@ sl-qr-code {
     gap: 6px;
     margin-top: 8px;
 }
+
+/* Window Controls Overlay: merge the app toolbar into the native title bar
+   when the app is installed with display_override: window-controls-overlay. */
+
+html.wco-active body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: max(env(titlebar-area-height, 0px), 1px);
+    background: var(--sl-color-background-secondary);
+    border-bottom: 1px solid var(--sl-color-border);
+    z-index: 99;
+    pointer-events: none;
+}
+
+html.wco-active .app-toolbar {
+    margin-left: env(titlebar-area-x, 0px);
+    width: env(titlebar-area-width, 100%);
+    min-height: env(titlebar-area-height, 34px);
+    -webkit-app-region: drag;
+    app-region: drag;
+}
+
+html.wco-active .app-toolbar sl-button,
+html.wco-active .app-toolbar sl-button-group,
+html.wco-active .app-toolbar sl-dropdown,
+html.wco-active .app-toolbar #process-indicator {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+}

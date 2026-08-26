@@ -5,6 +5,10 @@
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "orientation": "any",
   "background_color": "#12131a",
   "theme_color": "#12131a",

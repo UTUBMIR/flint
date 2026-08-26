@@ -7,6 +7,7 @@ import { UnsavedChangesDialog } from "@flint/editor/unsaved-changes-dialog";
 import { BrowserFileSystem } from "@flint/shared/file-system";
 import { PhysicsWorld } from "@flint/runtime/physics-world";
 import { initializeEditorLayout, initializePopoutWindow } from "@flint/editor/layout";
+import { NativeTitlebar } from "@flint/editor/native-titlebar";
 import type { PopoutComponentConfig } from "@flint/editor/cross-window";
 import { initializeLivePreviewWindow } from "@flint/editor/live-preview/live-preview-window";
 
@@ -33,6 +34,7 @@ else if (popoutParam) {
 }
 else { // NOTE: This is the actual entry-point for the editor
     initializeEditorLayout();
+    NativeTitlebar.init();
 
     System.init({
         fileSystem: new BrowserFileSystem(),
