@@ -438,7 +438,7 @@ export class ProjectLoader {
 }
 
 
-LoaderPlugins.addSerialize<GameObject>({
+LoaderPlugins.addSerialize({
     type: GameObject,
     serialize(go: GameObject) {
         return {
@@ -447,7 +447,7 @@ LoaderPlugins.addSerialize<GameObject>({
     }
 });
 
-LoaderPlugins.addDeserialize<GameObject>({
+LoaderPlugins.addDeserialize({
     type: GameObject,
     phase: LoadPhase.Deserialize,
     deserialize(dataRef: StrongRef<any>, _restored: GameObject, ctx: LoadContext) {
@@ -458,7 +458,7 @@ LoaderPlugins.addDeserialize<GameObject>({
     }
 });
 
-LoaderPlugins.addSerialize<Component>({
+LoaderPlugins.addSerialize({
     type: Component,
     serialize(comp: Component) {
         return {
@@ -468,7 +468,7 @@ LoaderPlugins.addSerialize<Component>({
     }
 });
 
-LoaderPlugins.addDeserialize<Component>({
+LoaderPlugins.addDeserialize({
     type: Component,
     phase: LoadPhase.Deserialize,
     deserialize(dataRef: StrongRef<any>, _instance: Component, ctx: LoadContext) {
