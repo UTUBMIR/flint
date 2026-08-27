@@ -1221,3 +1221,16 @@ html.wco-active .app-toolbar #process-indicator {
     -webkit-app-region: no-drag;
     app-region: no-drag;
 }
+
+/* Chromium's window-drag hit test swallows pointer events inside the drag
+   region regardless of z-index, so overlays (dialogs, menus, tooltips) that
+   reach into the title bar area must punch no-drag holes to stay clickable. */
+
+html.wco-active sl-dialog::part(base),
+html.wco-active sl-dialog::part(overlay),
+html.wco-active sl-dialog::part(panel),
+html.wco-active sl-popup::part(popup),
+html.wco-active sl-tooltip::part(body) {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+}
