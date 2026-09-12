@@ -31,49 +31,7 @@ const monacoVersion = normalizeVersion(packageJson.dependencies["monaco-editor"]
 const shoelaceVersion = normalizeVersion(packageJson.devDependencies["@shoelace-style/shoelace"]);
 const esbuildVersion = normalizeVersion(packageJson.devDependencies["esbuild-wasm"]);
 
-const shoelaceIcons = [
-    "arrow-90deg-left",
-    "arrow-clockwise",
-    "arrow-repeat",
-    "box",
-    "x-lg",
-    "qr-code",
-    "box-arrow-in-down-right",
-    "window",
-    "box-arrow-up-right",
-    "wrench-adjustable",
-    "boxes",
-    "check2-circle",
-    "code-slash",
-    "controller",
-    "diagram-3",
-    "download",
-    "exclamation-octagon",
-    "exclamation-triangle",
-    "file",
-    "file-earmark-arrow-down",
-    "file-earmark-arrow-up",
-    "floppy",
-    "folder2-open",
-    "clock-history",
-    "gear",
-    "info-circle",
-    "layers",
-    "list-columns-reverse",
-    "list-ul",
-    "lock-fill",
-    "unlock-fill",
-    "play",
-    "plus-lg",
-    "plus-square",
-    "stop",
-    "text-left",
-    "trash",
-    "upload",
-    "tv",
-    "play-circle",
-    "braces"
-];
+const shoelaceIcons = JSON.parse(fs.readFileSync(path.join(__dirname, "shoelace-icons.json"), "utf8"));
 
 const args = process.argv.slice(2);
 function argValue(name) {

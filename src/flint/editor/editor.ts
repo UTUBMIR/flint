@@ -37,6 +37,7 @@ import { PreviewServer } from "./live-preview/preview-server";
 import { RuntimeErrorCapture } from "./diagnostics/runtime-error-capture";
 import { ProblemsStore } from "./diagnostics/problems-store";
 import { openProblemsReport } from "./diagnostics/problems-report";
+import { LogProvider } from "./ui/log-provider";
 
 export type ProjectTemplateFile = {
     path: string;
@@ -835,6 +836,7 @@ export default class Editor {
     }
 
     public static init(): void {
+        LogProvider.install();
         Editor.addBasicComponents();
         const esbuildIndicator = ProcessIndicator.startProcess("Loading esbuild.wasm", "neutral");
         Bundler.init()
@@ -907,6 +909,8 @@ export default class Editor {
             document.getElementById("new-hierarchy-window-button")?.addEventListener("click", () => spawnEditorWindow("Hierarchy"));
             document.getElementById("new-assets-window-button")?.addEventListener("click", () => spawnEditorWindow("Assets"));
             document.getElementById("new-inspector-window-button")?.addEventListener("click", () => spawnEditorWindow("Inspector"));
+            document.getElementById("new-terminal-window-button")?.addEventListener("click", () => spawnEditorWindow("Terminal"));
+            document.getElementById("new-log-window-button")?.addEventListener("click", () => spawnEditorWindow("Log"));
 
             this.runButton = document.getElementById("run-button")! as HTMLButtonElement;
 

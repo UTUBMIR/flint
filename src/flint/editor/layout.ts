@@ -7,6 +7,9 @@ import HierarchyWindow from "./windows/hierarchy";
 import InspectorWindow from "./windows/inspector";
 import ViewportWindow from "./windows/viewport";
 import GameWindow from "./windows/game";
+import TerminalWindow from "./windows/terminal-window";
+import LogWindow from "./windows/log-window";
+import { TerminalProvider } from "./ui/terminal-provider";
 import { renderWindowControls } from "./ui/window-controls";
 import { activeWindowService, editorAssetStore, editorSelectionService, setPopoutWindowFlag } from "./ui/window-services";
 import type { EditorWindow, SpawnWindowOptions, WindowDefinition, WindowManagerApi, WindowType } from "./ui/window-framework";
@@ -19,7 +22,7 @@ import { System } from "@flint/runtime/system";
 
 const STORAGE_KEY = "flint.editor.layout";
 const HOST_ID = "layout-host";
-const STORAGE_VERSION = 3;
+const STORAGE_VERSION = 8;
 const HEADER_HEIGHT = 20;
 
 let currentLayout: GoldenLayout | null = null;
@@ -88,7 +91,9 @@ const windowDefinitions: readonly WindowDefinition[] = [
     { type: "CodeEditor", title: "Code Editor", create: context => new CodeEditorWindow(context) },
     { type: "Hierarchy", title: "Hierarchy", create: context => new HierarchyWindow(context) },
     { type: "Assets", title: "Assets", create: context => new AssetsWindow(context) },
-    { type: "Inspector", title: "Inspector", create: context => new InspectorWindow(context) }
+    { type: "Inspector", title: "Inspector", create: context => new InspectorWindow(context) },
+    { type: "Terminal", title: "Terminal", create: context => new TerminalWindow(context) },
+    { type: "Log", title: "Log", create: context => new LogWindow(context) }
 ] as const;
 
 class EditorWindowRegistry implements WindowManagerApi {
@@ -460,7 +465,7 @@ function syncWindowControls(): void {
     }
 
     const stacks = new Set<LayoutStackItem>();
-    for (const type of ["Game", "Viewport", "CodeEditor", "Hierarchy", "Assets", "Inspector"] as const) {
+    for (const type of ["Game", "Viewport", "CodeEditor", "Hierarchy", "Assets", "Inspector", "Terminal", "Log"] as const) {
         for (const record of editorWindowRegistry.getRecordsOfType(type)) {
             const stack = (record.container as ComponentContainer & { parent?: LayoutStackItem }).parent;
             if (stack) {
@@ -531,6 +536,32 @@ function createViewportAndEditorStack() {
     };
 }
 
+function createTerminalLogStack() {
+    return {
+        type: "stack" as const,
+        size: "50%",
+        isClosable: true,
+        content: [
+            {
+                type: "component" as const,
+                componentType: "Terminal",
+                componentState: { windowType: "Terminal" },
+                title: "Terminal",
+                isClosable: true,
+                reorderEnabled: true
+            },
+            {
+                type: "component" as const,
+                componentType: "Log",
+                componentState: { windowType: "Log" },
+                title: "Log",
+                isClosable: true,
+                reorderEnabled: true
+            }
+        ]
+    };
+}
+
 function createDefaultLayout(): LayoutConfig {
     return {
         root: {
@@ -548,7 +579,14 @@ function createDefaultLayout(): LayoutConfig {
                                 createPanelStack("Hierarchy", "Hierarchy", "20%")
                             ]
                         },
-                        createPanelStack("Assets", "Assets", "25%")
+                        {
+                            type: "row",
+                            size: "25%",
+                            content: [
+                                createPanelStack("Assets", "Assets", "50%"),
+                                createTerminalLogStack()
+                            ]
+                        }
                     ]
                 },
                 createPanelStack("Inspector", "Inspector", "20%")
@@ -736,6 +774,7 @@ export function initializeEditorLayout(): GoldenLayout {
     currentLayout = layout;
     editorWindowRegistry = new EditorWindowRegistry(layout);
     CodeEditor.setWindowSpawner(type => editorWindowRegistry!.spawnWindow(type));
+    TerminalProvider.setWindowSpawner(type => editorWindowRegistry!.spawnWindow(type));
 
     (window as any).__flint = { System, Metadata, GameObject, Layer };
 

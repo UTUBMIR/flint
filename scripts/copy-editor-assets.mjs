@@ -20,49 +20,7 @@ const shoelaceDir = path.join(distVendorDir, "shoelace");
 const monacoDir = path.join(distVendorDir, "monaco");
 const esbuildDir = path.join(distVendorDir, "esbuild");
 
-const shoelaceIcons = [
-    "arrow-90deg-left",
-    "arrow-clockwise",
-    "arrow-repeat",
-    "box",
-    "x-lg",
-    "qr-code",
-    "box-arrow-in-down-right",
-    "window",
-    "box-arrow-up-right",
-    "wrench-adjustable",
-    "boxes",
-    "check2-circle",
-    "code-slash",
-    "controller",
-    "diagram-3",
-    "download",
-    "exclamation-octagon",
-    "exclamation-triangle",
-    "file",
-    "file-earmark-arrow-down",
-    "file-earmark-arrow-up",
-    "floppy",
-    "folder2-open",
-    "clock-history",
-    "gear",
-    "info-circle",
-    "layers",
-    "list-columns-reverse",
-    "list-ul",
-    "lock-fill",
-    "unlock-fill",
-    "play",
-    "plus-lg",
-    "plus-square",
-    "stop",
-    "text-left",
-    "trash",
-    "upload",
-    "tv",
-    "play-circle",
-    "braces"
-];
+const shoelaceIcons = JSON.parse(fs.readFileSync(path.join(__dirname, "shoelace-icons.json"), "utf8"));
 
 fs.rmSync(monacoDir, { recursive: true, force: true });
 fs.rmSync(shoelaceDir, { recursive: true, force: true });
@@ -94,3 +52,12 @@ copyRecursive(
     path.join(projectRoot, "node_modules", "esbuild-wasm", "esm", "browser.min.js"),
     path.join(esbuildDir, "browser.min.js")
 );
+
+const xtermDir = path.join(distVendorDir, "xterm");
+fs.rmSync(xtermDir, { recursive: true, force: true });
+try {
+    copyRecursive(
+        path.join(projectRoot, "node_modules", "@xterm", "xterm", "css", "xterm.css"),
+        path.join(xtermDir, "xterm.css")
+    );
+} catch { /* xterm css optional via bundler */ }

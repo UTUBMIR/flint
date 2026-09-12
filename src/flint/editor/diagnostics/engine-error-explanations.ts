@@ -193,6 +193,46 @@ export class EngineErrorExplanations {
                     "Enable metadata in the project settings."
                 ],
                 match: /Metadata is disabled/
+            },
+            {
+                id: "missing-module",
+                title: "Missing npm package",
+                explanation: "The module \"{1}\" could not be found. It is listed in package.json but not installed in node_modules (or not listed at all).",
+                tips: [
+                    "Run \"npm i\" (npm install) to install all dependencies from package.json.",
+                    "Or run \"npm i {1}\" (npm add {1}) to add it.",
+                    "If you just added it to package.json, open the Terminal and run the install command."
+                ],
+                match: /Cannot find module ['"]([^'"]+)['"]|Cannot find module ['"]([^'"]+)['"] or its corresponding type declarations|Missing virtual file:\s*(\S+)|Failed to resolve.*['"]([^'"]+)['"]/,
+                fix: context => {
+                    const raw = context.groups.find(g => !!g) ?? "";
+                    // Extract package name (handle scoped and subpath)
+                    const pkgName = raw.split("/")[0] === "@" ? raw.split("/").slice(0, 2).join("/") : raw.split("/")[0] ?? raw;
+                    const isBare = !raw.startsWith(".") && !raw.startsWith("/") && !raw.startsWith("@flint");
+                    if (!isBare || !pkgName || pkgName.startsWith("@flint")) return [];
+                    return [
+                        {
+                            label: `Install "${pkgName}" (npm add ${pkgName})`,
+                            apply: async () => {
+                                const mod = await import("../ui/terminal-provider");
+                                const res = await mod.TerminalProvider.runVisibleNpmInstall([pkgName]);
+                                if (res.installed.length > 0) Notifier.notify(`Installed ${pkgName}. Rebuilt project.`, "success");
+                                else if (res.failed.length > 0) Notifier.notify(`Failed to install ${pkgName}. Check Terminal for details.`, "danger");
+                                else Notifier.notify(`No action needed for ${pkgName}.`, "neutral");
+                            }
+                        },
+                        {
+                            label: `Install all dependencies (npm install)`,
+                            apply: async () => {
+                                const mod = await import("../ui/terminal-provider");
+                                const res = await mod.TerminalProvider.runVisibleNpmInstall(null);
+                                if (res.installed.length > 0) Notifier.notify(`Installed ${res.installed.join(", ")}. Rebuilt.`, "success");
+                                else if (res.failed.length > 0) Notifier.notify(`Failed to install ${res.failed.join(", ")}`, "danger");
+                                else Notifier.notify("All dependencies already installed.", "neutral");
+                            }
+                        }
+                    ];
+                }
             }
         );
     }

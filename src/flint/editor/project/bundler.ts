@@ -29,20 +29,96 @@ export default class Bundler {
         return 'import { FieldInspector as __FlintFieldInspector, SelectInspector as __FlintSelectInspector, SerializeType as __FlintSerializeType } from "@flint/shared/metadata";';
     }
 
-    private static createVirtualFsPlugin(stripEditorDecorators: boolean) {
-        // Incremental cache: flint (engine) files are transformed once and reused
-        // across rebuilds while their raw content is unchanged; a content-hash
-        // mismatch invalidates the entry so updated engine code is picked up.
-        // User-project files are always treated as changed and re-transformed.
-        const flintCache = new Map<string, { hash: number; result: { contents: string; loader: "ts" | "js" | "json" } }>();
+    private static readonly RESOLUTION_CANDIDATES: readonly string[] = [
+        "",
+        ".ts",
+        ".d.ts",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".json",
+        "/index.ts",
+        "/index.d.ts",
+        "/index.js",
+        "/index.mjs",
+        "/index.cjs",
+        "/index.json"
+    ];
 
-        const hashContent = (content: string): number => {
-            let h = 5381;
-            for (let i = 0; i < content.length; i++) {
-                h = (((h << 5) + h) | 0) + content.charCodeAt(i) | 0;
+    private static tryResolveCandidates(base: string): string | null {
+        for (const suffix of Bundler.RESOLUTION_CANDIDATES) {
+            const candidate = `${base}${suffix}`;
+            if (Bundler.files.has(candidate)) return candidate;
+        }
+        return null;
+    }
+
+    private static resolveNodeModuleEntry(packageName: string, subPath: string, nodeModulesBase = "node_modules"): string | null {
+        const baseNoSub = `${nodeModulesBase}/${packageName}`;
+        if (!subPath) {
+            const pkgJsonPath = `${baseNoSub}/package.json`;
+            const pkgText = Bundler.files.get(pkgJsonPath);
+            if (pkgText) {
+                try {
+                    const pkg = JSON.parse(pkgText);
+                    const mainField = pkg.module ?? pkg.main ?? pkg.browser ?? pkg.types ?? pkg.typings;
+                    if (typeof mainField === "string" && mainField) {
+                        const normalizedMain = mainField.replace(/^\.?\//, "");
+                        const mainFull = `${baseNoSub}/${normalizedMain}`;
+                        const resolved = Bundler.tryResolveCandidates(mainFull) ?? (Bundler.files.has(mainFull) ? mainFull : null);
+                        if (resolved) return resolved;
+                    }
+                } catch { /* ignore parse errors */ }
             }
-            return h;
-        };
+            return Bundler.tryResolveCandidates(baseNoSub);
+        }
+        const withSub = `${nodeModulesBase}/${packageName}/${subPath}`;
+        return Bundler.tryResolveCandidates(withSub) ?? (Bundler.files.has(withSub) ? withSub : null);
+    }
+
+    private static resolveBareSpecifier(packageName: string, subPath: string, importerDir: string): string | null {
+        const dirs: string[] = [];
+        let cur = importerDir.replace(/\\/g, "/").replace(/^\.\//, "");
+        if (!cur || cur === ".") dirs.push("");
+        else {
+            const parts = cur.split("/").filter(Boolean);
+            for (let i = parts.length; i >= 0; i--) dirs.push(parts.slice(0, i).join("/"));
+            if (!dirs.includes("")) dirs.push("");
+        }
+        for (const d of dirs) {
+            const base = d ? `${d}/node_modules` : "node_modules";
+            const r = Bundler.resolveNodeModuleEntry(packageName, subPath, base);
+            if (r) return r;
+        }
+        return Bundler.resolveNodeModuleEntry(packageName, subPath);
+    }
+
+    private static isBareSpecifier(path: string): boolean {
+        if (!path) return false;
+        if (path.startsWith(".") || path.startsWith("/") || path.startsWith("@flint")) return false;
+        return true;
+    }
+
+    private static parseBareSpecifier(spec: string): { packageName: string; subPath: string } | null {
+        if (!spec) return null;
+        // Remove query/hash
+        const clean = spec.split("?")[0]!.split("#")[0]!;
+        if (clean.startsWith("@")) {
+            const parts = clean.split("/");
+            if (parts.length < 2) return null;
+            const packageName = `${parts[0]}/${parts[1]}`;
+            const subPath = parts.slice(2).join("/");
+            return { packageName, subPath };
+        }
+        const slash = clean.indexOf("/");
+        if (slash === -1) return { packageName: clean, subPath: "" };
+        return { packageName: clean.slice(0, slash), subPath: clean.slice(slash + 1) };
+    }
+
+    private static createVirtualFsPlugin(stripEditorDecorators: boolean) {
+        // Engine files are static while the editor is running - cache transformed result once
+        // User-project files are always re-transformed.
+        const flintCache = new Map<string, { contents: string; loader: "ts" | "js" | "json" }>();
 
         const getFlintContent = (flintPath: string) => {
             let content = Bundler.flintFiles.get(flintPath);
@@ -60,16 +136,13 @@ export default class Bundler {
                 return { contents: "export {}", loader: fallbackLoader } as const;
             }
 
-            const hash = hashContent(content);
             const cached = flintCache.get(flintPath);
-            if (cached && cached.hash === hash) {
-                return cached.result;
-            }
+            if (cached) return cached;
 
             const transformed = Bundler.transformSource(content, flintPath, stripEditorDecorators);
             const loader = flintPath.endsWith(".ts") ? "ts" : flintPath.endsWith(".js") ? "js" : "json";
             const result = { contents: transformed, loader } as const;
-            flintCache.set(flintPath, { hash, result });
+            flintCache.set(flintPath, result);
             return result;
         };
 
@@ -79,7 +152,21 @@ export default class Bundler {
             setup(build: any) {
                 build.onResolve({ filter: /.*/ }, (args: { path: string; resolveDir: string; importer: string }) => {
                     function run() {
-                        const importPath = args.path.endsWith(".ts") || args.path.endsWith(".json") ? args.path : args.path + ".ts";
+                        const rawPath = args.path;
+
+                        // 1) Bare specifier (npm package) -> node_modules resolution including package.json main
+                        if (Bundler.isBareSpecifier(rawPath)) {
+                            const parsed = Bundler.parseBareSpecifier(rawPath);
+                            if (parsed) {
+                                const importerDir = (args.importer ? args.importer.replace(/\/[^/]*$/, "") : args.resolveDir || "").replace(/\\/g, "/").replace(/^\.\//, "");
+                                const resolved = Bundler.resolveBareSpecifier(parsed.packageName, parsed.subPath, importerDir);
+                                if (resolved) return { path: resolved, namespace: "virtual" };
+                                const base = `node_modules/${parsed.packageName}${parsed.subPath ? `/${parsed.subPath}` : ""}`;
+                                return { path: base, namespace: "virtual" };
+                            }
+                        }
+
+                        const importPath = args.path.endsWith(".ts") || args.path.endsWith(".json") || args.path.endsWith(".js") || args.path.endsWith(".mjs") || args.path.endsWith(".cjs") ? args.path : args.path + ".ts";
 
                         if (importPath.startsWith("@flint")) {
                             return {
@@ -111,6 +198,9 @@ export default class Bundler {
 
                         const normalized = resolvedSegments.join("/");
 
+                        // Relative import inside node_modules package: resolve against importer dir
+                        // If importer is inside node_modules, already handled via relative branch above
+
                         return {
                             path: normalized.startsWith(".") ? normalized.slice(2, normalized.length) : normalized,
                             namespace: "virtual",
@@ -121,36 +211,61 @@ export default class Bundler {
                 });
 
                 build.onLoad({ filter: /.*/, namespace: "virtual" }, async (args: { path: string }) => {
-                    function run() {
-                        if (args.path.startsWith("@flint")) {
-                            let flintPath = "flint/" + args.path.replace("@flint/", "");
-                            const { contents, loader } = getFlintContent(flintPath);
+                    if (args.path.startsWith("@flint")) {
+                        let flintPath = "flint/" + args.path.replace("@flint/", "");
+                        const { contents, loader } = getFlintContent(flintPath);
+                        return { contents, loader };
+                    }
+
+                    const normalizedPath = args.path;
+
+                    // Try exact, then fallback extensions for node_modules (ts-first, then js)
+                    let content: string | undefined = Bundler.files.get(normalizedPath);
+                    let effectivePath = normalizedPath;
+                    if (content === undefined) {
+                        const variants = [
+                            `${normalizedPath}.ts`,
+                            `${normalizedPath}.d.ts`,
+                            `${normalizedPath}.js`,
+                            `${normalizedPath}.mjs`,
+                            `${normalizedPath}.cjs`,
+                            `${normalizedPath}.json`,
+                            `${normalizedPath}/index.ts`,
+                            `${normalizedPath}/index.d.ts`,
+                            `${normalizedPath}/index.js`,
+                            `${normalizedPath}/index.mjs`
+                        ];
+                        for (const v of variants) {
+                            const c = Bundler.files.get(v);
+                            if (c !== undefined) {
+                                content = c;
+                                effectivePath = v;
+                                break;
+                            }
+                        }
+                    }
+                    if (content === undefined) {
+                        const flintContent =
+                            Bundler.flintFiles.get(normalizedPath) ??
+                            Bundler.flintFiles.get(normalizedPath.replace(".ts", ".js"));
+                        if (flintContent) {
+                            const { contents, loader } = getFlintContent(normalizedPath);
                             return { contents, loader };
                         }
 
-                        const normalizedPath = args.path;
-
-                        const content = Bundler.files.get(normalizedPath);
-                        if (!content) {
-                            const flintContent =
-                                Bundler.flintFiles.get(normalizedPath) ??
-                                Bundler.flintFiles.get(normalizedPath.replace(".ts", ".js"));
-                            if (flintContent) {
-                                const { contents, loader } = getFlintContent(normalizedPath);
-                                return { contents, loader };
-                            }
-
-                            console.warn("Missing virtual file:", normalizedPath);
-                            return { contents: "export {}", loader: "ts" };
-                        }
-
-                        return {
-                            contents: Bundler.transformSource(content, normalizedPath, true),
-                            loader: normalizedPath.endsWith(".ts") ? "ts" : "json"
-                        };
+                        console.warn("Missing virtual file:", normalizedPath);
+                        const pkgForError = (() => {
+                            const m = normalizedPath.match(/^node_modules\/((?:@[^/]+\/)?[^/]+)/);
+                            return m?.[1] ?? normalizedPath;
+                        })();
+                        throw new Error(`Cannot find module '${pkgForError}' or its corresponding type declarations.`);
                     }
-                    const result = run();
-                    return result;
+
+                    const loader = effectivePath.endsWith(".json") ? "json" : effectivePath.endsWith(".ts") || effectivePath.endsWith(".d.ts") ? "ts" : "js";
+                    return {
+                        contents: Bundler.transformSource(content, effectivePath, true),
+                        loader
+                    };
                 });
             }
         };

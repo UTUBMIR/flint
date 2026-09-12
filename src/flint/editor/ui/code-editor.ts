@@ -3,6 +3,7 @@ import { System } from "@flint/runtime/system";
 import ProjectConfig from "../project/project-config";
 import type { WindowType } from "./window-framework";
 import { getCrossWindowChannel } from "../cross-window";
+import { hashContent } from "@flint/shared/hash";
 
 type ExportResult = {
     defaultExport?: string;
@@ -135,8 +136,10 @@ export class CodeEditor {
     private static readonly typeNames: Record<string, string> = {
         "ts": "typescript",
         "tsx": "typescript",
-        "js": "javascript",
-        "jsx": "javascript",
+        "js": "typescript",
+        "jsx": "typescript",
+        "mjs": "typescript",
+        "cjs": "typescript",
         "json": "json"
     };
 
@@ -147,6 +150,15 @@ export class CodeEditor {
     private static beforeUnloadInstalled = false;
 
     private static readonly autoSaveDelayMs = 300;
+
+    // Monaco lib auto-refresh for type hints (flint + assets + node_modules) - event-driven + poll every 3s for on-the-fly completions
+    private static readonly libRefreshIntervalMs = 3000;
+    private static readonly libRefreshDebounceMs = 3000;
+    private static autoRefreshInterval: number | null = null;
+    private static refreshTimeout: number | null = null;
+    private static isRefreshing = false;
+    private static fileHashes = new Map<string, number>();
+    private static extraLibDisposables = new Map<string, { dispose(): void }>();
 
     private constructor() { }
 
@@ -217,6 +229,16 @@ export class CodeEditor {
             return;
         }
 
+        // Hard reload (Ctrl+Shift+R) bypasses cache and can leave AMD loader in bad state
+        // (monaco.contribution defineProperty undefined). Detect and add cache bust.
+        const isHardReload = (() => {
+            try {
+                const nav = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined);
+                // Hard reload has transferSize 0 or type reload with no-cache
+                return nav?.type === "reload" && (nav as unknown as { transferSize?: number }).transferSize === 0;
+            } catch { return false; }
+        })();
+
         if (!this.monacoLoadPromise) {
             this.monacoLoadPromise = new Promise<void>((resolve, reject) => {
                 const amdRequire = (globalThis as {
@@ -226,17 +248,47 @@ export class CodeEditor {
                 }).require;
 
                 if (typeof amdRequire === "function") {
-                    amdRequire.config?.({
-                        paths: {
-                            vs: this.getMonacoVsPath()
-                        }
-                    });
+                    const vsPath = this.getMonacoVsPath() + (isHardReload ? `?v=${Date.now()}` : "");
+                    try {
+                        amdRequire.config?.({
+                            paths: {
+                                vs: vsPath.replace(/\/vs\?v=.*$/, "/vs")
+                            }
+                        });
+                    } catch { /* ignore config error on hard reload */ }
 
-                    amdRequire(
-                        ["vs/editor/editor.main", "vs/language/typescript/monaco.contribution"],
-                        () => resolve(),
-                        error => reject(error instanceof Error ? error : new Error(String(error)))
-                    );
+                    // Wrap defineProperty error (hard reload stale cache) — fallback to poll
+                    const onError = (error: unknown) => {
+                        const msg = String(error ?? "");
+                        if (msg.includes("Property description must be an object") || msg.includes("defineProperty")) {
+                            // AMD loader corrupted by hard reload cache mismatch — reset and poll for already-loaded monaco from <script> tags
+                            console.warn("Monaco hard-reload defineProperty error, falling back to poll", error);
+                            this.monacoLoadPromise = null;
+                            // Try to use the monaco already loaded via <script> tags in index.html
+                            const poll = () => {
+                                if (this.hasTypescriptSupport()) { resolve(); return; }
+                                // If only editor without TS, try to load TS via script tag with cache bust
+                                const script = document.createElement("script");
+                                script.src = `${this.getMonacoVsPath()}/language/typescript/monaco.contribution.js?v=${Date.now()}`;
+                                script.onload = () => resolve();
+                                script.onerror = () => reject(error instanceof Error ? error : new Error(String(error)));
+                                document.head.appendChild(script);
+                            };
+                            setTimeout(poll, 100);
+                            return;
+                        }
+                        reject(error instanceof Error ? error : new Error(String(error)));
+                    };
+
+                    try {
+                        amdRequire(
+                            ["vs/editor/editor.main", "vs/language/typescript/monaco.contribution"],
+                            () => resolve(),
+                            onError
+                        );
+                    } catch (e) {
+                        onError(e);
+                    }
                     return;
                 }
 
@@ -263,7 +315,21 @@ export class CodeEditor {
             });
         }
 
-        await this.monacoLoadPromise;
+        try {
+            await this.monacoLoadPromise;
+        } catch (e) {
+            // Hard reload fallback: clear promise and try poll for <script> loaded monaco
+            const msg = String(e ?? "");
+            if (msg.includes("Property description") || msg.includes("defineProperty")) {
+                this.monacoLoadPromise = null;
+                // Wait a bit for <script> tags to load
+                for (let i = 0; i < 50; i++) {
+                    if (this.hasTypescriptSupport()) return;
+                    await new Promise(r => setTimeout(r, 100));
+                }
+            }
+            throw e;
+        }
 
         if (!this.hasTypescriptSupport()) {
             throw new Error("Monaco TypeScript support failed to load");
@@ -315,6 +381,12 @@ export class CodeEditor {
         }
     }
 
+    public static getWindowState(instanceId: string): import("../ui/window-framework").EditorWindowState {
+        const c = this.windows.get(instanceId);
+        if (!c) return undefined;
+        return { currentPath: c.currentPath, tabs: [...c.tabs.keys()], activeTabPath: c.activeTabPath };
+    }
+
     public static destroyWindow(instanceId: string): void {
         const controller = this.windows.get(instanceId);
         if (!controller) {
@@ -352,9 +424,28 @@ export class CodeEditor {
             moduleResolution: Monaco.languages.typescript.ModuleResolutionKind.NodeJs,
             strict: true,
             allowNonTsExtensions: true,
+            allowJs: false,
+            esModuleInterop: true,
+            allowSyntheticDefaultImports: true,
             baseUrl: "./",
             paths: {
-                "@flint/*": ["@flint/*"]
+                "@flint/*": ["@flint/*"],
+                "*": ["*", "node_modules/*"]
+            }
+        });
+        (Monaco.languages.typescript.javascriptDefaults as unknown as { setCompilerOptions: (opts: unknown) => void }).setCompilerOptions({
+            target: Monaco.languages.typescript.ScriptTarget.ESNext,
+            module: Monaco.languages.typescript.ModuleKind.ESNext,
+            moduleResolution: Monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+            strict: true,
+            allowNonTsExtensions: true,
+            allowJs: false,
+            esModuleInterop: true,
+            allowSyntheticDefaultImports: true,
+            baseUrl: "./",
+            paths: {
+                "@flint/*": ["@flint/*"],
+                "*": ["*", "node_modules/*"]
             }
         });
 
@@ -538,10 +629,41 @@ export class CodeEditor {
             return;
         }
 
-        const text = await System.fileSystem.readTextFile(path);
+        if (!System.fileSystem?.started) {
+            const language = this.getLanguageFromPath(path);
+            const uri = ((this.Monaco as any).Uri as unknown as { parse: (s: string) => unknown }).parse(`file:///${path.replace(/^\/+/, "")}`);
+            const model = (this.Monaco.editor as any).createModel(`// No project open — open a project to edit ${path}`, language, uri) as EditorModel;
+            this.attachModelListeners(controller, model);
+            controller.editor.setModel(model);
+            controller.model = model;
+            controller.tabs.set(path, { path, model, originalContent: "" });
+            controller.activeTabPath = path;
+            controller.currentPath = path;
+            controller.setTitle(path);
+            this.focusWindow(controller);
+            return;
+        }
+        let text: string;
+        try {
+            text = await System.fileSystem.readTextFile(path);
+        } catch (e) {
+            console.warn(`Failed to open file ${path}:`, e);
+            const language = this.getLanguageFromPath(path);
+            const uri = ((this.Monaco as any).Uri as unknown as { parse: (s: string) => unknown }).parse(`file:///${path.replace(/^\/+/, "")}`);
+            const model = (this.Monaco.editor as any).createModel(`// Failed to load ${path}\n// ${String(e)}`, language, uri) as EditorModel;
+            this.attachModelListeners(controller, model);
+            controller.editor.setModel(model);
+            controller.model = model;
+            controller.tabs.set(path, { path, model, originalContent: "" });
+            controller.activeTabPath = path;
+            controller.currentPath = path;
+            controller.setTitle(path);
+            this.focusWindow(controller);
+            return;
+        }
         const language = this.getLanguageFromPath(path);
-
-        const model = this.Monaco.editor.createModel(text, language) as EditorModel;
+        const uri = ((this.Monaco as any).Uri as unknown as { parse: (s: string) => unknown }).parse(`file:///${path.replace(/^\/+/, "")}`);
+        const model = (this.Monaco.editor as any).createModel(text, language, uri) as EditorModel;
         this.attachModelListeners(controller, model);
         controller.editor.setModel(model);
         controller.model = model;
@@ -633,7 +755,7 @@ export class CodeEditor {
         controller.hasUnsavedChanges = controller.model.getValue() !== tab.originalContent;
     }
 
-    private static async ensureLibrariesLoaded(): Promise<void> {
+    public static async ensureLibrariesLoaded(): Promise<void> {
         if (this.libsLoaded || !System.fileSystem.started) {
             return;
         }
@@ -642,6 +764,253 @@ export class CodeEditor {
         await this.loadFlintFolder("flint");
         await this.loadAssetsFolder("assets");
         await this.loadProjectFiles();
+        try { this.fixAllOpenModelLanguages(); } catch { /* ignore */ }
+        this.startLibAutoRefresh();
+    }
+
+    private static startLibAutoRefresh(): void {
+        if (this.autoRefreshInterval !== null) return;
+        this.autoRefreshInterval = window.setInterval(() => {
+            void this.refreshLibraries();
+        }, this.libRefreshIntervalMs);
+        try { this.fixAllOpenModelLanguages(); } catch { /* ignore */ }
+    }
+
+    public static async resetAndReloadLibraries(): Promise<void> {
+        for (const disp of this.extraLibDisposables.values()) {
+            try { disp.dispose(); } catch { /* ignore */ }
+        }
+        this.extraLibDisposables.clear();
+        this.fileHashes.clear();
+        this.modulesByPath.clear();
+        this.libsLoaded = false;
+        this.isRefreshing = false;
+        if (this.refreshTimeout !== null) {
+            window.clearTimeout(this.refreshTimeout);
+            this.refreshTimeout = null;
+        }
+        await this.ensureLibrariesLoaded();
+        this.scheduleLibRefresh(300);
+    }
+
+    private static fixAllOpenModelLanguages(): void {
+        for (const win of this.windows.values()) {
+            for (const tab of win.tabs.values()) {
+                try {
+                    const cur: string | undefined = (tab.model as any).getLanguageId?.() ?? (this.Monaco.editor as any).getModelLanguage?.(tab.model as any);
+                    if (cur === "javascript") {
+                        (this.Monaco.editor as any).setModelLanguage?.(tab.model as any, "typescript");
+                    }
+                    const uriStr: string = (tab.model.uri as unknown as { toString: () => string }).toString();
+                    const expected = `file:///${tab.path.replace(/^\/+/, "")}`;
+                    if (!uriStr.includes(tab.path) && !uriStr.endsWith(encodeURI(tab.path))) {
+                        const text = tab.model.getValue();
+                        const lang = (tab.model as unknown as { getLanguageId?: () => string }).getLanguageId?.() ?? this.getLanguageFromPath(tab.path);
+                        try { (tab.model as unknown as { dispose: () => void }).dispose(); } catch { /* ignore */ }
+                        const newUri = ((this.Monaco as any).Uri as unknown as { parse: (s: string) => unknown }).parse(expected);
+                        const newModel = (this.Monaco.editor as any).createModel(text, lang === "javascript" ? "typescript" : lang, newUri as never) as EditorModel;
+                        this.attachModelListeners(win, newModel as unknown as EditorModel);
+                        tab.model = newModel as unknown as EditorModel;
+                        if (win.model === tab.model || win.activeTabPath === tab.path) {
+                            win.model = newModel as unknown as EditorModel;
+                            win.editor.setModel(newModel as unknown as EditorModel);
+                        }
+                        if (win.activeTabPath === tab.path) win.currentPath = tab.path;
+                    }
+                } catch { /* ignore */ }
+            }
+            try {
+                const cur2: string | undefined = (win.model as any)?.getLanguageId?.() ?? (this.Monaco.editor as any).getModelLanguage?.(win.model as any);
+                if (cur2 === "javascript" && win.model) {
+                    (this.Monaco.editor as any).setModelLanguage?.(win.model as any, "typescript");
+                }
+            } catch { /* ignore */ }
+        }
+    }
+
+    public static scheduleLibRefresh(delayMs = this.libRefreshDebounceMs): void {
+        if (this.refreshTimeout !== null) window.clearTimeout(this.refreshTimeout);
+        this.refreshTimeout = window.setTimeout(() => {
+            this.refreshTimeout = null;
+            void this.refreshLibraries();
+        }, delayMs);
+    }
+
+    private static upsertExtraLib(path: string, text: string): void {
+        const normalized = path.replace(/\\/g, "/").replace(/^\/+/, "");
+        const h = hashContent(text);
+        const prev = this.fileHashes.get(normalized);
+        if (prev !== undefined && prev === h) return;
+        const oldDisp = this.extraLibDisposables.get(normalized);
+        if (oldDisp) { try { oldDisp.dispose(); } catch { /* ignore */ } }
+        const Monaco = this.Monaco;
+        const fileUri = `file:///${normalized}`;
+        const dispTs: { dispose(): void } = (Monaco.languages.typescript.typescriptDefaults as unknown as { addExtraLib: (t: string, p: string) => { dispose(): void } }).addExtraLib(text, normalized);
+        const dispTsFile: { dispose(): void } = (Monaco.languages.typescript.typescriptDefaults as unknown as { addExtraLib: (t: string, p: string) => { dispose(): void } }).addExtraLib(text, fileUri);
+        const dispJs: { dispose(): void } = (Monaco.languages.typescript.javascriptDefaults as unknown as { addExtraLib: (t: string, p: string) => { dispose(): void } }).addExtraLib(text, normalized);
+        const dispJsFile: { dispose(): void } = (Monaco.languages.typescript.javascriptDefaults as unknown as { addExtraLib: (t: string, p: string) => { dispose(): void } }).addExtraLib(text, fileUri);
+        this.extraLibDisposables.set(normalized, { dispose: () => { try { dispTs?.dispose?.(); } catch {} try { dispTsFile?.dispose?.(); } catch {} try { dispJs?.dispose?.(); } catch {} try { dispJsFile?.dispose?.(); } catch {} } });
+        this.fileHashes.set(normalized, h);
+        const mod: ModuleExports = { path: toModuleSpecifier(normalized), ...parseExports(text) };
+        this.modulesByPath.set(mod.path, mod);
+        // also register fileUri version for completions (so ./module also suggests)
+        const modFile = toModuleSpecifier(fileUri.replace(/^file:\/\//, ""));
+        if (modFile !== mod.path) this.modulesByPath.set(modFile, { path: modFile, ...parseExports(text) });
+    }
+
+    private static async collectAllFilesForRefresh(): Promise<{ path: string; text: string }[]> {
+        const files: { path: string; text: string }[] = [];
+        const seen = new Set<string>();
+
+        const pushFile = (p: string, t: string) => {
+            if (seen.has(p)) return;
+            seen.add(p);
+            files.push({ path: p, text: t });
+        };
+
+        // flint folder with @flint alias
+        const loadFlint = async (dirPath: string, basePath = "") => {
+            try {
+                const entries = await System.fileSystem.listDirEntries(dirPath);
+                for (const entry of entries) {
+                    if (entry.name === ".git") continue;
+                    const fullPath = `${dirPath}/${entry.name}`;
+                    if (entry.kind === "file") {
+                        if (!/\.(ts|tsx|js|jsx|mjs|cjs|json)$/i.test(entry.name)) continue;
+                        try {
+                            const text = await System.fileSystem.readTextFile(fullPath);
+                            const flintPath = basePath ? `${basePath}/${entry.name}` : entry.name;
+                            pushFile(`@flint/${flintPath}`, text);
+                        } catch { /* ignore */ }
+                    } else {
+                        await loadFlint(fullPath, basePath ? `${basePath}/${entry.name}` : entry.name);
+                    }
+                }
+            } catch { /* ignore */ }
+        };
+
+        // assets folder (alias without prefix, used for completions)
+        const loadAssets = async (dirPath: string, baseAlias = "") => {
+            try {
+                const entries = await System.fileSystem.listDirEntries(dirPath);
+                for (const entry of entries) {
+                    if (entry.name === ".git") continue;
+                    const fullPath = `${dirPath}/${entry.name}`;
+                    if (entry.kind === "file") {
+                        if (!/\.(ts|tsx|js|jsx|mjs|cjs|json)$/i.test(entry.name)) continue;
+                        try {
+                            const text = await System.fileSystem.readTextFile(fullPath);
+                            const aliasPath = baseAlias ? `${baseAlias}/${entry.name}` : entry.name;
+                            pushFile(aliasPath, text);
+                        } catch { /* ignore */ }
+                    } else {
+                        await loadAssets(fullPath, baseAlias ? `${baseAlias}/${entry.name}` : entry.name);
+                    }
+                }
+            } catch { /* ignore */ }
+        };
+
+        // project root (including node_modules) - exclude build/flint/.git/vendor
+        const loadProject = async (dirPath: string, basePath = "") => {
+            try {
+                const entries = await System.fileSystem.listDirEntries(dirPath);
+                for (const entry of entries) {
+                    if (entry.name === ".git") continue;
+                    if (!basePath && (entry.name === "flint" || entry.name === "vendor" || entry.name === "build")) continue;
+                    const fullPath = dirPath ? `${dirPath}/${entry.name}` : entry.name;
+                    if (entry.kind === "file") {
+                        if (!/\.(ts|tsx|js|jsx|mjs|cjs|json)$/i.test(entry.name)) continue;
+                        try {
+                            const text = await System.fileSystem.readTextFile(fullPath);
+                            const filePath = basePath ? `${basePath}/${entry.name}` : entry.name;
+                            pushFile(filePath, text);
+                        } catch { /* ignore */ }
+                    } else {
+                        const subPath = basePath ? `${basePath}/${entry.name}` : entry.name;
+                        await loadProject(fullPath, subPath);
+                    }
+                }
+            } catch { /* ignore */ }
+        };
+
+        await Promise.all([
+            loadFlint("flint"),
+            loadAssets("assets"),
+            loadProject(".")
+        ]);
+
+        // Explicitly ensure node_modules packages from package.json are added just like other files
+        // (same traversal logic, no special extraLib path — ensures `import "lodash"` works like `import "@flint/..."`)
+        try {
+            const pkgText = await System.fileSystem.readTextFile("package.json").catch(() => null);
+            if (pkgText) {
+                const pkg = JSON.parse(pkgText) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+                const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+                for (const dep of Object.keys(deps)) {
+                    const base = `node_modules/${dep}`;
+                    for (const file of ["package.json", "index.d.ts", "index.ts"]) {
+                        const p = `${base}/${file}`;
+                        if (seen.has(p)) continue;
+                        try {
+                            const t = await System.fileSystem.readTextFile(p);
+                            pushFile(p, t);
+                        } catch { /* ignore */ }
+                    }
+                    try {
+                        const pjText = await System.fileSystem.readTextFile(`${base}/package.json`);
+                        const pj = JSON.parse(pjText) as { types?: string; typings?: string };
+                        const typesFile = (pj.types || pj.typings || "").replace(/^\.?\//, "");
+                        if (typesFile && !seen.has(`${base}/${typesFile}`)) {
+                            try {
+                                const t = await System.fileSystem.readTextFile(`${base}/${typesFile}`);
+                                pushFile(`${base}/${typesFile}`, t);
+                            } catch { /* ignore */ }
+                        }
+                    } catch { /* ignore */ }
+                }
+            }
+        } catch { /* ignore */ }
+
+        return files;
+    }
+
+    private static async refreshLibraries(): Promise<void> {
+        if (this.isRefreshing || !System.fileSystem.started) return;
+        if (!this.libsLoaded) {
+            await this.ensureLibrariesLoaded();
+            return;
+        }
+        if (!this.hasTypescriptSupport()) return;
+        this.isRefreshing = true;
+        try { this.fixAllOpenModelLanguages(); } catch { /* ignore */ }
+        try {
+            const files = await this.collectAllFilesForRefresh();
+            const nextPaths = new Set<string>();
+            const changed: { path: string; text: string }[] = [];
+            for (const f of files) {
+                const normalized = f.path.replace(/\\/g, "/");
+                nextPaths.add(normalized);
+                const h = hashContent(f.text);
+                if (this.fileHashes.get(normalized) !== h) {
+                    changed.push({ path: normalized, text: f.text });
+                }
+            }
+            // Handle deleted files (node_modules handled same as other files)
+            for (const oldPath of [...this.fileHashes.keys()]) {
+                if (!nextPaths.has(oldPath)) {
+                    const disp = this.extraLibDisposables.get(oldPath);
+                    disp?.dispose();
+                    this.extraLibDisposables.delete(oldPath);
+                    this.fileHashes.delete(oldPath);
+                    this.modulesByPath.delete(toModuleSpecifier(oldPath));
+                }
+            }
+            if (changed.length > 0) {
+                this.addExtraLibs(changed);
+            }
+        } finally {
+            this.isRefreshing = false;
+        }
     }
 
     private static async loadProjectFiles(): Promise<void> {
@@ -653,22 +1022,23 @@ export class CodeEditor {
 
         const loadDirectory = async (dirPath: string, basePath = "") => {
             try {
-                const entries = await System.fileSystem.listDir(dirPath);
+                const entries = await System.fileSystem.listDirEntries(dirPath);
 
                 for (const entry of entries) {
-                    const fullPath = `${dirPath}/${entry}`;
-                    const isFile = entry.includes(".");
-
-                    if (isFile) {
+                    if (entry.name === ".git") continue;
+                    if (!basePath && (entry.name === "flint" || entry.name === "vendor" || entry.name === "build")) continue;
+                    const fullPath = `${dirPath}/${entry.name}`;
+                    if (entry.kind === "file") {
+                        if (!/\.(ts|tsx|js|jsx|mjs|cjs|json)$/i.test(entry.name)) continue;
                         try {
                             const text = await System.fileSystem.readTextFile(fullPath);
-                            const filePath = basePath ? `${basePath}/${entry}` : entry;
+                            const filePath = basePath ? `${basePath}/${entry.name}` : entry.name;
                             files.push({ path: filePath, text });
                         } catch (error) {
                             console.warn(`Failed to read file: ${fullPath}`, error);
                         }
                     } else {
-                        const subPath = basePath ? `${basePath}/${entry}` : entry;
+                        const subPath = basePath ? `${basePath}/${entry.name}` : entry.name;
                         await loadDirectory(fullPath, subPath);
                     }
                 }
@@ -678,6 +1048,7 @@ export class CodeEditor {
         };
 
         await loadDirectory(".");
+
         this.addExtraLibs(files);
     }
 
@@ -686,14 +1057,9 @@ export class CodeEditor {
             path: toModuleSpecifier(file.path),
             ...parseExports(file.text)
         }));
-
-        const Monaco = this.Monaco;
         for (const file of files) {
-            const path = file.path.replace(/\\/g, "/");
-            Monaco.languages.typescript.typescriptDefaults.addExtraLib(file.text, path);
-            Monaco.languages.typescript.javascriptDefaults.addExtraLib(file.text, path);
+            this.upsertExtraLib(file.path, file.text);
         }
-
         this.ensureCompletionsInstalled(modules);
     }
 
@@ -921,22 +1287,22 @@ export class CodeEditor {
 
         const loadDirectory = async (dirPath: string, baseAlias = "") => {
             try {
-                const entries = await System.fileSystem.listDir(dirPath);
+                const entries = await System.fileSystem.listDirEntries(dirPath);
 
                 for (const entry of entries) {
-                    const fullPath = `${dirPath}/${entry}`;
-                    const isFile = entry.includes(".");
-
-                    if (isFile) {
+                    if (entry.name === ".git") continue;
+                    const fullPath = `${dirPath}/${entry.name}`;
+                    if (entry.kind === "file") {
+                        if (!/\.(ts|tsx|js|jsx|mjs|cjs|json)$/i.test(entry.name)) continue;
                         try {
                             const text = await System.fileSystem.readTextFile(fullPath);
-                            const aliasPath = baseAlias ? `${baseAlias}/${entry}` : entry;
+                            const aliasPath = baseAlias ? `${baseAlias}/${entry.name}` : entry.name;
                             files.push({ path: aliasPath, text });
                         } catch (error) {
                             console.warn(`Failed to read file: ${fullPath}`, error);
                         }
                     } else {
-                        const subAlias = baseAlias ? `${baseAlias}/${entry}` : entry;
+                        const subAlias = baseAlias ? `${baseAlias}/${entry.name}` : entry.name;
                         await loadDirectory(fullPath, subAlias);
                     }
                 }
@@ -954,22 +1320,22 @@ export class CodeEditor {
 
         const loadDirectory = async (dirPath: string, basePath = "") => {
             try {
-                const entries = await System.fileSystem.listDir(dirPath);
+                const entries = await System.fileSystem.listDirEntries(dirPath);
 
                 for (const entry of entries) {
-                    const fullPath = `${dirPath}/${entry}`;
-                    const isFile = entry.includes(".");
-
-                    if (isFile) {
+                    if (entry.name === ".git") continue;
+                    const fullPath = `${dirPath}/${entry.name}`;
+                    if (entry.kind === "file") {
+                        if (!/\.(ts|tsx|js|jsx|mjs|cjs|json)$/i.test(entry.name)) continue;
                         try {
                             const text = await System.fileSystem.readTextFile(fullPath);
-                            const flintPath = basePath ? `${basePath}/${entry}` : entry;
+                            const flintPath = basePath ? `${basePath}/${entry.name}` : entry.name;
                             files.push({ path: `@flint/${flintPath}`, text });
                         } catch (error) {
                             console.warn(`Failed to read file: ${fullPath}`, error);
                         }
                     } else {
-                        const subPath = basePath ? `${basePath}/${entry}` : entry;
+                        const subPath = basePath ? `${basePath}/${entry.name}` : entry.name;
                         await loadDirectory(fullPath, subPath);
                     }
                 }

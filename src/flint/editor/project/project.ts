@@ -15,6 +15,7 @@ import type SlInput from "@shoelace-style/shoelace/dist/components/input/input.j
 import type SlButton from "@shoelace-style/shoelace/dist/components/button/button.js";
 import { CodeEditor } from "../ui/code-editor";
 import { CasingHandler } from "../casing-handler";
+import { DependencyService } from "../services/dependency-service";
 import { componentFileName, makeComponentSource } from "@flint/build";
 import { activeWindowService, editorAssetStore, editorSelectionService } from "../ui/window-services";
 import { refreshEditorWindows } from "../layout";
@@ -336,6 +337,14 @@ export class Project {
 
         Editor.syncSettingsFromProjectConfig();
 
+        try {
+            const { TerminalProvider } = await import("../ui/terminal-provider");
+            await TerminalProvider.notifyProjectOpened();
+        } catch { /* ignore */ }
+        try {
+            await DependencyService.ensureInstalled();
+        } catch { /* ignore */ }
+
         await Project.getAllTextFiles();
 
         if (!await System.fileSystem.dirExists("flint")) {
@@ -347,6 +356,10 @@ export class Project {
         await System.fileSystem.createDir("assets");
 
         await Builder.buildForEditor();
+
+        try {
+            await CodeEditor.resetAndReloadLibraries();
+        } catch { /* ignore */ }
 
         Editor.loadingDialog.hide();
 
@@ -381,13 +394,14 @@ export class Project {
                         path: "/" + fullPath
                     });
                     await traverse(fullPath);
-                } else if (name.endsWith(".ts") || name.endsWith(".json")) {
-                    // Adding file
+                } else if (name.endsWith(".ts") || name.endsWith(".json") || (fullPath.startsWith("node_modules/") && (name.endsWith(".js") || name.endsWith(".mjs") || name.endsWith(".cjs")))) {
+                    // Adding file (node_modules js files are needed for npm package bundling)
                     // console.log(fullPath);
+                    const isNodeModule = fullPath.startsWith("node_modules/");
                     assets.push({
                         id: crypto.randomUUID(),
                         name,
-                        type: name.endsWith(".ts") ? "component" : "json",
+                        type: name.endsWith(".ts") ? "component" : isNodeModule ? "file" : "json",
                         path: "/" + fullPath
                     });
                     files.push({ path: fullPath });

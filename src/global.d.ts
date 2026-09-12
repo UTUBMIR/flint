@@ -1,4 +1,5 @@
 declare module "*.css";
+declare module "@xterm/xterm/css/xterm.css";
 
 interface Window {
     FLINT_PREVIEW?: boolean;

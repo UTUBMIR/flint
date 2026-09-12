@@ -192,6 +192,7 @@ export default class AssetsWindow extends BaseEditorWindow {
         const parentPath = this.currentPath === "/" ? "/" : this.currentPath + "/";
         const children = this.allAssets
             .filter(asset => {
+                if (asset.path === "/node_modules" || asset.path.startsWith("/node_modules/")) return false;
                 const rest = asset.path.replace(parentPath, "");
                 return asset.path.startsWith(parentPath) && !rest.includes("/");
             })

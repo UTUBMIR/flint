@@ -148,13 +148,15 @@ export class BrowserFileSystem extends AbstractFileSystem {
     }
 
     private async getFileHandle(path: string, create = false) {
+        if (!this.rootHandle) throw new Error("File system not started");
         const { dir, name } = this.splitPath(path); // filename is `name`
         const dirHandle = await this.getDirHandle(dir); // only directories
-        return dirHandle.getFileHandle(name, { create });
+        return (dirHandle as FileSystemDirectoryHandle).getFileHandle(name, { create });
     }
 
     private async getDirHandle(path: string, create = true) {
-        let current = this.rootHandle;
+        if (!this.rootHandle) throw new Error("File system not started");
+        let current = this.rootHandle as FileSystemDirectoryHandle;
         for (const part of path.split("/").filter(Boolean)) {
             current = await current.getDirectoryHandle(part, { create }); // only directories
         }

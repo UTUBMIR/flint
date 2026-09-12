@@ -7,6 +7,7 @@ import Bundler from "./bundler";
 import ModuleLoader from "./module-loader";
 import { Project } from "./project";
 import ProjectConfig from "./project-config";
+import { DependencyService } from "../services/dependency-service";
 import { AbstractFileSystem } from "@flint/shared/file-system";
 import type { AssetData } from "../asset-types";
 import { isAbsoluteUrl, normalizeAssetUrl } from "./asset-paths";
@@ -407,12 +408,32 @@ ${js}
             }
 
             Builder.pushHotReloadToPreview();
-        }
-        else {
-            return false;
+            return true;
         }
 
-        return true;
+        try {
+            const markers = (window as unknown as { monaco?: { editor: { getModels: () => { uri: unknown }[]; getModelMarkers: (opts: { resource: unknown; owner: string }) => { message: string; code: unknown }[] } } }).monaco
+                ? (window as unknown as { monaco: { editor: { getModels: () => { uri: unknown }[]; getModelMarkers: (opts: { resource: unknown; owner: string }) => { message: string; code: unknown }[] } } }).monaco.editor.getModels().flatMap(m => (window as unknown as { monaco: { editor: { getModelMarkers: (opts: unknown) => { message: string; code: unknown }[] } } }).monaco.editor.getModelMarkers({ resource: (m as { uri: unknown }).uri, owner: "typescript" }))
+                : [];
+            const missing = new Set<string>();
+            const rawMessages: string[] = [];
+            for (const mk of markers) {
+                const msg: string = mk.message ?? "";
+                const code: unknown = typeof mk.code === "object" && mk.code ? (mk.code as { value: unknown }).value : mk.code;
+                if (code === 2307 || code === 2792 || /Cannot find module/.test(msg) || /Missing virtual file/.test(msg)) {
+                    rawMessages.push(msg);
+                    const raw = DependencyService.parseMissingModule(msg);
+                    if (raw && !raw.startsWith(".") && !raw.startsWith("/") && !raw.startsWith("@flint")) {
+                        const pkg = raw.split("/")[0] === "@" ? raw.split("/").slice(0, 2).join("/") : raw.split("/")[0] ?? raw;
+                        if (pkg) missing.add(pkg);
+                    }
+                }
+            }
+            if (missing.size > 0) {
+                DependencyService.emitBuildFailed([...missing], rawMessages.join("\n"));
+            }
+        } catch { /* ignore emit errors */ }
+        return false;
     }
 
     private static pushHotReloadToPreview() {

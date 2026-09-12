@@ -99,6 +99,12 @@ self.addEventListener("fetch", (event) => {
     const request = event.request;
     if (request.method !== "GET") return;
 
+    // Hard reload (Ctrl+Shift+R) must bypass stale cache for monaco and all assets (avoid defineProperty mismatch)
+    if (request.cache === "reload" || request.headers.get("Cache-Control")?.includes("no-cache")) {
+        event.respondWith(networkFirst(event));
+        return;
+    }
+
     const url = new URL(request.url);
     if (url.protocol !== "http:" && url.protocol !== "https:") return;
 

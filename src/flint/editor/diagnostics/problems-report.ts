@@ -175,6 +175,43 @@ function codeProblemRow(row: ReportRow): HTMLElement {
 
     rowEl.appendChild(location);
     rowEl.appendChild(message);
+    // Missing module autofix (2307/2792) — check if in package.json but not installed
+    const missing = row.message.match(/Cannot find module ['"]([^'"]+)['"]/);
+    const modName = missing?.[1];
+    if (modName) {
+        const pkgName = modName.split("/")[0] === "@" ? modName.split("/").slice(0, 2).join("/") : modName.split("/")[0] ?? modName;
+        const isBare = !modName.startsWith(".") && !modName.startsWith("/") && !modName.startsWith("@flint");
+        if (isBare && pkgName) {
+            const fixesEl = document.createElement("div");
+            fixesEl.className = "problems-fixes";
+            const btn = document.createElement("sl-button");
+            btn.size = "small";
+            btn.textContent = `Install "${pkgName}" (npm add)`;
+            btn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                const mod = await import("../ui/terminal-provider");
+                const res = await mod.TerminalProvider.runVisibleNpmInstall([pkgName]);
+                const { Notifier } = await import("../notifier");
+                if (res.installed.length > 0) Notifier.notify(`Installed ${pkgName}. Rebuilt.`, "success");
+                else if (res.failed.length > 0) Notifier.notify(`Failed to install ${pkgName}`, "danger");
+            });
+            fixesEl.appendChild(btn);
+            const btnAll = document.createElement("sl-button");
+            btnAll.size = "small";
+            btnAll.textContent = "Install all (npm install)";
+            btnAll.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                const mod = await import("../ui/terminal-provider");
+                const res = await mod.TerminalProvider.runVisibleNpmInstall(null);
+                const { Notifier } = await import("../notifier");
+                if (res.installed.length > 0) Notifier.notify(`Installed ${res.installed.join(", ")}`, "success");
+                else Notifier.notify("All dependencies up to date", "neutral");
+            });
+            fixesEl.appendChild(btnAll);
+            rowEl.appendChild(fixesEl);
+        }
+    }
+
     return rowEl;
 }
 

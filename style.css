@@ -6,6 +6,7 @@
     touch-action: none;
     height: 100%;
     --asset-max-width: 120px;
+    --flint-bg-terminal: #1e1e1e;
 
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -915,7 +916,7 @@ legend {
 }
 
 .code-editor-panel {
-    background: #1e1e1e;
+    background: var(--flint-bg-terminal);
 }
 
 .flint-code-editor-container {
@@ -926,6 +927,223 @@ legend {
 
 .code-editor-panel .monaco-editor {
     padding-top: 4px;
+}
+
+.flint-terminal-panel {
+    background: var(--flint-bg-terminal);
+}
+
+.flint-terminal-container {
+    flex: 1;
+    min-height: 0;
+    background: var(--flint-bg-terminal);
+    overflow: hidden;
+    padding: 4px;
+}
+
+.flint-terminal-container .xterm {
+    height: 100%;
+    padding: 2px;
+}
+
+.flint-terminal-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #888;
+    font-size: 13px;
+    padding: 16px;
+    text-align: center;
+    background: var(--flint-bg-terminal);
+}
+
+.flint-log-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--flint-bg-terminal);
+    overflow: hidden;
+}
+
+.flint-log-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    background: #252526;
+    border-bottom: 1px solid #2d2d30;
+    flex-shrink: 0;
+}
+
+.flint-log-filters {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.flint-log-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    user-select: none;
+    color: #cccccc;
+}
+
+.flint-log-filter input[type="checkbox"] {
+    accent-color: #007acc;
+    width: 12px;
+    height: 12px;
+}
+
+.flint-log-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.flint-log-clear-on-start {
+    --sl-font-size-small: 11px;
+    white-space: nowrap;
+}
+
+.flint-log-clear-on-start::part(base) {
+    font-size: 11px;
+}
+
+.flint-log-search {
+    width: 160px;
+}
+
+.flint-log-container {
+    flex: 1;
+    overflow: auto;
+    padding: 4px 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    background: var(--flint-bg-terminal);
+    user-select: text;
+}
+
+.flint-log-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.flint-log-row {
+    display: flex;
+    gap: 8px;
+    padding: 2px 8px;
+    border-bottom: 1px solid #2d2d2d;
+    align-items: flex-start;
+    word-break: break-all;
+    flex-wrap: wrap;
+}
+
+.flint-log-row:hover {
+    background: #2a2d2e;
+}
+
+.flint-log-time {
+    color: #858585;
+    font-size: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.flint-log-badge {
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.flint-log-badge.flint-log-trace {
+    background: #5a5a5a;
+    color: #fff;
+}
+
+.flint-log-badge.flint-log-debug {
+    background: #3c3c3c;
+    color: #cccccc;
+    border: 1px solid #555;
+}
+
+.flint-log-badge.flint-log-log {
+    background: #616161;
+    color: #fff;
+}
+
+.flint-log-badge.flint-log-info {
+    background: #0e639c;
+    color: #fff;
+}
+
+.flint-log-badge.flint-log-warn {
+    background: #ce9178;
+    color: #000;
+}
+
+.flint-log-badge.flint-log-error {
+    background: #f48771;
+    color: #000;
+}
+
+.flint-log-count {
+    background: #007acc;
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+    align-self: center;
+    min-width: 18px;
+    text-align: center;
+}
+
+.flint-log-message {
+    flex: 1;
+    color: #cccccc;
+    white-space: pre-wrap;
+}
+
+.flint-log-row.flint-log-error .flint-log-message {
+    color: #f48771;
+}
+
+.flint-log-row.flint-log-warn .flint-log-message {
+    color: #ce9178;
+}
+
+.flint-log-row.flint-log-info .flint-log-message {
+    color: #4fc1ff;
+}
+
+.flint-log-stack {
+    margin: 4px 0 0 0;
+    padding: 4px 6px;
+    background: #252526;
+    border: 1px solid #3c3c3c;
+    font-size: 10px;
+    color: #d4d4d4;
+    white-space: pre-wrap;
+    width: 100%;
+    flex-basis: 100%;
+    box-sizing: border-box;
+}
+
+.flint-log-empty {
+    padding: 16px;
+    text-align: center;
+    color: #888;
+    font-size: 12px;
 }
 
 .lm_dropTargetIndicator {
