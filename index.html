@@ -261,6 +261,14 @@
         </div>
     </sl-dialog>
 
+    <sl-dialog id="external-change-dialog" label="Project Changed on Disk">
+        <p><strong>project.json</strong> was changed outside the editor since it was last loaded or saved. Saving now will overwrite those external changes.</p>
+        <div slot="footer" style="display: flex; gap: 8px; justify-content: flex-end;">
+            <sl-button id="external-change-cancel-btn" variant="neutral">Cancel</sl-button>
+            <sl-button id="external-change-save-btn" variant="primary" disabled>Save anyways (5)</sl-button>
+        </div>
+    </sl-dialog>
+
     <div id="layout-root">
         <div id="layout-host"></div>
     </div>

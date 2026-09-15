@@ -73,16 +73,35 @@ export class Builder {
 
         await Promise.all([...uniqueDirs].map(dir => Builder.ensureDirectory(dir)));
 
+        const failures: { source: string; reason: string }[] = [];
+
         await Promise.allSettled(copies.map(({ source, dest }) => (async () => {
             try {
                 const data = await System.fileSystem.readFile(source);
                 await System.fileSystem.writeFile("build/" + dest, data);
             } catch (error) {
-                if (await System.fileSystem.fileExists(source)) {
-                    console.warn(`Failed to copy asset "${source}" to build:`, error);
+                let reason: string;
+                try {
+                    reason = await System.fileSystem.fileExists(source)
+                        ? `copy failed: ${error}`
+                        : "source file is missing from the project folder (deleted or renamed outside the editor?)";
+                } catch {
+                    reason = `copy failed: ${error}`;
                 }
+                failures.push({ source, reason });
+                console.warn(`Failed to copy asset "${source}" to build/: ${reason}`, error);
             }
-        })));
+        })()));
+
+        if (failures.length > 0) {
+            const preview = failures.slice(0, 3).map(f => `"${f.source}"`).join(", ");
+            const rest = failures.length > 3 ? ` and ${failures.length - 3} more` : "";
+            Notifier.notify(
+                `Failed to copy ${failures.length} asset(s) to build/: ${preview}${rest}. The game will fail to load them - see the console for details.`,
+                "warning",
+                15000
+            );
+        }
     }
 
     private static async ensureDirectory(path: string): Promise<void> {

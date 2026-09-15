@@ -19,6 +19,7 @@ import { DependencyService } from "../services/dependency-service";
 import { componentFileName, makeComponentSource } from "@flint/build";
 import { activeWindowService, editorAssetStore, editorSelectionService } from "../ui/window-services";
 import { refreshEditorWindows } from "../layout";
+import { ExternalChangeDialog } from "../external-change-dialog";
 
 type ProjectArchiveEntry = {
     kind: "directory";
@@ -268,7 +269,14 @@ export class Project {
         refreshEditorWindows("Hierarchy");
     }
 
-    public static async saveProject() {
+    public static async saveProject(): Promise<boolean> {
+        if (await Project.diskChangedExternally()) {
+            const choice = await ExternalChangeDialog.show();
+            if (choice === "cancel") {
+                return false;
+            }
+        }
+
         const data = ProjectLoader.serialize({ layers: System.world.getLayers().filter(l => !(l instanceof EditorLayer)), assets: AssetRegistry.serialize() });
         const writeProject = System.fileSystem.writeTextFile("project.json", data);
 
@@ -276,7 +284,39 @@ export class Project {
 
         await Promise.all([writeProject, writeMetadata]);
 
+        Project.lastSavedDiskContent = data;
         Project.markAsSaved();
+        return true;
+    }
+
+    /**
+     * Exact `project.json` text the editor last wrote (or loaded).
+     * Used to detect changes made outside the editor, which a blind
+     * save would otherwise silently overwrite. `null` means unknown
+     * yet (e.g. before the first load/save) - no warning in that case.
+     */
+    private static lastSavedDiskContent: string | null = null;
+
+    /**
+     * `true` when `project.json` on disk no longer matches what the
+     * editor last wrote or loaded. Never blocks saving on FS errors.
+     */
+    private static async diskChangedExternally(): Promise<boolean> {
+        if (Project.lastSavedDiskContent === null) {
+            return false;
+        }
+        if (!System.fileSystem.started) {
+            return false;
+        }
+        try {
+            if (!await System.fileSystem.fileExists("project.json")) {
+                return false;
+            }
+            const current = await System.fileSystem.readTextFile("project.json");
+            return current !== Project.lastSavedDiskContent;
+        } catch {
+            return false;
+        }
     }
 
     private static lastSavedHash: string = "";
@@ -317,6 +357,7 @@ export class Project {
 
             await Metadata.loadFromFile();
 
+            Project.lastSavedDiskContent = json;
             return true;
         } catch (e) {
             console.log("could not load the project:", e);

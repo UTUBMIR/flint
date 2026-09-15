@@ -4,6 +4,7 @@ import { System } from "@flint/runtime/system";
 import Editor from "@flint/editor/editor";
 import { ProcessIndicator } from "@flint/editor/editor";
 import { UnsavedChangesDialog } from "@flint/editor/unsaved-changes-dialog";
+import { ExternalChangeDialog } from "@flint/editor/external-change-dialog";
 import { BrowserFileSystem } from "@flint/shared/file-system";
 import { PhysicsWorld } from "@flint/runtime/physics-world";
 import { initializeEditorLayout, initializePopoutWindow } from "@flint/editor/layout";
@@ -45,5 +46,6 @@ else { // NOTE: This is the actual entry-point for the editor
 
     ProcessIndicator.init();
     UnsavedChangesDialog.init();
+    ExternalChangeDialog.init();
     Editor.init();
 }
