@@ -264,7 +264,7 @@ export class Project {
         }
 
         await ProjectConfig.ensureLoaded();
-        await Builder.buildForEditor();
+        await Builder.buildForEditor(true, { copyAssets: true });
         await Project.loadProject();
         refreshEditorWindows("Hierarchy");
     }
@@ -396,7 +396,7 @@ export class Project {
         }
         await System.fileSystem.createDir("assets");
 
-        await Builder.buildForEditor();
+        await Builder.buildForEditor(true, { copyAssets: true });
 
         try {
             await CodeEditor.resetAndReloadLibraries();
@@ -517,7 +517,7 @@ export class Project {
         const template = Editor.defaultProject;
         await Project.ensureTemplateFiles(template.files);
         await Project.ensureTemplateComponents(template.components);
-        await Builder.buildForEditor();
+        await Builder.buildForEditor(true, { copyAssets: true });
         await ProjectLoader.load(Editor.defaultProject.data);
     }
 

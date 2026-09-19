@@ -11,7 +11,7 @@ import { DependencyService } from "../services/dependency-service";
 import { AbstractFileSystem } from "@flint/shared/file-system";
 import type { AssetData } from "../asset-types";
 import { isAbsoluteUrl, normalizeAssetUrl } from "./asset-paths";
-import { AssetRegistry } from "@flint/runtime/assets";
+import { AssetRegistry, AssetRequestSystem, type AssetMeta } from "@flint/runtime/assets";
 import { ProjectLoader, type RawProjectData } from "@flint/runtime/project-loader";
 import { HotReload } from "@flint/runtime/hot-reload";
 import { editorAssetStore } from "../ui/window-services";
@@ -29,23 +29,48 @@ export class Builder {
         return Builder.compiled;
     }
 
-    public static async copyAssetsToBuild(): Promise<void> {
+    /**
+     * Copies registered assets from the project folder into `build/`
+     * so the runtime (which reads via `build/<url>`) can load them.
+     *
+     * Pass `onlyIds` to copy just a subset (used for just-in-time
+     * copies of newly registered assets). Omit it to copy everything
+     * (used by the manual "Reload Assets" action and release builds).
+     */
+    public static async copyAssetsToBuild(onlyIds?: Set<string>): Promise<void> {
         if (!System.fileSystem.started) {
             return;
         }
 
         let assets: RawProjectData["assets"] | undefined;
-        try {
-            if (!await System.fileSystem.fileExists("project.json")) {
-                return;
+        // When copying a subset we can use the in-memory registry instead
+        // of re-reading project.json (the new asset may not be saved yet).
+        if (onlyIds) {
+            assets = [...AssetRegistry.meta.values()].filter(m => onlyIds.has(m.id)) as RawProjectData["assets"];
+        } else {
+            // Full copy: union project.json (source of truth on project
+            // open, when the registry may still hold the previous project)
+            // with the in-memory registry (covers not-yet-saved additions).
+            const merged = new Map<string, RawProjectData["assets"][number]>();
+            try {
+                if (await System.fileSystem.fileExists("project.json")) {
+                    const disk = (JSON.parse(await System.fileSystem.readTextFile("project.json")) as RawProjectData).assets;
+                    if (Array.isArray(disk)) {
+                        for (const meta of disk) {
+                            merged.set(meta.id, meta);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn("Failed to read project.json for asset copying:", error);
             }
-            assets = (JSON.parse(await System.fileSystem.readTextFile("project.json")) as RawProjectData).assets;
-        } catch (error) {
-            console.warn("Failed to read project.json for asset copying:", error);
-            return;
+            for (const meta of AssetRegistry.meta.values()) {
+                merged.set(meta.id, meta as RawProjectData["assets"][number]);
+            }
+            assets = [...merged.values()];
         }
 
-        if (!Array.isArray(assets)) {
+        if (!Array.isArray(assets) || assets.length === 0) {
             return;
         }
 
@@ -53,6 +78,9 @@ export class Builder {
         const copies: { source: string; dest: string }[] = [];
 
         for (const meta of assets) {
+            if (onlyIds && !onlyIds.has(meta.id)) {
+                continue;
+            }
             if (isAbsoluteUrl(meta.url)) {
                 continue;
             }
@@ -101,6 +129,64 @@ export class Builder {
                 "warning",
                 15000
             );
+        }
+    }
+
+    /**
+     * Copies a single newly-registered asset into `build/` and, when it
+     * is marked as `preload`, requests its runtime load immediately.
+     * This is the just-in-time path used when the user adds an asset,
+     * so recompiles don't need to recopy everything.
+     */
+    public static async loadAndCopyNewAsset(meta: AssetMeta): Promise<void> {
+        if (!System.fileSystem.started) {
+            return;
+        }
+
+        if (!isAbsoluteUrl(meta.url)) {
+            await Builder.copyAssetsToBuild(new Set([meta.id]));
+        }
+
+        if (meta.preload) {
+            try {
+                await AssetRequestSystem.request(meta.id);
+            } catch (error) {
+                console.warn(`Failed to load newly registered asset "${meta.url}":`, error);
+            }
+        }
+    }
+
+    /**
+     * Manual "reload + recopy" path (toolbar button): recopies every
+     * registered asset into `build/` and (re)request runtime loads for
+     * preload assets. Use after external file changes or renames.
+     */
+    public static async reloadAssets(): Promise<void> {
+        if (!System.fileSystem.started) {
+            Notifier.notify("Open project first.", "danger");
+            return;
+        }
+
+        const processActions = ProcessIndicator.startProcess("Reloading assets", "primary");
+        try {
+            await Builder.copyAssetsToBuild();
+
+            for (const meta of AssetRegistry.meta.values()) {
+                if (!meta.preload) continue;
+                try {
+                    AssetRequestSystem.request(meta.id);
+                } catch (error) {
+                    console.warn(`Failed to reload asset "${meta.url}":`, error);
+                }
+            }
+            await AssetRequestSystem.waitAll();
+
+            processActions.complete(`Reloaded ${AssetRegistry.meta.size} asset(s)`);
+            Notifier.notify(`Reloaded ${AssetRegistry.meta.size} asset(s) to build/.`, "success");
+        } catch (error) {
+            console.warn("Failed to reload assets:", error);
+            processActions.fail("Asset reload failed");
+            Notifier.notify(`Could not reload assets: ${error}`, "danger");
         }
     }
 
@@ -174,12 +260,14 @@ export class Builder {
         emitErrorMessages: boolean = true,
         entryPoint?: string,
         sourceMap?: boolean,
-        options: { stripEditorDecorators?: boolean; incrementalRebuilds?: boolean } = {}
+        options: { stripEditorDecorators?: boolean; incrementalRebuilds?: boolean; copyAssets?: boolean } = {}
     ): Promise<boolean> {
         const started = performance.now();
         const processActions = ProcessIndicator.startProcess("Compiling the project", "primary");
 
-        const copyAssetsPromise = Builder.copyAssetsToBuild();
+        // Asset copies are opt-in: recompiles skip them (new assets are
+        // copied just-in-time on registration, the rest via Reload Assets).
+        const copyAssetsPromise = options.copyAssets ? Builder.copyAssetsToBuild() : null;
 
         const textFilesResult = await Project.getAllTextFiles();
         const textFiles = textFilesResult.files;
@@ -215,7 +303,9 @@ export class Builder {
             return false;
         }
         finally {
-            await copyAssetsPromise;
+            if (copyAssetsPromise) {
+                await copyAssetsPromise;
+            }
         }
     }
 
@@ -234,7 +324,7 @@ export class Builder {
         Bundler.files.set("index.ts", ProjectConfig.userIndex);
         Bundler.files.set("main.ts", this.makeMainTs(projectData, "editor"));
 
-        if (!await Builder.compile(true, "/main.ts", false, { stripEditorDecorators: true })) return false;
+        if (!await Builder.compile(true, "/main.ts", false, { stripEditorDecorators: true, copyAssets: true })) return false;
 
         await System.fileSystem.writeTextFile(
             "build/index.html",
@@ -253,7 +343,7 @@ export class Builder {
         Bundler.files.set("index.ts", ProjectConfig.userIndex);
         Bundler.files.set("main.ts", this.makeMainTs(projectData, mode));
 
-        if (!await Builder.compile(true, "/main.ts", undefined, { stripEditorDecorators: true })) return null;
+        if (!await Builder.compile(true, "/main.ts", undefined, { stripEditorDecorators: true, copyAssets: true })) return null;
 
         return { code: Builder.compiled, project: JSON.parse(projectData) as RawProjectData };
     }
@@ -406,7 +496,7 @@ ${js}
 
 
 
-    public static async buildForEditor(emitErrorMessages: boolean = true): Promise<boolean> {
+    public static async buildForEditor(emitErrorMessages: boolean = true, opts: { copyAssets?: boolean } = {}): Promise<boolean> {
         if (!System.fileSystem.started) {
             Notifier.notify("Open project first.", "danger");
             return false;
@@ -415,7 +505,7 @@ ${js}
         Bundler.files.clear();
         Bundler.files.set("index.ts", ProjectConfig.fullIndex);
 
-        if (await Builder.compile(emitErrorMessages)) {
+        if (await Builder.compile(emitErrorMessages, undefined, undefined, { copyAssets: opts.copyAssets ?? false })) {
             const module = await ModuleLoader.load(Builder.compiled);
 
             for (const { name } of ProjectConfig.config.components) {

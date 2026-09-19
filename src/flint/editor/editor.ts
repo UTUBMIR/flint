@@ -4,7 +4,7 @@ import Vector2 from "@flint/shared/vector2";
 import { engineSrcFiles, editorSrcFiles } from "../engine-files";
 import { defaultProjectComponents, defaultProjectData, defaultProjectFiles } from "@flint/build";
 import Bundler from "./project/bundler";
-import { normalizeAssetUrl } from "./project/asset-paths";
+import { isAbsoluteUrl, normalizeAssetUrl } from "./project/asset-paths";
 import { Project } from "./project/project";
 import type HierarchyWindow from "./windows/hierarchy";
 import { EditorName as EditorName } from "./windows/hierarchy";
@@ -339,6 +339,15 @@ class ToolBarActions {
 
     }
 
+    public static async reloadAssets() {
+        try {
+            await Builder.reloadAssets();
+        }
+        catch (e: unknown) {
+            Notifier.notify("Could not reload assets: " + e, "warning");
+        }
+    }
+
     public static async runProject() {
         const start = Editor.runButtonIcon.name === "play";
         Editor.runButtonIcon.name = start ? "stop" : "play";
@@ -566,12 +575,21 @@ export default class Editor {
 
         createButton.addEventListener("click", () => {
             createAssetDialog.hide();
-            AssetRegistry.register({
+            const meta = {
                 id: crypto.randomUUID(),
                 url: normalizeAssetUrl(createInput.value),
                 type: +typeSelect.value,
                 preload: preloadCheckbox.checked
-            });
+            };
+            AssetRegistry.register(meta);
+            // Just-in-time: copy + load only this asset so recompiles
+            // don't need to recopy everything. Persist the registration.
+            void Builder.loadAndCopyNewAsset(meta)
+                .then(() => Project.saveProject())
+                .catch(error => {
+                    console.warn("Failed to copy newly registered asset:", error);
+                    void Project.saveProject();
+                });
         });
 
         const viewAssetsDialog = document.getElementById("view-assets-dialog")! as SlDialog;
@@ -579,6 +597,10 @@ export default class Editor {
         document.getElementById("view-assets-button")?.addEventListener("click", () => {
             Editor.fillAssetTable(assetsTable);
             viewAssetsDialog.show();
+        });
+
+        document.getElementById("reload-assets-button")?.addEventListener("click", () => {
+            void ToolBarActions.reloadAssets();
         });
 
         document.getElementById("new-component-general-button")?.addEventListener("click", () => {
@@ -779,7 +801,14 @@ export default class Editor {
                 }
 
                 asset.url = normalizeAssetUrl(newUrl);
-                void Project.saveProject().then(() => Editor.fillAssetTable(table));
+                // Just-in-time: make the renamed target available in build/.
+                void Builder.loadAndCopyNewAsset(asset)
+                    .then(() => Project.saveProject())
+                    .then(() => Editor.fillAssetTable(table))
+                    .catch(error => {
+                        console.warn("Failed to copy renamed asset:", error);
+                        void Project.saveProject().then(() => Editor.fillAssetTable(table));
+                    });
             });
 
             const removeButton = document.createElement("sl-button") as SlButton;
@@ -787,7 +816,17 @@ export default class Editor {
             removeButton.variant = "danger";
             removeButton.textContent = "Remove";
             removeButton.addEventListener("click", () => {
+                const removedUrl = asset.url;
                 AssetRegistry.meta.delete(asset.id);
+                AssetRegistry.runtime.delete(asset.id);
+                // Best-effort: drop the stale build/ copy; full cleanup
+                // is always available via Reload Assets.
+                if (!isAbsoluteUrl(removedUrl)) {
+                    const dest = removedUrl.replace(/^\/+/, "");
+                    if (dest) {
+                        void System.fileSystem.delete("build/" + dest).catch(() => undefined);
+                    }
+                }
                 void Project.saveProject().then(() => Editor.fillAssetTable(table));
             });
 
