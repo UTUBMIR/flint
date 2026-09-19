@@ -31,17 +31,51 @@ let editorWindowRegistry: EditorWindowRegistry | null = null;
 const knownWindowStacks = new Set<LayoutStackItem>();
 const windowStacksByInstanceId = new Map<string, LayoutStackItem>();
 
-type LiveResizeRowOrColumn = RowOrColumn & {
+type LiveResizeRowOrColumn = {
     _dimension: "width" | "height";
     _splitterPosition: number | null;
+    _splitterMinPosition: number | null;
+    _splitterMaxPosition: number | null;
     _liveResizeBeforeSize: number | undefined;
     _liveResizeAfterSize: number | undefined;
     getSplitItems: (splitter: { element: HTMLElement }) => {
-        before: { element: HTMLElement; size: number; updateSize: (force: boolean) => void };
-        after: { element: HTMLElement; size: number; updateSize: (force: boolean) => void };
+        before: MinSizeContentItem & { element: HTMLElement; size: number; updateSize: (force: boolean) => void };
+        after: MinSizeContentItem & { element: HTMLElement; size: number; updateSize: (force: boolean) => void };
     };
+    calculateContentItemMinSize: (contentItem: MinSizeContentItem) => number;
     updateSize: (force: boolean) => void;
 };
+
+type MinSizeContentItem = {
+    readonly isRow: boolean;
+    readonly isColumn: boolean;
+    readonly isStack: boolean;
+    readonly contentItems: MinSizeContentItem[];
+};
+function minExtentAlongAxis(
+    item: MinSizeContentItem,
+    splitAlongColumn: boolean,
+    leafMinSize: (leaf: MinSizeContentItem) => number
+): number {
+    const children = item.contentItems;
+    if (item.isRow || item.isColumn) {
+        if (children.length === 0) {
+            return leafMinSize(item);
+        }
+        const extents = children.map(child => minExtentAlongAxis(child, splitAlongColumn, leafMinSize));
+        if (item.isColumn === splitAlongColumn) {
+            return extents.reduce((total, extent) => total + extent, 0);
+        }
+        return Math.max(...extents);
+    }
+    if (item.isStack) {
+        if (children.length === 0) {
+            return leafMinSize(item);
+        }
+        return Math.max(...children.map(child => minExtentAlongAxis(child, splitAlongColumn, leafMinSize)));
+    }
+    return leafMinSize(item);
+}
 
 type AnimatedDropTargetIndicator = {
     _element?: HTMLElement;
@@ -318,6 +352,15 @@ function installLiveSplitterResize() {
         const items = this.getSplitItems(splitter);
         this._liveResizeBeforeSize = Number.parseFloat(items.before.element.style[this._dimension]) || 0;
         this._liveResizeAfterSize = Number.parseFloat(items.after.element.style[this._dimension]) || 0;
+
+        if (this._liveResizeBeforeSize !== undefined && this._liveResizeAfterSize !== undefined) {
+            const splitAlongColumn = this._dimension === "height";
+            const leafMinSize = (leaf: MinSizeContentItem) => this.calculateContentItemMinSize(leaf);
+            const beforeMinSize = minExtentAlongAxis(items.before, splitAlongColumn, leafMinSize);
+            const afterMinSize = minExtentAlongAxis(items.after, splitAlongColumn, leafMinSize);
+            this._splitterMinPosition = -1 * (this._liveResizeBeforeSize - beforeMinSize);
+            this._splitterMaxPosition = this._liveResizeAfterSize - afterMinSize;
+        }
     };
 
     prototype.onSplitterDrag = function (splitter, offsetX, offsetY) {
@@ -786,7 +829,7 @@ export function initializeEditorLayout(): GoldenLayout {
         window.clearTimeout(saveTimeout);
         saveTimeout = window.setTimeout(() => saveLayout(layout), 100);
     }, componentItem => getWindowControlsFromItem(componentItem as LayoutComponentItem),
-    handlePopoutComponent);
+        handlePopoutComponent);
 
     (layout as unknown as { on: (event: string, callback: (item: unknown) => void) => void }).on("itemCreated", (event: unknown) => {
         const item = (event as { _target?: unknown })._target as LayoutComponentItem | undefined;
@@ -947,8 +990,8 @@ export function initializePopoutWindow(config: PopoutComponentConfig): void {
         activateWindow: (instanceId: string) => {
             activeWindowService.setActiveWindow(config.componentType as WindowType, instanceId);
         },
-        refreshWindows: () => {},
-        refreshWindowControls: () => {},
+        refreshWindows: () => { },
+        refreshWindowControls: () => { },
         spawnWindow: () => { throw new Error("Cannot spawn windows in popout"); }
     };
 
@@ -994,7 +1037,7 @@ export function initializePopoutWindow(config: PopoutComponentConfig): void {
             component: { rootHtmlElement: root },
             virtual: false
         };
-    }, () => {});
+    }, () => { });
 
     layout.loadLayout(createPopoutLayoutConfig(
         config.componentType as WindowType,
