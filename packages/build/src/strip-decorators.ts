@@ -1,5 +1,5 @@
 export const editorDecoratorPattern =
-    /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector)(\s*\([^)]*\))?\s*$/gm;
+    /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector|Range)(\s*\([^)]*\))?\s*$/gm;
 
 function getInspectorMetadataImport(stripEditorDecorators: boolean): string {
     if (stripEditorDecorators) {

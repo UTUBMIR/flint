@@ -20,7 +20,7 @@ export default class Bundler {
         });
     }
     private static readonly editorDecoratorPattern =
-        /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector)(\s*\([^)]*\))?\s*$/gm;
+        /^\s*@(HideInInspector|ShowInInspector|NonSerialized|FieldInspector|SelectInspector|Range)(\s*\([^)]*\))?\s*$/gm;
 
     private static getInspectorMetadataImport(stripEditorDecorators: boolean): string {
         if (stripEditorDecorators) {
@@ -263,7 +263,7 @@ export default class Bundler {
 
                     const loader = effectivePath.endsWith(".json") ? "json" : effectivePath.endsWith(".ts") || effectivePath.endsWith(".d.ts") ? "ts" : "js";
                     return {
-                        contents: Bundler.transformSource(content, effectivePath, true),
+                        contents: Bundler.transformSource(content, effectivePath, stripEditorDecorators),
                         loader
                     };
                 });
